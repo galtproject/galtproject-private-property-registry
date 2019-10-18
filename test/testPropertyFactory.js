@@ -17,10 +17,13 @@ contract('PrivatePropertyFactory', accounts => {
     await this.galtToken.mint(owner, galtFee);
     await this.galtToken.mint(alice, galtFee);
 
-    this.propertyFactory = await PrivatePropertyFactory.new(this.galtToken.address, ethFee, galtFee);
     this.propertyRegistry = await PrivatePropertyGlobalRegistry.new();
-
-    await this.propertyFactory.setRegistry(this.propertyRegistry.address);
+    this.propertyFactory = await PrivatePropertyFactory.new(
+      this.propertyRegistry.address,
+      this.galtToken.address,
+      0,
+      0
+    );
     await this.propertyRegistry.setFactory(this.propertyFactory.address);
 
     await this.propertyFactory.setEthFee(ethFee);
