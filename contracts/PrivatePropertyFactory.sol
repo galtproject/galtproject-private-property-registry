@@ -13,37 +13,31 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./PrivatePropertyToken.sol";
 import "./PrivatePropertyGlobalRegistry.sol";
-import "./Donatable.sol";
+import "./ChargesFee.sol";
 
 
 /**
  * Builds Token and registers it in PrivatePropertyGlobalRegistry
  */
-contract PrivatePropertyFactory is Ownable, Donatable {
+contract PrivatePropertyFactory is Ownable, ChargesFee {
   event Build(address token);
+  event SetGlobalRegistry(address globalRegistry);
 
-  PrivatePropertyGlobalRegistry public registry;
-  IERC20 public galtToken;
+  PrivatePropertyGlobalRegistry public globalRegistry;
 
-  uint256 public ethFee;
-  uint256 public galtFee;
-
-  constructor(address _galtToken) public Ownable() {
-    galtToken = IERC20(_galtToken);
+  constructor(address _globalRegistry, address _galtToken, uint256 _ethFee, uint256 _galtFee)
+    public
+    ChargesFee(_galtToken, _ethFee, _galtFee)
+    Ownable()
+  {
+    globalRegistry = PrivatePropertyGlobalRegistry(_globalRegistry);
   }
 
   // OWNER INTERFACE
 
-  function setRegistry(PrivatePropertyGlobalRegistry _registry) external onlyOwner {
-    registry = _registry;
-  }
-
-  function setEthFee(uint256 _ethFee) external onlyOwner {
-    ethFee = _ethFee;
-  }
-
-  function setGaltFee(uint256 _galtFee) external onlyOwner {
-    galtFee = _galtFee;
+  function setGlobalRegistry(address _globalRegistry) external onlyOwner {
+    globalRegistry = PrivatePropertyGlobalRegistry(_globalRegistry);
+    emit SetGlobalRegistry(_globalRegistry);
   }
 
   // USER INTERFACE
@@ -67,20 +61,10 @@ contract PrivatePropertyFactory is Ownable, Donatable {
     property.setGeoDataManager(msg.sender);
     property.transferOwnership(msg.sender);
 
-    registry.add(address(property));
+    globalRegistry.add(address(property));
 
     emit Build(address(property));
 
     return address(property);
-  }
-
-  // INTERNAL
-
-  function _acceptPayment() internal {
-    if (msg.value == 0) {
-      require(galtToken.transferFrom(msg.sender, address(this), galtFee) == true, "Failed to transfer GALT tokens");
-    } else {
-      require(msg.value == ethFee, "Fee and msg.value not equal");
-    }
   }
 }
