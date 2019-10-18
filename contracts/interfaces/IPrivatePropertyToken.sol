@@ -33,12 +33,15 @@ contract IPrivatePropertyToken {
     bytes32 _ledgerIdentifier,
     string calldata _humanAddress,
     string calldata _dataLink
-  ) external;
+  )
+    external;
+
   function setContour(
     uint256 _privatePropertyId,
     uint256[] calldata _contour,
     int256 _highestPoint
-  ) external;
+  )
+    external;
 
   function mint(address _to) external;
 

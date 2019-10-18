@@ -9,7 +9,6 @@ MintableErc20Token.numberFormat = 'String';
 PrivatePropertyMarket.numberFormat = 'String';
 
 const { web3 } = PrivatePropertyMarket;
-const { utf8ToHex } = web3.utils;
 
 const { zeroAddress, ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -55,7 +54,7 @@ Object.freeze(PaymentMethods);
 Object.freeze(Currency);
 
 contract.only('PrivatePropertyMarket', accounts => {
-  const [coreTeam, minter, cancellationRegistry, alice, bob, charlie, dan] = accounts;
+  const [coreTeam, minter, alice, bob, charlie] = accounts;
 
   const dataAddress = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3jq';
 
@@ -103,6 +102,7 @@ contract.only('PrivatePropertyMarket', accounts => {
   describe('sale order submission', () => {
     describe('with ETH order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
+        assert.equal(await this.privatePropertyMarket.owner(), coreTeam);
         let res = await this.privatePropertyMarket.createSaleOrder(
           this.privatePropertyToken.address,
           [this.privatePropertyTokenId1],
