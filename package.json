@@ -1,7 +1,7 @@
 {
-  "name": "solidity-bootstrap",
+  "name": "@galtproject/private-property-registry",
   "version": "1.0.0",
-  "description": "Bootstrap for Truffle/Solidity projects",
+  "description": "Private Property Registry",
   "directories": {
     "test": "test"
   },
