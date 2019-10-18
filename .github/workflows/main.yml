@@ -25,4 +25,5 @@ jobs:
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+        npm install
         make lint && make compile && make test
