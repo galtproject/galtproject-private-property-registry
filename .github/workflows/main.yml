@@ -17,6 +17,12 @@ jobs:
       with:
         node-version: '10.x'
     - name: Run tests
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       run: |
-        npm install
+        eval $(ssh-agent -s)
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
         make lint && make compile && make test
