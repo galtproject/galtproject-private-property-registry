@@ -53,7 +53,7 @@ Object.freeze(ValidationStatus);
 Object.freeze(PaymentMethods);
 Object.freeze(Currency);
 
-contract.only('PrivatePropertyMarket', accounts => {
+contract('PrivatePropertyMarket', accounts => {
   const [coreTeam, minter, alice, bob, charlie] = accounts;
 
   const dataAddress = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3jq';
