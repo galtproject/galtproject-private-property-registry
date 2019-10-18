@@ -11,20 +11,20 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./interfaces/IPrivatePropertyToken.sol";
 
 
-contract PrivatePropertyToken is ERC721Full, Ownable {
-  enum AreaSource {
-    USER_INPUT,
-    CONTRACT
-  }
-
-  enum TokenType {
-    NULL,
-    LAND_PLOT,
-    BUILDING,
-    ROOM
-  }
+contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
+  event SetMinter(address indexed minter);
+  event SetGeoDataManager(address indexed geoDataManager);
+  event SetDetails(
+    address indexed geoDataManager,
+    uint256 indexed privatePropertyId
+  );
+  event SetContour(
+    address indexed geoDataManager,
+    uint256 indexed privatePropertyId
+  );
 
   struct Property {
     // (LAND_PLOT,BUILDING,ROOM) Type cannot be changed after token creation
@@ -44,7 +44,7 @@ contract PrivatePropertyToken is ERC721Full, Ownable {
     string dataLink;
   }
 
-  uint256 public tokenIdCounter = 0;
+  uint256 public tokenIdCounter;
   address public minter;
   address public geoDataManager;
 
@@ -69,10 +69,14 @@ contract PrivatePropertyToken is ERC721Full, Ownable {
 
   function setMinter(address _minter) public onlyOwner {
     minter = _minter;
+
+    emit SetMinter(_minter);
   }
 
   function setGeoDataManager(address _geoDataManager) public onlyOwner {
     geoDataManager = _geoDataManager;
+
+    emit SetGeoDataManager(_geoDataManager);
   }
 
   //  MINTER INTERFACE
@@ -103,6 +107,8 @@ contract PrivatePropertyToken is ERC721Full, Ownable {
     p.ledgerIdentifier = _ledgerIdentifier;
     p.humanAddress = _humanAddress;
     p.dataLink = _dataLink;
+
+    emit SetDetails(msg.sender, _privatePropertyId);
   }
 
   function setContour(
@@ -117,6 +123,8 @@ contract PrivatePropertyToken is ERC721Full, Ownable {
 
     p.contour = _contour;
     p.highestPoint = _highestPoint;
+
+    emit SetContour(msg.sender, _privatePropertyId);
   }
 
   // INTERNAL
@@ -132,16 +140,23 @@ contract PrivatePropertyToken is ERC721Full, Ownable {
     return _tokensOfOwner(_owner);
   }
 
-  function getDetails(uint256 _privatePropertyId) external view returns (
-    TokenType tokenType,
-    uint256[] memory contour,
-    int256 highestPoint,
-    AreaSource areaSource,
-    uint256 area,
-    bytes32 ledgerIdentifier,
-    string memory humanAddress,
-    string memory dataLink
-  )
+  function exists(uint256 _tokenId) external view returns (bool) {
+    return _exists(_tokenId);
+  }
+
+  function getDetails(uint256 _privatePropertyId)
+    external
+    view
+    returns (
+      TokenType tokenType,
+      uint256[] memory contour,
+      int256 highestPoint,
+      AreaSource areaSource,
+      uint256 area,
+      bytes32 ledgerIdentifier,
+      string memory humanAddress,
+      string memory dataLink
+    )
   {
     Property storage p = properties[_privatePropertyId];
 

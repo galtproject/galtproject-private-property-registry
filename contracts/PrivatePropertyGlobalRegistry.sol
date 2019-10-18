@@ -14,10 +14,12 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 contract PrivatePropertyGlobalRegistry is Ownable {
   event Add(address token, address factory);
+  event SetFactory(address factory);
 
   address public factory;
 
-  address[] public registeredTokens;
+  address[] public privatePropertyTokens;
+  mapping(address => bool) public isTokenRegistered;
 
   modifier onlyFactory() {
     require(msg.sender == factory, "Only factory allowed");
@@ -29,6 +31,7 @@ contract PrivatePropertyGlobalRegistry is Ownable {
 
   function setFactory(address _factory) external onlyOwner {
     factory = _factory;
+    emit SetFactory(_factory);
   }
 
   function add(
@@ -37,11 +40,12 @@ contract PrivatePropertyGlobalRegistry is Ownable {
     external
     onlyFactory
   {
-    registeredTokens.push(_privatePropertyToken);
+    privatePropertyTokens.push(_privatePropertyToken);
+    isTokenRegistered[_privatePropertyToken] = true;
     emit Add(_privatePropertyToken, msg.sender);
   }
 
-  function getRegisteredTokens() external view returns (address[] memory) {
-    return registeredTokens;
+  function getPrivatePropertyTokens() external view returns (address[] memory) {
+    return privatePropertyTokens;
   }
 }
