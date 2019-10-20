@@ -144,6 +144,42 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     return _exists(_tokenId);
   }
 
+  function getType(uint256 _tokenId) external view returns (TokenType) {
+    return properties[_tokenId].tokenType;
+  }
+
+  function getContour(uint256 _tokenId) external view returns (uint256[] memory) {
+    return properties[_tokenId].contour;
+  }
+
+  function getHighestPoint(uint256 _tokenId) external view returns (int256) {
+    return properties[_tokenId].highestPoint;
+  }
+
+  function getHumanAddress(uint256 _tokenId) external view returns (string memory) {
+    return properties[_tokenId].humanAddress;
+  }
+
+  function getArea(uint256 _tokenId) external view returns (uint256) {
+    return properties[_tokenId].area;
+  }
+
+  function getAreaSource(uint256 _tokenId) external view returns (AreaSource) {
+    return properties[_tokenId].areaSource;
+  }
+
+  function getLedgerIdentifier(uint256 _tokenId) external view returns (bytes32) {
+    return properties[_tokenId].ledgerIdentifier;
+  }
+
+  function getDataLink(uint256 _tokenId) external view returns (string memory) {
+    return properties[_tokenId].dataLink;
+  }
+
+  function getContourLength(uint256 _tokenId) external view returns (uint256) {
+    return properties[_tokenId].contour.length;
+  }
+
   function getDetails(uint256 _privatePropertyId)
     external
     view
