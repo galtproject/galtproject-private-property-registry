@@ -1,5 +1,5 @@
 {
-  "name": "solidity-bootstrap",
+  "name": "@galtproject/private-property-registry",
   "version": "1.0.0",
   "description": "Bootstrap for Truffle/Solidity projects",
   "directories": {
@@ -21,7 +21,7 @@
   "engines": {
     "node": "^10.15.3"
   },
-  "repository": "https://github.com/galtproject/solidity-bootstrap",
+  "repository": "https://github.com/galtproject/galtproject-private-property-registry",
   "scripts": {
     "test": "truffle test --network test",
     "compile": "truffle compile",
