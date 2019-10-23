@@ -104,7 +104,7 @@ contract PrivatePropertyMarket is Marketable, Ownable, ChargesFee {
 
   // GETTERS
 
-  function getSaleOrderDetails(uint256 _rId) external view returns (uint256[] memory propertyTokenIds, address propertyToken) {
-    return (saleOrderDetails[_rId].propertyTokenIds, saleOrderDetails[_rId].propertyToken);
+  function getSaleOrderDetails(uint256 _rId) external view returns (uint256[] memory propertyTokenIds, address propertyToken, string dataAddress) {
+    return (saleOrderDetails[_rId].propertyTokenIds, saleOrderDetails[_rId].propertyToken, saleOrderDetails[_rId].dataAddress);
   }
 }
