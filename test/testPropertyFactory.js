@@ -12,6 +12,8 @@ contract('PrivatePropertyFactory', accounts => {
   const ethFee = ether(10);
   const galtFee = ether(20);
 
+  const registryDataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3j1';
+
   beforeEach(async function() {
     this.galtToken = await MintableErc20Token.new();
     await this.galtToken.mint(owner, galtFee);
@@ -34,7 +36,7 @@ contract('PrivatePropertyFactory', accounts => {
     assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), 0);
 
     await this.galtToken.approve(this.propertyFactory.address, galtFee, { from: alice });
-    await this.propertyFactory.build('Buildings', 'BDL', { from: alice });
+    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, { from: alice });
 
     assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), galtFee);
 
@@ -50,7 +52,7 @@ contract('PrivatePropertyFactory', accounts => {
     const aliceBalanceBefore = await web3.eth.getBalance(alice);
     let factoryBalanceBefore = await web3.eth.getBalance(this.propertyFactory.address);
 
-    await this.propertyFactory.build('Buildings', 'BDL', { from: alice, value: ethFee });
+    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, { from: alice, value: ethFee });
 
     const aliceBalanceAfter = await web3.eth.getBalance(alice);
     let factoryBalanceAfter = await web3.eth.getBalance(this.propertyFactory.address);
