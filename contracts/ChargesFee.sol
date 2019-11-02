@@ -26,7 +26,7 @@ contract ChargesFee is Ownable {
 
   uint256 public ethFee;
   uint256 public galtFee;
-  
+
   address public feeManager;
 
   constructor(address _galtToken, uint256 _ethFee, uint256 _galtFee) public {
@@ -39,15 +39,15 @@ contract ChargesFee is Ownable {
     require(msg.sender == feeManager, "ChargesFee: caller is not the feeManager");
     _;
   }
-  
+
   // Setters
-  
+
   function setFeeManager(address _addr) external onlyOwner {
     feeManager = _addr;
 
     emit SetFeeManager(_addr);
   }
-  
+
   function setEthFee(uint256 _ethFee) external onlyFeeManager {
     ethFee = _ethFee;
 
