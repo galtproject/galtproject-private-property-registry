@@ -16,6 +16,7 @@ import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 
 contract ChargesFee is Ownable {
   event SetFeeManager(address addr);
+  event SetFeeCollector(address addr);
   event SetEthFee(uint256 ethFee);
   event SetGaltFee(uint256 ethFee);
   event WithdrawEth(address indexed to, uint256 amount);
@@ -28,6 +29,7 @@ contract ChargesFee is Ownable {
   uint256 public galtFee;
 
   address public feeManager;
+  address public feeCollector;
 
   constructor(address _galtToken, uint256 _ethFee, uint256 _galtFee) public {
     galtToken = IERC20(_galtToken);
@@ -40,12 +42,23 @@ contract ChargesFee is Ownable {
     _;
   }
 
+  modifier onlyFeeCollector() {
+    require(msg.sender == feeCollector, "ChargesFee: caller is not the feeCollector");
+    _;
+  }
+
   // Setters
 
   function setFeeManager(address _addr) external onlyOwner {
     feeManager = _addr;
 
     emit SetFeeManager(_addr);
+  }
+
+  function setFeeCollector(address _addr) external onlyOwner {
+    feeCollector = _addr;
+
+    emit SetFeeCollector(_addr);
   }
 
   function setEthFee(uint256 _ethFee) external onlyFeeManager {
@@ -62,7 +75,7 @@ contract ChargesFee is Ownable {
 
   // Withdrawers
 
-  function withdrawErc20(address _tokenAddress, address _to) external onlyFeeManager {
+  function withdrawErc20(address _tokenAddress, address _to) external onlyFeeCollector {
     uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
 
     require(
@@ -73,13 +86,13 @@ contract ChargesFee is Ownable {
     emit WithdrawErc20(_to, _tokenAddress, balance);
   }
 
-  function withdrawErc721(address _tokenAddress, address _to, uint256 _tokenId) external onlyFeeManager {
+  function withdrawErc721(address _tokenAddress, address _to, uint256 _tokenId) external onlyFeeCollector {
     IERC721(_tokenAddress).transferFrom(address(this), _to, _tokenId);
 
     emit WithdrawErc721(_to, _tokenAddress, _tokenId);
   }
 
-  function withdrawEth(address payable _to) external onlyOwner {
+  function withdrawEth(address payable _to) external onlyFeeCollector {
     uint256 balance = address(this).balance;
 
     _to.transfer(balance);

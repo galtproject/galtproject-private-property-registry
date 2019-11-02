@@ -29,6 +29,7 @@ contract('PrivatePropertyFactory', accounts => {
     await this.propertyRegistry.setFactory(this.propertyFactory.address);
 
     await this.propertyFactory.setFeeManager(owner);
+    await this.propertyFactory.setFeeCollector(owner);
     await this.propertyFactory.setEthFee(ethFee);
     await this.propertyFactory.setGaltFee(galtFee);
   });
