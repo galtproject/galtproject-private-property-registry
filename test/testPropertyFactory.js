@@ -7,7 +7,7 @@ const { BN } = web3.utils;
 const { ether, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
 
 contract('PrivatePropertyFactory', accounts => {
-  const [owner, alice, anyone] = accounts;
+  const [owner, alice, anywhere] = accounts;
 
   const ethFee = ether(10);
   const galtFee = ether(20);
@@ -28,6 +28,7 @@ contract('PrivatePropertyFactory', accounts => {
     );
     await this.propertyRegistry.setFactory(this.propertyFactory.address);
 
+    await this.propertyFactory.setFeeManager(owner);
     await this.propertyFactory.setEthFee(ethFee);
     await this.propertyFactory.setGaltFee(galtFee);
   });
@@ -40,12 +41,12 @@ contract('PrivatePropertyFactory', accounts => {
 
     assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), galtFee);
 
-    await this.propertyFactory.withdrawErc20(this.galtToken.address, anyone);
-    await assertRevert(this.propertyFactory.withdrawErc20(this.galtToken.address, anyone, { from: alice }));
+    await this.propertyFactory.withdrawErc20(this.galtToken.address, anywhere);
+    await assertRevert(this.propertyFactory.withdrawErc20(this.galtToken.address, anywhere, { from: alice }));
 
     assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), 0);
 
-    assert.equal(await this.galtToken.balanceOf(anyone), galtFee);
+    assert.equal(await this.galtToken.balanceOf(anywhere), galtFee);
   });
 
   it('should correctly accept ETH fee', async function() {
@@ -60,13 +61,13 @@ contract('PrivatePropertyFactory', accounts => {
     assertEthBalanceChanged(aliceBalanceBefore, aliceBalanceAfter, `-${ethFee}`, new BN('50000000000000000'));
     assertEthBalanceChanged(factoryBalanceBefore, factoryBalanceAfter, ethFee);
 
-    const anyoneBalanceBefore = await web3.eth.getBalance(anyone);
+    const anyoneBalanceBefore = await web3.eth.getBalance(anywhere);
     factoryBalanceBefore = await web3.eth.getBalance(this.propertyFactory.address);
 
-    await this.propertyFactory.withdrawEth(anyone);
-    await assertRevert(this.propertyFactory.withdrawEth(anyone, { from: alice }));
+    await this.propertyFactory.withdrawEth(anywhere);
+    await assertRevert(this.propertyFactory.withdrawEth(anywhere, { from: alice }));
 
-    const anyoneBalanceAfter = await web3.eth.getBalance(anyone);
+    const anyoneBalanceAfter = await web3.eth.getBalance(anywhere);
     factoryBalanceAfter = await web3.eth.getBalance(this.propertyFactory.address);
 
     assertEthBalanceChanged(anyoneBalanceBefore, anyoneBalanceAfter, ethFee);
