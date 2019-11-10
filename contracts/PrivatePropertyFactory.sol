@@ -44,7 +44,8 @@ contract PrivatePropertyFactory is Ownable, ChargesFee {
 
   function build(
     string calldata _tokenName,
-    string calldata _tokenSymbol
+    string calldata _tokenSymbol,
+    string calldata _dataLink
   )
     external
     payable
@@ -57,6 +58,7 @@ contract PrivatePropertyFactory is Ownable, ChargesFee {
       _tokenSymbol
     );
 
+    property.setDataLink(_dataLink);
     property.setMinter(msg.sender);
     property.setGeoDataManager(msg.sender);
     property.transferOwnership(msg.sender);

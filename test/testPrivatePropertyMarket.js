@@ -56,6 +56,7 @@ Object.freeze(Currency);
 contract('PrivatePropertyMarket', accounts => {
   const [coreTeam, minter, alice, bob, charlie] = accounts;
 
+  const registryDataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3j1';
   const dataAddress = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3jq';
 
   // both for a factory and a market
@@ -76,7 +77,7 @@ contract('PrivatePropertyMarket', accounts => {
     );
     await this.ppgr.setFactory(this.privatePropertyFactory.address);
 
-    const res = await this.privatePropertyFactory.build('Foo', 'BAR', { value: ether(5) });
+    const res = await this.privatePropertyFactory.build('Foo', 'BAR', registryDataLink, { value: ether(5) });
     this.privatePropertyToken = await PrivatePropertyToken.at(res.logs[2].args.token);
 
     this.privatePropertyMarket = await PrivatePropertyMarket.new(
@@ -102,6 +103,8 @@ contract('PrivatePropertyMarket', accounts => {
   describe('sale order submission', () => {
     describe('with ETH order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
+        assert.equal(await this.privatePropertyToken.dataLink(), registryDataLink);
+
         assert.equal(await this.privatePropertyMarket.owner(), coreTeam);
         let res = await this.privatePropertyMarket.createSaleOrder(
           this.privatePropertyToken.address,

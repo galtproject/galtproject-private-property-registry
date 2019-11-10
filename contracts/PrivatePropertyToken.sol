@@ -16,6 +16,7 @@ import "./interfaces/IPrivatePropertyToken.sol";
 
 contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
   event SetMinter(address indexed minter);
+  event SetDataLink(string indexed dataLink);
   event SetGeoDataManager(address indexed geoDataManager);
   event SetDetails(
     address indexed geoDataManager,
@@ -48,6 +49,8 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
   address public minter;
   address public geoDataManager;
 
+  string public dataLink;
+
   mapping(uint256 => Property) internal properties;
 
   modifier onlyMinter() {
@@ -66,6 +69,12 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
   }
 
   // OWNER INTERFACE
+
+  function setDataLink(string memory _dataLink) public onlyOwner {
+    dataLink = _dataLink;
+
+    emit SetDataLink(_dataLink);
+  }
 
   function setMinter(address _minter) public onlyOwner {
     minter = _minter;
