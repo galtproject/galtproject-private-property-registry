@@ -8,14 +8,13 @@ const galt = require('@galtproject/utils');
 PrivatePropertyToken.numberFormat = 'String';
 PrivatePropertyTokenController.numberFormat = 'String';
 
-const { ether, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
+const { ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
 
 contract('PrivatePropertyToken and PrivatePropertyTokenController', accounts => {
   const [systemOwner, registryOwner, minter, geoDataManager, alice, bob] = accounts;
 
-  const ethFee = ether(10);
   const galtFee = ether(20);
 
   const initContour = ['qwerqwerqwer', 'ssdfssdfssdf', 'zxcvzxcvzxcv'];

@@ -52,7 +52,11 @@ contract('PrivatePropertyFactory', accounts => {
     const aliceBalanceBefore = await web3.eth.getBalance(alice);
     let factoryBalanceBefore = await web3.eth.getBalance(this.propertyFactory.address);
 
-    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, { from: alice, value: ethFee, gasPrice: gwei(0.1) });
+    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, {
+      from: alice,
+      value: ethFee,
+      gasPrice: gwei(0.1)
+    });
 
     const aliceBalanceAfter = await web3.eth.getBalance(alice);
     let factoryBalanceAfter = await web3.eth.getBalance(this.propertyFactory.address);

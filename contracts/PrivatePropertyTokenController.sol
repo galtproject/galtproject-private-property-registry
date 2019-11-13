@@ -56,15 +56,6 @@ contract PrivatePropertyTokenController is Ownable {
 
   // USER INTERFACE
 
-  // @dev Assuming that a tokenId is always the first argument in a method
-  function fetchTokenId(bytes memory _data) pure public returns (uint256 tokenId) {
-    assembly {
-      tokenId := mload(add(_data, 0x24))
-    }
-
-    require(tokenId > 0, "Failed fetching tokenId from encoded data");
-  }
-
   function propose(
     bytes calldata _data,
     string calldata _description
@@ -130,6 +121,17 @@ contract PrivatePropertyTokenController is Ownable {
     } else {
       emit ProposalExecuted(_proposalId);
     }
+  }
+
+  // INTERNAL
+
+  // @dev Assuming that a tokenId is always the first argument in a method
+  function fetchTokenId(bytes memory _data) public pure returns (uint256 tokenId) {
+    assembly {
+      tokenId := mload(add(_data, 0x24))
+    }
+
+    require(tokenId > 0, "Failed fetching tokenId from encoded data");
   }
 
   function nextId() internal returns (uint256) {
