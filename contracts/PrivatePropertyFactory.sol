@@ -13,6 +13,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./PrivatePropertyToken.sol";
 import "./PrivatePropertyGlobalRegistry.sol";
+import "./PrivatePropertyTokenController.sol";
 import "./ChargesFee.sol";
 
 
@@ -20,7 +21,7 @@ import "./ChargesFee.sol";
  * Builds Token and registers it in PrivatePropertyGlobalRegistry
  */
 contract PrivatePropertyFactory is Ownable, ChargesFee {
-  event Build(address token);
+  event Build(address token, address controller);
   event SetGlobalRegistry(address globalRegistry);
 
   PrivatePropertyGlobalRegistry public globalRegistry;
@@ -53,20 +54,27 @@ contract PrivatePropertyFactory is Ownable, ChargesFee {
   {
     _acceptPayment();
 
-    PrivatePropertyToken property = new PrivatePropertyToken(
+    // building contracts
+    PrivatePropertyToken propertyToken = new PrivatePropertyToken(
       _tokenName,
       _tokenSymbol
     );
+    PrivatePropertyTokenController propertyTokenController = new PrivatePropertyTokenController(propertyToken);
 
-    property.setDataLink(_dataLink);
-    property.setMinter(msg.sender);
-    property.setGeoDataManager(msg.sender);
-    property.transferOwnership(msg.sender);
+    // setting up contracts
+    propertyToken.setDataLink(_dataLink);
+    propertyToken.setMinter(msg.sender);
+    propertyToken.setController(address(propertyTokenController));
+    propertyTokenController.setGeoDataManager(msg.sender);
 
-    globalRegistry.add(address(property));
+    // transferring ownership
+    propertyTokenController.transferOwnership(msg.sender);
+    propertyToken.transferOwnership(msg.sender);
 
-    emit Build(address(property));
+    globalRegistry.add(address(propertyToken));
 
-    return address(property);
+    emit Build(address(propertyToken), address(propertyTokenController));
+
+    return address(propertyToken);
   }
 }

@@ -7,15 +7,16 @@
   },
   "devDependencies": {
     "@galtproject/eslint-config-galt": "^1.1.0",
-    "@galtproject/libs": "git+ssh://git@github.com/galtspace/galtproject-libs.git#957270d",
+    "@galtproject/libs": "git+ssh://git@github.com/galtproject/galtproject-libs.git#957270d",
     "@galtproject/solidity-test-chest": "https://github.com/galtproject/solidity-test-chest",
+    "@galtproject/utils": "git+ssh://git@github.com/galtproject/galtproject-utils-js.git#fb52908",
     "cli-table": "^0.3.1",
     "ethlint": "1.2.5",
     "ganache-core": "2.8.0",
     "lodash": "^4.17.15",
     "openzeppelin-solidity": "2.3.0",
     "solidity-coverage": "^0.6.7",
-    "truffle": "5.0.40",
+    "truffle": "5.0.44",
     "web3": "1.2.1"
   },
   "engines": {

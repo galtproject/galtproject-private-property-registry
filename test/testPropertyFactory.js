@@ -2,9 +2,7 @@ const PrivatePropertyFactory = artifacts.require('PrivatePropertyFactory.sol');
 const PrivatePropertyGlobalRegistry = artifacts.require('PrivatePropertyGlobalRegistry.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 
-const { BN } = web3.utils;
-
-const { ether, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
+const { ether, gwei, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
 
 contract('PrivatePropertyFactory', accounts => {
   const [owner, alice, anywhere] = accounts;
@@ -54,12 +52,16 @@ contract('PrivatePropertyFactory', accounts => {
     const aliceBalanceBefore = await web3.eth.getBalance(alice);
     let factoryBalanceBefore = await web3.eth.getBalance(this.propertyFactory.address);
 
-    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, { from: alice, value: ethFee });
+    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, {
+      from: alice,
+      value: ethFee,
+      gasPrice: gwei(0.1)
+    });
 
     const aliceBalanceAfter = await web3.eth.getBalance(alice);
     let factoryBalanceAfter = await web3.eth.getBalance(this.propertyFactory.address);
 
-    assertEthBalanceChanged(aliceBalanceBefore, aliceBalanceAfter, `-${ethFee}`, new BN('50000000000000000'));
+    assertEthBalanceChanged(aliceBalanceBefore, aliceBalanceAfter, `-${ethFee}`);
     assertEthBalanceChanged(factoryBalanceBefore, factoryBalanceAfter, ethFee);
 
     const anyoneBalanceBefore = await web3.eth.getBalance(anywhere);

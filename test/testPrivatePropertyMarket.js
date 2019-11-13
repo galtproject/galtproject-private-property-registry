@@ -78,7 +78,7 @@ contract('PrivatePropertyMarket', accounts => {
     await this.ppgr.setFactory(this.privatePropertyFactory.address);
 
     const res = await this.privatePropertyFactory.build('Foo', 'BAR', registryDataLink, { value: ether(5) });
-    this.privatePropertyToken = await PrivatePropertyToken.at(res.logs[2].args.token);
+    this.privatePropertyToken = await PrivatePropertyToken.at(res.logs[4].args.token);
 
     this.privatePropertyMarket = await PrivatePropertyMarket.new(
       this.ppgr.address,
@@ -95,15 +95,15 @@ contract('PrivatePropertyMarket', accounts => {
 
   beforeEach(async function() {
     let res = await this.privatePropertyToken.mint(alice, { from: minter });
-    this.privatePropertyTokenId1 = res.logs[0].args.tokenId;
+    this.privatePropertyTokenId1 = res.logs[1].args.tokenId;
     res = await this.privatePropertyToken.mint(alice, { from: minter });
-    this.privatePropertyTokenId2 = res.logs[0].args.tokenId;
+    this.privatePropertyTokenId2 = res.logs[1].args.tokenId;
   });
 
   describe('sale order submission', () => {
     describe('with ETH order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
-        assert.equal(await this.privatePropertyToken.dataLink(), registryDataLink);
+        assert.equal(await this.privatePropertyToken.tokenDataLink(), registryDataLink);
 
         assert.equal(await this.privatePropertyMarket.owner(), coreTeam);
         let res = await this.privatePropertyMarket.createSaleOrder(
