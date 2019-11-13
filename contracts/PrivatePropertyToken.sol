@@ -115,6 +115,7 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
 
     if (msg.sender == minter) {
       require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
+      p.setupStage = PropertyInitialSetupStage.DETAILS;
     } else {
       require(msg.sender == controller, "Only Controller allowed");
     }
@@ -125,7 +126,6 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     p.ledgerIdentifier = _ledgerIdentifier;
     p.humanAddress = _humanAddress;
     p.dataLink = _dataLink;
-    p.setupStage = PropertyInitialSetupStage.DETAILS;
 
     emit SetDetails(msg.sender, _privatePropertyId);
   }
@@ -141,13 +141,13 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
 
     if (msg.sender == minter) {
       require(p.setupStage == PropertyInitialSetupStage.DETAILS, "Requires DETAILS setup stage");
+      p.setupStage = PropertyInitialSetupStage.DONE;
     } else {
       require(msg.sender == controller, "Only Controller allowed");
     }
 
     p.contour = _contour;
     p.highestPoint = _highestPoint;
-    p.setupStage = PropertyInitialSetupStage.DONE;
 
     emit SetContour(msg.sender, _privatePropertyId);
   }
