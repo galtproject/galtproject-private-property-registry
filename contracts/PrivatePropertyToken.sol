@@ -26,8 +26,15 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     address indexed geoDataManager,
     uint256 indexed privatePropertyId
   );
+  enum PropertyInitialSetupStage {
+    PENDING,
+    DETAILS,
+    DONE
+  }
 
   struct Property {
+    PropertyInitialSetupStage setupStage;
+
     // (LAND_PLOT,BUILDING,ROOM) Type cannot be changed after token creation
     TokenType tokenType;
     // Geohash5z (x,y,z)
@@ -47,9 +54,8 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
 
   uint256 public tokenIdCounter;
   address public minter;
-  address public geoDataManager;
-
-  string public dataLink;
+  address public controller;
+  string public tokenDataLink;
 
   mapping(uint256 => Property) internal properties;
 
@@ -59,39 +65,37 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     _;
   }
 
-  modifier onlyGeoDataManager() {
-    require(msg.sender == geoDataManager, "Only GeoDataManager allowed");
-
-    _;
-  }
-
   constructor(string memory _name, string memory _symbol) public ERC721Full(_name, _symbol) {
   }
 
   // OWNER INTERFACE
 
-  function setDataLink(string memory _dataLink) public onlyOwner {
-    dataLink = _dataLink;
+  function setDataLink(string calldata _dataLink) external onlyOwner {
+    tokenDataLink = _dataLink;
 
     emit SetDataLink(_dataLink);
   }
 
-  function setMinter(address _minter) public onlyOwner {
+  function setMinter(address _minter) external onlyOwner {
     minter = _minter;
 
     emit SetMinter(_minter);
   }
 
-  function setGeoDataManager(address _geoDataManager) public onlyOwner {
-    geoDataManager = _geoDataManager;
+  function setController(address _controller) external onlyOwner {
+    controller = _controller;
 
-    emit SetGeoDataManager(_geoDataManager);
+    emit SetController(_controller);
   }
 
   //  MINTER INTERFACE
 
   function mint(address _to) public onlyMinter {
-    _mint(_to, nextTokenId());
+    uint256 id = nextTokenId();
+
+    emit Mint(_to, id);
+
+    _mint(_to, id);
   }
 
   // GEODATA MANAGER INTERFACE
@@ -106,9 +110,14 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     string calldata _dataLink
   )
     external
-    onlyGeoDataManager
   {
     Property storage p = properties[_privatePropertyId];
+
+    if (msg.sender == minter) {
+      require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
+    } else {
+      require(msg.sender == controller, "Only Controller allowed");
+    }
 
     p.tokenType = _tokenType;
     p.areaSource = _areaSource;
@@ -116,6 +125,7 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     p.ledgerIdentifier = _ledgerIdentifier;
     p.humanAddress = _humanAddress;
     p.dataLink = _dataLink;
+    p.setupStage = PropertyInitialSetupStage.DETAILS;
 
     emit SetDetails(msg.sender, _privatePropertyId);
   }
@@ -126,12 +136,18 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     int256 _highestPoint
   )
     external
-    onlyGeoDataManager
   {
     Property storage p = properties[_privatePropertyId];
 
+    if (msg.sender == minter) {
+      require(p.setupStage == PropertyInitialSetupStage.DETAILS, "Requires DETAILS setup stage");
+    } else {
+      require(msg.sender == controller, "Only Controller allowed");
+    }
+
     p.contour = _contour;
     p.highestPoint = _highestPoint;
+    p.setupStage = PropertyInitialSetupStage.DONE;
 
     emit SetContour(msg.sender, _privatePropertyId);
   }

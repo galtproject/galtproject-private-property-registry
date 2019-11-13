@@ -10,7 +10,19 @@
 pragma solidity ^0.5.10;
 
 
-contract IPrivatePropertyToken {
+interface IPrivatePropertyToken {
+  event Mint(address indexed to, uint256 indexed privatePropertyId);
+  event SetMinter(address indexed minter);
+  event SetController(address indexed controller);
+  event SetDetails(
+    address indexed geoDataManager,
+    uint256 indexed privatePropertyId
+  );
+  event SetContour(
+    address indexed geoDataManager,
+    uint256 indexed privatePropertyId
+  );
+
   enum AreaSource {
     USER_INPUT,
     CONTRACT
@@ -24,7 +36,7 @@ contract IPrivatePropertyToken {
   }
 
   function setMinter(address _minter) external;
-  function setGeoDataManager(address _geoDataManager) external;
+  function setController(address _controller) external;
   function setDetails(
     uint256 _privatePropertyId,
     TokenType _tokenType,
