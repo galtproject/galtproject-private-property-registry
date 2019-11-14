@@ -10,13 +10,12 @@
 pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
 
 
-contract PrivatePropertyGlobalRegistry is Ownable {
-  event Add(address token, address factory);
-  event SetFactory(address factory);
-
+contract PPGlobalRegistry is IPPGlobalRegistry, Ownable {
   address public factory;
+  IPPLockerRegistry public lockerRegistry;
 
   address[] public privatePropertyTokens;
   mapping(address => bool) public isTokenRegistered;
@@ -28,6 +27,11 @@ contract PrivatePropertyGlobalRegistry is Ownable {
   }
 
   // OWNER INTERFACE
+
+  function setLockerRegistry(IPPLockerRegistry _lockerRegistry) external onlyOwner {
+    lockerRegistry = _lockerRegistry;
+    emit SetLockerRegistry(address(_lockerRegistry));
+  }
 
   function setFactory(address _factory) external onlyOwner {
     factory = _factory;
@@ -43,6 +47,12 @@ contract PrivatePropertyGlobalRegistry is Ownable {
     privatePropertyTokens.push(_privatePropertyToken);
     isTokenRegistered[_privatePropertyToken] = true;
     emit Add(_privatePropertyToken, msg.sender);
+  }
+
+  // GETTERS
+
+  function requireTokenValid(address _token) external view {
+    require(isTokenRegistered[_token] == true, "Token contract is invalid");
   }
 
   function getPrivatePropertyTokens() external view returns (address[] memory) {

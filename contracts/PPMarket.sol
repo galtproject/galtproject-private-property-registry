@@ -13,25 +13,25 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "@galtproject/libs/contracts/traits/Marketable.sol";
-import "./PrivatePropertyGlobalRegistry.sol";
-import "./interfaces/IPrivatePropertyToken.sol";
+import "./PPGlobalRegistry.sol";
+import "./interfaces/IPPToken.sol";
 import "./ChargesFee.sol";
 
 
-contract PrivatePropertyMarket is Marketable, Ownable, ChargesFee {
+contract PPMarket is Marketable, Ownable, ChargesFee {
   struct SaleOrderDetails {
     address propertyToken;
     uint256[] propertyTokenIds;
     string dataAddress;
   }
 
-  PrivatePropertyGlobalRegistry internal ppgr;
+  PPGlobalRegistry internal ppgr;
 
   // (propertyTokenAddress (ERC721) => (tokenId => mutex))
   mapping(uint256 => SaleOrderDetails) public saleOrderDetails;
 
   constructor(
-    PrivatePropertyGlobalRegistry _ppgr,
+    PPGlobalRegistry _ppgr,
     address _galtToken,
     uint256 _ethFee,
     uint256 _galtFee
@@ -97,7 +97,7 @@ contract PrivatePropertyMarket is Marketable, Ownable, ChargesFee {
 
     for (uint256 i = 0; i < len; i++) {
       tokenId = _propertyTokenIds[i];
-      require(IPrivatePropertyToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
+      require(IPPToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
       require(IERC721(_propertyToken).ownerOf(tokenId) == msg.sender, "Sender should own the token");
     }
   }

@@ -11,26 +11,10 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "./interfaces/IPrivatePropertyToken.sol";
+import "./interfaces/IPPToken.sol";
 
 
-contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
-  event SetMinter(address indexed minter);
-  event SetDataLink(string indexed dataLink);
-  event SetGeoDataManager(address indexed geoDataManager);
-  event SetDetails(
-    address indexed geoDataManager,
-    uint256 indexed privatePropertyId
-  );
-  event SetContour(
-    address indexed geoDataManager,
-    uint256 indexed privatePropertyId
-  );
-  enum PropertyInitialSetupStage {
-    PENDING,
-    DETAILS,
-    DONE
-  }
+contract PPToken is IPPToken, ERC721Full, Ownable {
 
   struct Property {
     PropertyInitialSetupStage setupStage;
@@ -98,7 +82,7 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     _mint(_to, id);
   }
 
-  // GEODATA MANAGER INTERFACE
+  // CONTROLLER INTERFACE
 
   function setDetails(
     uint256 _privatePropertyId,
@@ -150,6 +134,17 @@ contract PrivatePropertyToken is ERC721Full, Ownable, IPrivatePropertyToken {
     p.highestPoint = _highestPoint;
 
     emit SetContour(msg.sender, _privatePropertyId);
+  }
+
+  // TODO: figure out a proper burn process
+  function burn(uint256 _tokenId) external {
+    require(msg.sender == controller, "Only Controller allowed");
+
+    address owner = ownerOf(_tokenId);
+
+    _burn(owner, _tokenId);
+
+    emit Burn(owner, _tokenId);
   }
 
   // INTERNAL

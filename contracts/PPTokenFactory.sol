@@ -11,33 +11,33 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "./PrivatePropertyToken.sol";
-import "./PrivatePropertyGlobalRegistry.sol";
-import "./PrivatePropertyTokenController.sol";
+import "./PPToken.sol";
+import "./PPGlobalRegistry.sol";
+import "./PPTokenController.sol";
 import "./ChargesFee.sol";
 
 
 /**
  * Builds Token and registers it in PrivatePropertyGlobalRegistry
  */
-contract PrivatePropertyFactory is Ownable, ChargesFee {
+contract PPTokenFactory is Ownable, ChargesFee {
   event Build(address token, address controller);
   event SetGlobalRegistry(address globalRegistry);
 
-  PrivatePropertyGlobalRegistry public globalRegistry;
+  PPGlobalRegistry public globalRegistry;
 
   constructor(address _globalRegistry, address _galtToken, uint256 _ethFee, uint256 _galtFee)
     public
     ChargesFee(_galtToken, _ethFee, _galtFee)
     Ownable()
   {
-    globalRegistry = PrivatePropertyGlobalRegistry(_globalRegistry);
+    globalRegistry = PPGlobalRegistry(_globalRegistry);
   }
 
   // OWNER INTERFACE
 
   function setGlobalRegistry(address _globalRegistry) external onlyOwner {
-    globalRegistry = PrivatePropertyGlobalRegistry(_globalRegistry);
+    globalRegistry = PPGlobalRegistry(_globalRegistry);
     emit SetGlobalRegistry(_globalRegistry);
   }
 
@@ -55,26 +55,26 @@ contract PrivatePropertyFactory is Ownable, ChargesFee {
     _acceptPayment();
 
     // building contracts
-    PrivatePropertyToken propertyToken = new PrivatePropertyToken(
+    PPToken ppToken = new PPToken(
       _tokenName,
       _tokenSymbol
     );
-    PrivatePropertyTokenController propertyTokenController = new PrivatePropertyTokenController(propertyToken);
+    PPTokenController ppTokenController = new PPTokenController(ppToken);
 
     // setting up contracts
-    propertyToken.setDataLink(_dataLink);
-    propertyToken.setMinter(msg.sender);
-    propertyToken.setController(address(propertyTokenController));
-    propertyTokenController.setGeoDataManager(msg.sender);
+    ppToken.setDataLink(_dataLink);
+    ppToken.setMinter(msg.sender);
+    ppToken.setController(address(ppTokenController));
+    ppTokenController.setGeoDataManager(msg.sender);
 
     // transferring ownership
-    propertyTokenController.transferOwnership(msg.sender);
-    propertyToken.transferOwnership(msg.sender);
+    ppTokenController.transferOwnership(msg.sender);
+    ppToken.transferOwnership(msg.sender);
 
-    globalRegistry.add(address(propertyToken));
+    globalRegistry.add(address(ppToken));
 
-    emit Build(address(propertyToken), address(propertyTokenController));
+    emit Build(address(ppToken), address(ppTokenController));
 
-    return address(propertyToken);
+    return address(ppToken);
   }
 }
