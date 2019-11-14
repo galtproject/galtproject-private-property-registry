@@ -9,53 +9,55 @@
 
 pragma solidity ^0.5.10;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "@galtproject/libs/contracts/traits/OwnableAndInitializable.sol";
+import "@galtproject/core/contracts/interfaces/IACL.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 
 
-contract PPGlobalRegistry is IPPGlobalRegistry, Ownable {
-  address public factory;
-  IPPLockerRegistry public lockerRegistry;
+contract PPGlobalRegistry is IPPGlobalRegistry, OwnableAndInitializable {
+  // solium-disable-next-line mixedcase
+  address internal constant ZERO_ADDRESS = address(0);
 
-  address[] public privatePropertyTokens;
-  mapping(address => bool) public isTokenRegistered;
+  bytes32 public constant PPGR_ACL = bytes32("ACL");
+  bytes32 public constant PPGR_LOCKER_REGISTRY = bytes32("locker_registry");
+  bytes32 public constant PPGR_TOKEN_REGISTRY = bytes32("token_registry");
+  bytes32 public constant PPGR_MARKET = bytes32("market");
 
-  modifier onlyFactory() {
-    require(msg.sender == factory, "Only factory allowed");
+  event SetContract(bytes32 indexed key, address addr);
 
-    _;
+  mapping(bytes32 => address) internal contracts;
+
+  function initialize() public isInitializer {
   }
 
-  // OWNER INTERFACE
+  function setContract(bytes32 _key, address _value) external onlyOwner {
+    contracts[_key] = _value;
 
-  function setLockerRegistry(IPPLockerRegistry _lockerRegistry) external onlyOwner {
-    lockerRegistry = _lockerRegistry;
-    emit SetLockerRegistry(address(_lockerRegistry));
-  }
-
-  function setFactory(address _factory) external onlyOwner {
-    factory = _factory;
-    emit SetFactory(_factory);
-  }
-
-  function add(
-    address _privatePropertyToken
-  )
-    external
-    onlyFactory
-  {
-    privatePropertyTokens.push(_privatePropertyToken);
-    isTokenRegistered[_privatePropertyToken] = true;
-    emit Add(_privatePropertyToken, msg.sender);
+    emit SetContract(_key, _value);
   }
 
   // GETTERS
-
-  function requireTokenValid(address _token) external view {
-    require(isTokenRegistered[_token] == true, "Token contract is invalid");
+  function getContract(bytes32 _key) external view returns (address) {
+    return contracts[_key];
   }
 
-  function getPrivatePropertyTokens() external view returns (address[] memory) {
-    return privatePropertyTokens;
+  function getACL() external view returns (IACL) {
+    require(contracts[PPGR_ACL] != ZERO_ADDRESS, "PPGR: ACL not set");
+    return IACL(contracts[PPGR_ACL]);
+  }
+
+  function getPPTokenRegistryAddress() external view returns (address) {
+    require(contracts[PPGR_TOKEN_REGISTRY] != ZERO_ADDRESS, "PPGR: TOKEN_REGISTRY not set");
+    return contracts[PPGR_TOKEN_REGISTRY];
+  }
+
+  function getPPLockerRegistryAddress() external view returns (address) {
+    require(contracts[PPGR_LOCKER_REGISTRY] != ZERO_ADDRESS, "PPGR: LOCKER_REGISTRY not set");
+    return contracts[PPGR_LOCKER_REGISTRY];
+  }
+
+  function getPPMarketAddress() external view returns (address) {
+    require(contracts[PPGR_MARKET] != ZERO_ADDRESS, "PPGR: MARKET not set");
+    return contracts[PPGR_MARKET];
   }
 }

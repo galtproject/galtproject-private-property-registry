@@ -2,6 +2,8 @@ const PPMarket = artifacts.require('./PPMarket.sol');
 const PPToken = artifacts.require('./PPToken.sol');
 const PPTokenFactory = artifacts.require('./PPTokenFactory.sol');
 const PPGlobalRegistry = artifacts.require('./PPGlobalRegistry.sol');
+const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
+const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 
 PPToken.numberFormat = 'String';
@@ -9,6 +11,8 @@ MintableErc20Token.numberFormat = 'String';
 PPMarket.numberFormat = 'String';
 
 const { web3 } = PPMarket;
+const { utf8ToHex } = web3.utils;
+const bytes32 = utf8ToHex;
 
 const { zeroAddress, ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -68,19 +72,26 @@ contract('PPMarket', accounts => {
     this.daiToken = await MintableErc20Token.new();
     this.unregisteredPPToken = await PPToken.new('Foo', 'BAR');
 
-    this.ppGlobalRegistry = await PPGlobalRegistry.new();
-    this.ppTokenFactory = await PPTokenFactory.new(
-      this.ppGlobalRegistry.address,
-      this.galtToken.address,
-      ethFee,
-      galtFee
-    );
-    await this.ppGlobalRegistry.setFactory(this.ppTokenFactory.address);
+    this.ppgr = await PPGlobalRegistry.new();
+    this.acl = await PPACL.new();
+    this.ppTokenRegistry = await PPTokenRegistry.new();
 
-    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, { value: ether(5) });
+    await this.ppgr.initialize();
+    await this.ppTokenRegistry.initialize(this.ppgr.address);
+
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+
+    // PPGR setup
+    await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
+
+    // ACL setup
+    await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
+
+    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, { value: 0 });
     this.ppToken = await PPToken.at(res.logs[4].args.token);
 
-    this.ppMarket = await PPMarket.new(this.ppGlobalRegistry.address, this.galtToken.address, ethFee, galtFee);
+    this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
     this.ppToken.setMinter(minter);
 
     await this.galtToken.mint(alice, ether(10000000));
@@ -179,7 +190,7 @@ contract('PPMarket', accounts => {
             zeroAddress,
             { from: bob, value: ether(5) }
           ),
-          "Token doesn't registered in PPGR"
+          'Token address is invalid'
         );
       });
 
@@ -419,7 +430,7 @@ contract('PPMarket', accounts => {
     }
 
     beforeEach(async function() {
-      this.ppMarket = await PPMarket.new(this.ppGlobalRegistry.address, this.galtToken.address, ethFee, galtFee);
+      this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
       this.args = [this.ppMarket, this.ppToken.address, [this.ppTokenId1], dataAddress];
     });
 

@@ -13,8 +13,9 @@ import "@galtproject/libs/contracts/collections/ArraySet.sol";
 //import "@galtproject/core/contracts/interfaces/ILocker.sol";
 import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./interfaces/IPPToken.sol";
-import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPLocker.sol";
+import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
 
 
 contract PPLocker is IPPLocker {
@@ -49,7 +50,7 @@ contract PPLocker is IPPLocker {
   }
 
   modifier onlyValidTokenContract(IPPToken _tokenContract) {
-    globalRegistry.requireTokenValid(address(_tokenContract));
+    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress()).requireValidToken(address(_tokenContract));
     _;
   }
 
@@ -71,16 +72,19 @@ contract PPLocker is IPPLocker {
     emit Deposit(reputation);
   }
 
-  function withdraw(IPPToken _tokenContract, uint256 _tokenId) external onlyOwner notBurned onlyValidTokenContract(_tokenContract) {
+  function withdraw() external onlyOwner notBurned {
     require(tokenDeposited, "Token not deposited");
-    require(traSet.size() == 0, "RAs counter not 0");
+    require(traSet.size() == 0, "RAs counter should be 0");
+
+    IPPToken previousTokenContract = tokenContract;
+    uint256 previousTokenId = tokenId;
 
     tokenContract = IPPToken(address(0));
     tokenId = 0;
     reputation = 0;
     tokenDeposited = false;
 
-    _tokenContract.transferFrom(address(this), msg.sender, _tokenId);
+    previousTokenContract.transferFrom(address(this), msg.sender, previousTokenId);
 
     emit Withdrawal(reputation);
   }
@@ -142,15 +146,15 @@ contract PPLocker is IPPLocker {
     );
   }
 
-  function isMinted(address _tra) external returns (bool) {
+  function isMinted(address _tra) external view returns (bool) {
     return traSet.has(_tra);
   }
 
-  function getTras() external returns (address[] memory) {
+  function getTras() external view returns (address[] memory) {
     return traSet.elements();
   }
 
-  function getTrasCount() external returns (uint256) {
+  function getTrasCount() external view returns (uint256) {
     return traSet.size();
   }
 }

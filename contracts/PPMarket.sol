@@ -13,7 +13,8 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "@galtproject/libs/contracts/traits/Marketable.sol";
-import "./PPGlobalRegistry.sol";
+import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPToken.sol";
 import "./ChargesFee.sol";
 
@@ -25,13 +26,13 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     string dataAddress;
   }
 
-  PPGlobalRegistry internal ppgr;
+  IPPGlobalRegistry internal globalRegistry;
 
   // (propertyTokenAddress (ERC721) => (tokenId => mutex))
   mapping(uint256 => SaleOrderDetails) public saleOrderDetails;
 
   constructor(
-    PPGlobalRegistry _ppgr,
+    IPPGlobalRegistry _globalRegistry,
     address _galtToken,
     uint256 _ethFee,
     uint256 _galtFee
@@ -40,7 +41,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
 
     ChargesFee(_galtToken, _ethFee, _galtFee)
   {
-    ppgr = _ppgr;
+    globalRegistry = _globalRegistry;
   }
 
   function createSaleOrder(
@@ -90,7 +91,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     internal
     view
   {
-    require(ppgr.isTokenRegistered(_propertyToken) == true, "Token doesn't registered in PPGR");
+    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress()).requireValidToken(_propertyToken);
 
     uint256 len = _propertyTokenIds.length;
     uint256 tokenId;

@@ -11,10 +11,11 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "./PPToken.sol";
-import "./PPGlobalRegistry.sol";
-import "./PPTokenController.sol";
 import "./ChargesFee.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
+import "./interfaces/IPPTokenRegistry.sol";
+import "./PPToken.sol";
+import "./PPTokenController.sol";
 
 
 /**
@@ -24,21 +25,14 @@ contract PPTokenFactory is Ownable, ChargesFee {
   event Build(address token, address controller);
   event SetGlobalRegistry(address globalRegistry);
 
-  PPGlobalRegistry public globalRegistry;
+  IPPGlobalRegistry public globalRegistry;
 
   constructor(address _globalRegistry, address _galtToken, uint256 _ethFee, uint256 _galtFee)
     public
     ChargesFee(_galtToken, _ethFee, _galtFee)
     Ownable()
   {
-    globalRegistry = PPGlobalRegistry(_globalRegistry);
-  }
-
-  // OWNER INTERFACE
-
-  function setGlobalRegistry(address _globalRegistry) external onlyOwner {
-    globalRegistry = PPGlobalRegistry(_globalRegistry);
-    emit SetGlobalRegistry(_globalRegistry);
+    globalRegistry = IPPGlobalRegistry(_globalRegistry);
   }
 
   // USER INTERFACE
@@ -71,7 +65,8 @@ contract PPTokenFactory is Ownable, ChargesFee {
     ppTokenController.transferOwnership(msg.sender);
     ppToken.transferOwnership(msg.sender);
 
-    globalRegistry.add(address(ppToken));
+    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress())
+      .addToken(address(ppToken));
 
     emit Build(address(ppToken), address(ppTokenController));
 

@@ -9,51 +9,46 @@
 
 pragma solidity 0.5.10;
 
-import "@galtproject/libs/contracts/collections/ArraySet.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "@galtproject/libs/contracts/traits/OwnableAndInitializable.sol";
 import "./interfaces/IPPLockerRegistry.sol";
 import "./interfaces/IPPLocker.sol";
-import "./PPGlobalRegistry.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
 
 
 /**
- * @title Locker Registry.
+ * @title Private Property Locker Registry.
  * @notice Tracks all the valid lockers of a given type.
- * @dev We use this contract in order to track both SpaceLockers and Galt Lockers.
  */
-contract PPLockerRegistry is IPPLockerRegistry, Ownable {
-  using ArraySet for ArraySet.AddressSet;
+contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
 
-  event AddLocker(address indexed locker, address indexed owner, address factory);
+  bytes32 public constant ROLE_LOCKER_REGISTRAR = bytes32("LOCKER_REGISTRAR");
 
   struct Details {
     bool active;
     address factory;
   }
 
-  address public factory;
+  IPPGlobalRegistry public globalRegistry;
+
+  address[] public lockerList;
 
   // Locker address => Details
   mapping(address => Details) public lockers;
 
-  // Locker address => Details
-  mapping(address => ArraySet.AddressSet) internal lockersByOwner;
-
-  modifier onlyFactory {
-    require(msg.sender == factory, "Only factory allowed");
+  modifier onlyFactory() {
+    require(
+      globalRegistry.getACL().hasRole(msg.sender, ROLE_LOCKER_REGISTRAR),
+      "Invalid registrar"
+    );
 
     _;
   }
 
-  constructor(
-    address _factory
-  )
-    public
-  {
-    factory = _factory;
+  function initialize(IPPGlobalRegistry _ppGlobalRegistry) external isInitializer {
+    globalRegistry = _ppGlobalRegistry;
   }
 
-  // EXTERNAL
+  // FACTORY INTERFACE
 
   function addLocker(address _locker) external onlyFactory {
     Details storage locker = lockers[_locker];
@@ -61,7 +56,7 @@ contract PPLockerRegistry is IPPLockerRegistry, Ownable {
     locker.active = true;
     locker.factory = msg.sender;
 
-    lockersByOwner[IPPLocker(_locker).owner()].add(_locker);
+    lockerList.push(_locker);
 
     emit AddLocker(_locker, IPPLocker(_locker).owner(), locker.factory);
   }
@@ -69,7 +64,7 @@ contract PPLockerRegistry is IPPLockerRegistry, Ownable {
   // REQUIRES
 
   function requireValidLocker(address _locker) external view {
-    require(lockers[_locker].active, "Locker address is invalid");
+    require(lockers[_locker].active == true, "Locker address is invalid");
   }
 
   // GETTERS
@@ -78,11 +73,7 @@ contract PPLockerRegistry is IPPLockerRegistry, Ownable {
     return lockers[_locker].active;
   }
 
-  function getLockersListByOwner(address _owner) external view returns (address[] memory) {
-    return lockersByOwner[_owner].elements();
-  }
-
-  function getLockersCountByOwner(address _owner) external view returns (uint256) {
-    return lockersByOwner[_owner].size();
+  function getAllLockers() external view returns (address[] memory) {
+    return lockerList;
   }
 }

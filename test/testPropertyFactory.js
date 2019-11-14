@@ -1,8 +1,13 @@
 const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
 const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
+const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
+const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 
 const { ether, gwei, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
+
+const { utf8ToHex } = web3.utils;
+const bytes32 = utf8ToHex;
 
 contract('PPTokenFactory', accounts => {
   const [owner, alice, anywhere] = accounts;
@@ -17,9 +22,21 @@ contract('PPTokenFactory', accounts => {
     await this.galtToken.mint(owner, galtFee);
     await this.galtToken.mint(alice, galtFee);
 
-    this.ppGlobalRegistry = await PPGlobalRegistry.new();
-    this.ppTokenFactory = await PPTokenFactory.new(this.ppGlobalRegistry.address, this.galtToken.address, 0, 0);
-    await this.ppGlobalRegistry.setFactory(this.ppTokenFactory.address);
+    this.ppgr = await PPGlobalRegistry.new();
+    this.acl = await PPACL.new();
+    this.ppTokenRegistry = await PPTokenRegistry.new();
+
+    await this.ppgr.initialize();
+    await this.ppTokenRegistry.initialize(this.ppgr.address);
+
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+
+    // PPGR setup
+    await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
+
+    // ACL setup
+    await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
 
     await this.ppTokenFactory.setFeeManager(owner);
     await this.ppTokenFactory.setFeeCollector(owner);

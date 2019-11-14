@@ -15,13 +15,13 @@ import "./IPPToken.sol";
 
 interface IPPLocker {
   function deposit(IPPToken _tokenContract, uint256 _tokenId) external;
-  function withdraw(IPPToken _tokenContract, uint256 _tokenId) external;
+  function withdraw() external;
   function approveMint(IRA _tra) external;
   function burn(IRA _tra) external;
   function burnToken(bytes32 _tokenIdHash) external;
-  function isMinted(address _tra) external returns (bool);
-  function getTras() external returns (address[] memory);
-  function getTrasCount() external returns (uint256);
+  function isMinted(address _tra) external view returns (bool);
+  function getTras() external view returns (address[] memory);
+  function getTrasCount() external view returns (uint256);
   function isOwner() external view returns (bool);
   function owner() external view returns(address);
   function tokenId() external view returns(uint256);

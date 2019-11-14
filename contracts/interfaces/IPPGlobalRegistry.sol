@@ -9,19 +9,16 @@
 
 pragma solidity ^0.5.10;
 
-import "./IPPLockerRegistry.sol";
+import "@galtproject/core/contracts/interfaces/IACL.sol";
 
 
 contract IPPGlobalRegistry {
-  event Add(address token, address factory);
-  event SetFactory(address factory);
-  event SetLockerRegistry(address lockerRegistry);
+  function setContract(bytes32 _key, address _value) external;
 
-  function lockerRegistry() external view returns (IPPLockerRegistry);
-  function privatePropertyTokens(uint256 _index) external view returns (address);
-  function isTokenRegistered(address _tokenContract) external view returns (bool);
-  function requireTokenValid(address _token) external view;
-  function setFactory(address _factory) external;
-  function add(address _privatePropertyToken) external;
-  function getPrivatePropertyTokens() external view returns (address[] memory);
+  // GETTERS
+  function getContract(bytes32 _key) external view returns (address);
+  function getACL() external view returns (IACL);
+  function getPPTokenRegistryAddress() external view returns (address);
+  function getPPLockerRegistryAddress() external view returns (address);
+  function getPPMarketAddress() external view returns (address);
 }
