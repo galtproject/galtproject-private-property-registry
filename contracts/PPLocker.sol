@@ -10,7 +10,6 @@
 pragma solidity 0.5.10;
 
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
-//import "@galtproject/core/contracts/interfaces/ILocker.sol";
 import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPLocker.sol";

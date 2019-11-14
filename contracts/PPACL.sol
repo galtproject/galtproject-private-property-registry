@@ -10,7 +10,6 @@
 pragma solidity ^0.5.10;
 
 import "@galtproject/core/contracts/ACL.sol";
-import "./interfaces/IPPGlobalRegistry.sol";
 
 
 contract PPACL is ACL {

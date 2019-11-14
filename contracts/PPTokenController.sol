@@ -11,7 +11,6 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "./interfaces/IPPToken.sol";
 
 
 contract PPTokenController is Ownable {
