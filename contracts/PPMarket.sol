@@ -16,7 +16,7 @@ import "@galtproject/libs/contracts/traits/Marketable.sol";
 import "./interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPToken.sol";
-import "./ChargesFee.sol";
+import "./traits/ChargesFee.sol";
 
 
 contract PPMarket is Marketable, Ownable, ChargesFee {

@@ -10,7 +10,7 @@
 pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "./ChargesFee.sol";
+import "./traits/ChargesFee.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPTokenRegistry.sol";
 import "./PPToken.sol";
