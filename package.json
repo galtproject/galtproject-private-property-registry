@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "@galtproject/eslint-config-galt": "^1.1.0",
-    "@galtproject/core": "git+ssh://git@github.com/galtproject/galtproject-core.git#a505384",
+    "@galtproject/core": "git+ssh://git@github.com/galtproject/galtproject-core.git#c7e69de",
     "@galtproject/libs": "git+ssh://git@github.com/galtproject/galtproject-libs.git#957270d",
     "@galtproject/solidity-test-chest": "https://github.com/galtproject/solidity-test-chest",
     "@galtproject/utils": "git+ssh://git@github.com/galtproject/galtproject-utils-js.git#fb52908",
