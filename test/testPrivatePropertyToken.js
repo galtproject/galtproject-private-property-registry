@@ -1,18 +1,21 @@
-const PrivatePropertyFactory = artifacts.require('PrivatePropertyFactory.sol');
-const PrivatePropertyGlobalRegistry = artifacts.require('PrivatePropertyGlobalRegistry.sol');
-const PrivatePropertyToken = artifacts.require('PrivatePropertyToken.sol');
-const PrivatePropertyTokenController = artifacts.require('PrivatePropertyTokenController.sol');
+const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
+const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
+const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
+const PPACL = artifacts.require('PPACL.sol');
+const PPToken = artifacts.require('PPToken.sol');
+const PPTokenController = artifacts.require('PPTokenController.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 const galt = require('@galtproject/utils');
 
-PrivatePropertyToken.numberFormat = 'String';
-PrivatePropertyTokenController.numberFormat = 'String';
+PPToken.numberFormat = 'String';
+PPTokenController.numberFormat = 'String';
 
 const { ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
+const bytes32 = utf8ToHex;
 
-contract('PrivatePropertyToken and PrivatePropertyTokenController', accounts => {
+contract('PPToken and PPTokenController', accounts => {
   const [systemOwner, registryOwner, minter, geoDataManager, alice, bob] = accounts;
 
   const galtFee = ether(20);
@@ -25,21 +28,28 @@ contract('PrivatePropertyToken and PrivatePropertyTokenController', accounts => 
     await this.galtToken.mint(systemOwner, galtFee);
     await this.galtToken.mint(registryOwner, galtFee);
 
-    this.propertyRegistry = await PrivatePropertyGlobalRegistry.new();
-    this.propertyFactory = await PrivatePropertyFactory.new(
-      this.propertyRegistry.address,
-      this.galtToken.address,
-      0,
-      0
-    );
-    await this.propertyRegistry.setFactory(this.propertyFactory.address);
+    this.ppgr = await PPGlobalRegistry.new();
+    this.acl = await PPACL.new();
+    this.ppTokenRegistry = await PPTokenRegistry.new();
+
+    await this.ppgr.initialize();
+    await this.ppTokenRegistry.initialize(this.ppgr.address);
+
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+
+    // PPGR setup
+    await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
+
+    // ACL setup
+    await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
   });
 
   describe('token creation', () => {
     it('should allow the minter minting a new token', async function() {
-      let res = await this.propertyFactory.build('Buildings', 'BDL', 'dataLink', { from: registryOwner });
-      const token = await PrivatePropertyToken.at(res.logs[4].args.token);
-      const controller = await PrivatePropertyTokenController.at(res.logs[4].args.controller);
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', { from: registryOwner });
+      const token = await PPToken.at(res.logs[4].args.token);
+      const controller = await PPTokenController.at(res.logs[4].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -84,9 +94,9 @@ contract('PrivatePropertyToken and PrivatePropertyTokenController', accounts => 
 
   describe('token update', () => {
     it('should allow a token owner submitting token update proposals', async function() {
-      let res = await this.propertyFactory.build('Buildings', 'BDL', 'dataLink', { from: registryOwner });
-      const token = await PrivatePropertyToken.at(res.logs[4].args.token);
-      const controller = await PrivatePropertyTokenController.at(res.logs[4].args.controller);
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', { from: registryOwner });
+      const token = await PPToken.at(res.logs[4].args.token);
+      const controller = await PPTokenController.at(res.logs[4].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });

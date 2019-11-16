@@ -11,10 +11,9 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "./interfaces/IPrivatePropertyToken.sol";
 
 
-contract PrivatePropertyTokenController is Ownable {
+contract PPTokenController is Ownable {
   event SetGeoDataManager(address indexed geoDataManager);
   event NewProposal(
     uint256 indexed proposalId,

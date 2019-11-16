@@ -1,10 +1,15 @@
-const PrivatePropertyFactory = artifacts.require('PrivatePropertyFactory.sol');
-const PrivatePropertyGlobalRegistry = artifacts.require('PrivatePropertyGlobalRegistry.sol');
+const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
+const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
+const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
+const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 
 const { ether, gwei, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
 
-contract('PrivatePropertyFactory', accounts => {
+const { utf8ToHex } = web3.utils;
+const bytes32 = utf8ToHex;
+
+contract('PPTokenFactory', accounts => {
   const [owner, alice, anywhere] = accounts;
 
   const ethFee = ether(10);
@@ -17,61 +22,68 @@ contract('PrivatePropertyFactory', accounts => {
     await this.galtToken.mint(owner, galtFee);
     await this.galtToken.mint(alice, galtFee);
 
-    this.propertyRegistry = await PrivatePropertyGlobalRegistry.new();
-    this.propertyFactory = await PrivatePropertyFactory.new(
-      this.propertyRegistry.address,
-      this.galtToken.address,
-      0,
-      0
-    );
-    await this.propertyRegistry.setFactory(this.propertyFactory.address);
+    this.ppgr = await PPGlobalRegistry.new();
+    this.acl = await PPACL.new();
+    this.ppTokenRegistry = await PPTokenRegistry.new();
 
-    await this.propertyFactory.setFeeManager(owner);
-    await this.propertyFactory.setFeeCollector(owner);
-    await this.propertyFactory.setEthFee(ethFee);
-    await this.propertyFactory.setGaltFee(galtFee);
+    await this.ppgr.initialize();
+    await this.ppTokenRegistry.initialize(this.ppgr.address);
+
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+
+    // PPGR setup
+    await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
+
+    // ACL setup
+    await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
+
+    await this.ppTokenFactory.setFeeManager(owner);
+    await this.ppTokenFactory.setFeeCollector(owner);
+    await this.ppTokenFactory.setEthFee(ethFee);
+    await this.ppTokenFactory.setGaltFee(galtFee);
   });
 
   it('should correctly accept GALT fee', async function() {
-    assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), 0);
+    assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), 0);
 
-    await this.galtToken.approve(this.propertyFactory.address, galtFee, { from: alice });
-    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, { from: alice });
+    await this.galtToken.approve(this.ppTokenFactory.address, galtFee, { from: alice });
+    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, { from: alice });
 
-    assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), galtFee);
+    assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), galtFee);
 
-    await this.propertyFactory.withdrawErc20(this.galtToken.address, anywhere);
-    await assertRevert(this.propertyFactory.withdrawErc20(this.galtToken.address, anywhere, { from: alice }));
+    await this.ppTokenFactory.withdrawErc20(this.galtToken.address, anywhere);
+    await assertRevert(this.ppTokenFactory.withdrawErc20(this.galtToken.address, anywhere, { from: alice }));
 
-    assert.equal(await this.galtToken.balanceOf(this.propertyFactory.address), 0);
+    assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), 0);
 
     assert.equal(await this.galtToken.balanceOf(anywhere), galtFee);
   });
 
   it('should correctly accept ETH fee', async function() {
     const aliceBalanceBefore = await web3.eth.getBalance(alice);
-    let factoryBalanceBefore = await web3.eth.getBalance(this.propertyFactory.address);
+    let factoryBalanceBefore = await web3.eth.getBalance(this.ppTokenFactory.address);
 
-    await this.propertyFactory.build('Buildings', 'BDL', registryDataLink, {
+    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, {
       from: alice,
       value: ethFee,
       gasPrice: gwei(0.1)
     });
 
     const aliceBalanceAfter = await web3.eth.getBalance(alice);
-    let factoryBalanceAfter = await web3.eth.getBalance(this.propertyFactory.address);
+    let factoryBalanceAfter = await web3.eth.getBalance(this.ppTokenFactory.address);
 
     assertEthBalanceChanged(aliceBalanceBefore, aliceBalanceAfter, `-${ethFee}`);
     assertEthBalanceChanged(factoryBalanceBefore, factoryBalanceAfter, ethFee);
 
     const anyoneBalanceBefore = await web3.eth.getBalance(anywhere);
-    factoryBalanceBefore = await web3.eth.getBalance(this.propertyFactory.address);
+    factoryBalanceBefore = await web3.eth.getBalance(this.ppTokenFactory.address);
 
-    await this.propertyFactory.withdrawEth(anywhere);
-    await assertRevert(this.propertyFactory.withdrawEth(anywhere, { from: alice }));
+    await this.ppTokenFactory.withdrawEth(anywhere);
+    await assertRevert(this.ppTokenFactory.withdrawEth(anywhere, { from: alice }));
 
     const anyoneBalanceAfter = await web3.eth.getBalance(anywhere);
-    factoryBalanceAfter = await web3.eth.getBalance(this.propertyFactory.address);
+    factoryBalanceAfter = await web3.eth.getBalance(this.ppTokenFactory.address);
 
     assertEthBalanceChanged(anyoneBalanceBefore, anyoneBalanceAfter, ethFee);
     assertEthBalanceChanged(factoryBalanceBefore, factoryBalanceAfter, `-${ethFee}`);

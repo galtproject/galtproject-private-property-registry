@@ -10,9 +10,9 @@
 pragma solidity ^0.5.10;
 
 
-interface IPrivatePropertyToken {
-  event Mint(address indexed to, uint256 indexed privatePropertyId);
+interface IPPToken {
   event SetMinter(address indexed minter);
+  event SetDataLink(string indexed dataLink);
   event SetController(address indexed controller);
   event SetDetails(
     address indexed geoDataManager,
@@ -22,6 +22,14 @@ interface IPrivatePropertyToken {
     address indexed geoDataManager,
     uint256 indexed privatePropertyId
   );
+  event Mint(address indexed to, uint256 indexed privatePropertyId);
+  event Burn(address indexed from, uint256 indexed privatePropertyId);
+
+  enum PropertyInitialSetupStage {
+    PENDING,
+    DETAILS,
+    DONE
+  }
 
   enum AreaSource {
     USER_INPUT,
@@ -34,6 +42,12 @@ interface IPrivatePropertyToken {
     BUILDING,
     ROOM
   }
+
+  // ERC20 METHOD
+  function transferFrom(address from, address to, uint256 tokenId) external;
+  function approve(address to, uint256 tokenId) external;
+
+  // PERMISSIONED METHODS
 
   function setMinter(address _minter) external;
   function setController(address _controller) external;
@@ -56,11 +70,21 @@ interface IPrivatePropertyToken {
     external;
 
   function mint(address _to) external;
+  function burn(uint256 _privatePropertyId) external;
 
   // GETTERS
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
   function exists(uint256 _tokenId) external view returns (bool);
+  function getType(uint256 _tokenId) external view returns (TokenType);
+  function getContour(uint256 _tokenId) external view returns (uint256[] memory);
+  function getContourLength(uint256 _tokenId) external view returns (uint256);
+  function getHighestPoint(uint256 _tokenId) external view returns (int256);
+  function getHumanAddress(uint256 _tokenId) external view returns (string memory);
+  function getArea(uint256 _tokenId) external view returns (uint256);
+  function getAreaSource(uint256 _tokenId) external view returns (AreaSource);
+  function getLedgerIdentifier(uint256 _tokenId) external view returns (bytes32);
+  function getDataLink(uint256 _tokenId) external view returns (string memory);
   function getDetails(uint256 _privatePropertyId)
     external
     view

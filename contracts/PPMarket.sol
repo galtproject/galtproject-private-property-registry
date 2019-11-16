@@ -13,25 +13,26 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "@galtproject/libs/contracts/traits/Marketable.sol";
-import "./PrivatePropertyGlobalRegistry.sol";
-import "./interfaces/IPrivatePropertyToken.sol";
-import "./ChargesFee.sol";
+import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
+import "./interfaces/IPPToken.sol";
+import "./traits/ChargesFee.sol";
 
 
-contract PrivatePropertyMarket is Marketable, Ownable, ChargesFee {
+contract PPMarket is Marketable, Ownable, ChargesFee {
   struct SaleOrderDetails {
     address propertyToken;
     uint256[] propertyTokenIds;
     string dataAddress;
   }
 
-  PrivatePropertyGlobalRegistry internal ppgr;
+  IPPGlobalRegistry internal globalRegistry;
 
   // (propertyTokenAddress (ERC721) => (tokenId => mutex))
   mapping(uint256 => SaleOrderDetails) public saleOrderDetails;
 
   constructor(
-    PrivatePropertyGlobalRegistry _ppgr,
+    IPPGlobalRegistry _globalRegistry,
     address _galtToken,
     uint256 _ethFee,
     uint256 _galtFee
@@ -40,7 +41,7 @@ contract PrivatePropertyMarket is Marketable, Ownable, ChargesFee {
 
     ChargesFee(_galtToken, _ethFee, _galtFee)
   {
-    ppgr = _ppgr;
+    globalRegistry = _globalRegistry;
   }
 
   function createSaleOrder(
@@ -90,14 +91,14 @@ contract PrivatePropertyMarket is Marketable, Ownable, ChargesFee {
     internal
     view
   {
-    require(ppgr.isTokenRegistered(_propertyToken) == true, "Token doesn't registered in PPGR");
+    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress()).requireValidToken(_propertyToken);
 
     uint256 len = _propertyTokenIds.length;
     uint256 tokenId;
 
     for (uint256 i = 0; i < len; i++) {
       tokenId = _propertyTokenIds[i];
-      require(IPrivatePropertyToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
+      require(IPPToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
       require(IERC721(_propertyToken).ownerOf(tokenId) == msg.sender, "Sender should own the token");
     }
   }

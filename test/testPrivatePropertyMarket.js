@@ -1,14 +1,18 @@
-const PrivatePropertyMarket = artifacts.require('./PrivatePropertyMarket.sol');
-const PrivatePropertyToken = artifacts.require('./PrivatePropertyToken.sol');
-const PrivatePropertyFactory = artifacts.require('./PrivatePropertyFactory.sol');
-const PrivatePropertyGlobalRegistry = artifacts.require('./PrivatePropertyGlobalRegistry.sol');
+const PPMarket = artifacts.require('./PPMarket.sol');
+const PPToken = artifacts.require('./PPToken.sol');
+const PPTokenFactory = artifacts.require('./PPTokenFactory.sol');
+const PPGlobalRegistry = artifacts.require('./PPGlobalRegistry.sol');
+const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
+const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 
-PrivatePropertyToken.numberFormat = 'String';
+PPToken.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
-PrivatePropertyMarket.numberFormat = 'String';
+PPMarket.numberFormat = 'String';
 
-const { web3 } = PrivatePropertyMarket;
+const { web3 } = PPMarket;
+const { utf8ToHex } = web3.utils;
+const bytes32 = utf8ToHex;
 
 const { zeroAddress, ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -53,7 +57,7 @@ Object.freeze(ValidationStatus);
 Object.freeze(PaymentMethods);
 Object.freeze(Currency);
 
-contract('PrivatePropertyMarket', accounts => {
+contract('PPMarket', accounts => {
   const [coreTeam, minter, alice, bob, charlie] = accounts;
 
   const registryDataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3j1';
@@ -66,27 +70,29 @@ contract('PrivatePropertyMarket', accounts => {
   before(async function() {
     this.galtToken = await MintableErc20Token.new();
     this.daiToken = await MintableErc20Token.new();
-    this.unregisteredPrivatePropertyToken = await PrivatePropertyToken.new('Foo', 'BAR');
+    this.unregisteredPPToken = await PPToken.new('Foo', 'BAR');
 
-    this.ppgr = await PrivatePropertyGlobalRegistry.new();
-    this.privatePropertyFactory = await PrivatePropertyFactory.new(
-      this.ppgr.address,
-      this.galtToken.address,
-      ethFee,
-      galtFee
-    );
-    await this.ppgr.setFactory(this.privatePropertyFactory.address);
+    this.ppgr = await PPGlobalRegistry.new();
+    this.acl = await PPACL.new();
+    this.ppTokenRegistry = await PPTokenRegistry.new();
 
-    const res = await this.privatePropertyFactory.build('Foo', 'BAR', registryDataLink, { value: ether(5) });
-    this.privatePropertyToken = await PrivatePropertyToken.at(res.logs[4].args.token);
+    await this.ppgr.initialize();
+    await this.ppTokenRegistry.initialize(this.ppgr.address);
 
-    this.privatePropertyMarket = await PrivatePropertyMarket.new(
-      this.ppgr.address,
-      this.galtToken.address,
-      ethFee,
-      galtFee
-    );
-    this.privatePropertyToken.setMinter(minter);
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+
+    // PPGR setup
+    await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
+
+    // ACL setup
+    await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
+
+    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, { value: 0 });
+    this.ppToken = await PPToken.at(res.logs[4].args.token);
+
+    this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
+    this.ppToken.setMinter(minter);
 
     await this.galtToken.mint(alice, ether(10000000));
     await this.galtToken.mint(bob, ether(10000000));
@@ -94,21 +100,21 @@ contract('PrivatePropertyMarket', accounts => {
   });
 
   beforeEach(async function() {
-    let res = await this.privatePropertyToken.mint(alice, { from: minter });
-    this.privatePropertyTokenId1 = res.logs[1].args.tokenId;
-    res = await this.privatePropertyToken.mint(alice, { from: minter });
-    this.privatePropertyTokenId2 = res.logs[1].args.tokenId;
+    let res = await this.ppToken.mint(alice, { from: minter });
+    this.ppTokenId1 = res.logs[1].args.tokenId;
+    res = await this.ppToken.mint(alice, { from: minter });
+    this.ppTokenId2 = res.logs[1].args.tokenId;
   });
 
   describe('sale order submission', () => {
     describe('with ETH order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
-        assert.equal(await this.privatePropertyToken.tokenDataLink(), registryDataLink);
+        assert.equal(await this.ppToken.tokenDataLink(), registryDataLink);
 
-        assert.equal(await this.privatePropertyMarket.owner(), coreTeam);
-        let res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        assert.equal(await this.ppMarket.owner(), coreTeam);
+        let res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           bob,
           ether(50),
           dataAddress,
@@ -118,22 +124,22 @@ contract('PrivatePropertyMarket', accounts => {
         );
         this.rId = res.logs[0].args.orderId;
 
-        res = await this.privatePropertyMarket.saleOrders(this.rId);
+        res = await this.ppMarket.saleOrders(this.rId);
         assert.equal(res.status, SaleOrderStatus.ACTIVE);
         assert.equal(res.ask, ether(50));
         assert.equal(res.escrowCurrency, EscrowCurrency.ETH);
         assert.equal(res.tokenContract, zeroAddress);
         assert.equal(res.seller, alice);
 
-        res = await this.privatePropertyMarket.getSaleOrderDetails(this.rId);
-        assert.sameMembers(res.propertyTokenIds, [this.privatePropertyTokenId1]);
-        assert.equal(res.propertyToken, this.privatePropertyToken.address);
+        res = await this.ppMarket.getSaleOrderDetails(this.rId);
+        assert.sameMembers(res.propertyTokenIds, [this.ppTokenId1]);
+        assert.equal(res.propertyToken, this.ppToken.address);
       });
 
       it('should create a new sale order with ERC20 payment method', async function() {
-        let res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1, this.privatePropertyTokenId2],
+        let res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1, this.ppTokenId2],
           bob,
           ether(50),
           dataAddress,
@@ -143,7 +149,7 @@ contract('PrivatePropertyMarket', accounts => {
         );
         this.rId = res.logs[0].args.orderId;
 
-        res = await this.privatePropertyMarket.saleOrders(this.rId);
+        res = await this.ppMarket.saleOrders(this.rId);
 
         assert.equal(res.id, this.rId);
         assert.equal(res.ask, ether(50));
@@ -151,16 +157,16 @@ contract('PrivatePropertyMarket', accounts => {
         assert.equal(res.tokenContract, this.galtToken.address);
         assert.equal(res.seller, alice);
 
-        res = await this.privatePropertyMarket.getSaleOrderDetails(this.rId);
-        assert.sameMembers(res.propertyTokenIds, [this.privatePropertyTokenId1, this.privatePropertyTokenId2]);
-        assert.equal(res.propertyToken, this.privatePropertyToken.address);
+        res = await this.ppMarket.getSaleOrderDetails(this.rId);
+        assert.sameMembers(res.propertyTokenIds, [this.ppTokenId1, this.ppTokenId2]);
+        assert.equal(res.propertyToken, this.ppToken.address);
       });
 
       it('should reject sale order if the token is not owned by an applicant', async function() {
         await assertRevert(
-          this.privatePropertyMarket.createSaleOrder(
-            this.privatePropertyToken.address,
-            [this.privatePropertyTokenId1],
+          this.ppMarket.createSaleOrder(
+            this.ppToken.address,
+            [this.ppTokenId1],
             bob,
             ether(50),
             dataAddress,
@@ -174,9 +180,9 @@ contract('PrivatePropertyMarket', accounts => {
 
       it('should reject sale order if the token contract is not registered in the PPGR', async function() {
         await assertRevert(
-          this.privatePropertyMarket.createSaleOrder(
-            this.unregisteredPrivatePropertyToken.address,
-            [this.privatePropertyTokenId1],
+          this.ppMarket.createSaleOrder(
+            this.unregisteredPPToken.address,
+            [this.ppTokenId1],
             bob,
             ether(50),
             dataAddress,
@@ -184,14 +190,14 @@ contract('PrivatePropertyMarket', accounts => {
             zeroAddress,
             { from: bob, value: ether(5) }
           ),
-          "Token doesn't registered in PPGR"
+          'Token address is invalid'
         );
       });
 
       it('should not reject sale orders if the token is already on sale', async function() {
-        await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           bob,
           ether(50),
           dataAddress,
@@ -200,9 +206,9 @@ contract('PrivatePropertyMarket', accounts => {
           { from: alice, value: ether(5) }
         );
 
-        await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           bob,
           ether(50),
           dataAddress,
@@ -215,10 +221,10 @@ contract('PrivatePropertyMarket', accounts => {
 
     describe('with GALT order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
-        await this.galtToken.approve(this.privatePropertyMarket.address, ether(10), { from: alice });
-        let res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        await this.galtToken.approve(this.ppMarket.address, ether(10), { from: alice });
+        let res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           bob,
           ether(50),
           dataAddress,
@@ -228,7 +234,7 @@ contract('PrivatePropertyMarket', accounts => {
         );
         this.rId = res.logs[0].args.orderId;
 
-        res = await this.privatePropertyMarket.saleOrders(this.rId);
+        res = await this.ppMarket.saleOrders(this.rId);
         assert.equal(res.id, this.rId);
         assert.equal(res.status, SaleOrderStatus.ACTIVE);
         assert.equal(res.ask, ether(50));
@@ -236,15 +242,15 @@ contract('PrivatePropertyMarket', accounts => {
         assert.equal(res.tokenContract, zeroAddress);
         assert.equal(res.seller, alice);
 
-        res = await this.privatePropertyMarket.getSaleOrderDetails(this.rId);
-        assert.sameMembers(res.propertyTokenIds, [this.privatePropertyTokenId1]);
+        res = await this.ppMarket.getSaleOrderDetails(this.rId);
+        assert.sameMembers(res.propertyTokenIds, [this.ppTokenId1]);
       });
 
       it('should create a new sale order with ERC20 payment method', async function() {
-        await this.galtToken.approve(this.privatePropertyMarket.address, ether(10), { from: alice });
-        let res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        await this.galtToken.approve(this.ppMarket.address, ether(10), { from: alice });
+        let res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           bob,
           ether(50),
           dataAddress,
@@ -254,23 +260,23 @@ contract('PrivatePropertyMarket', accounts => {
         );
         this.rId = res.logs[0].args.orderId;
 
-        res = await this.privatePropertyMarket.saleOrders(this.rId);
+        res = await this.ppMarket.saleOrders(this.rId);
         assert.equal(res.id, this.rId);
         assert.equal(res.ask, ether(50));
         assert.equal(res.escrowCurrency, EscrowCurrency.ERC20);
         assert.equal(res.tokenContract, this.galtToken.address);
         assert.equal(res.seller, alice);
 
-        res = await this.privatePropertyMarket.getSaleOrderDetails(this.rId);
-        assert.sameMembers(res.propertyTokenIds, [this.privatePropertyTokenId1]);
+        res = await this.ppMarket.getSaleOrderDetails(this.rId);
+        assert.sameMembers(res.propertyTokenIds, [this.ppTokenId1]);
       });
 
       it('should reject sale order if the token is not owned by an applicant', async function() {
-        await this.galtToken.approve(this.privatePropertyMarket.address, ether(10), { from: alice });
+        await this.galtToken.approve(this.ppMarket.address, ether(10), { from: alice });
         await assertRevert(
-          this.privatePropertyMarket.createSaleOrder(
-            this.privatePropertyToken.address,
-            [this.privatePropertyTokenId1],
+          this.ppMarket.createSaleOrder(
+            this.ppToken.address,
+            [this.ppTokenId1],
             bob,
             ether(50),
             dataAddress,
@@ -286,9 +292,9 @@ contract('PrivatePropertyMarket', accounts => {
   describe('sale order matching', () => {
     describe('#createSaleOffer()', () => {
       beforeEach(async function() {
-        const res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        const res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           bob,
           ether(50),
           dataAddress,
@@ -300,9 +306,9 @@ contract('PrivatePropertyMarket', accounts => {
       });
 
       it('should create a new offer', async function() {
-        await this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob });
+        await this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob });
 
-        const res = await this.privatePropertyMarket.saleOffers(this.rId, bob);
+        const res = await this.ppMarket.saleOffers(this.rId, bob);
         assert.equal(res.status, SaleOfferStatus.ACTIVE);
         assert.equal(res.bid, ether(30));
         assert.equal(res.lastAskAt, 0);
@@ -311,30 +317,30 @@ contract('PrivatePropertyMarket', accounts => {
       });
 
       it('should increment offerCount', async function() {
-        await this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob });
-        await this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: charlie });
+        await this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob });
+        await this.ppMarket.createSaleOffer(this.rId, ether(30), { from: charlie });
       });
 
       it('should reject offers from seller', async function() {
-        await assertRevert(this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: alice }));
+        await assertRevert(this.ppMarket.createSaleOffer(this.rId, ether(30), { from: alice }));
       });
 
       it('should reject if order state is not ACTIVE', async function() {
-        await this.privatePropertyMarket.closeSaleOrder(this.rId, { from: alice });
-        await assertRevert(this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob }));
+        await this.ppMarket.closeSaleOrder(this.rId, { from: alice });
+        await assertRevert(this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob }));
       });
 
       it('should reject second offer from the same buyer', async function() {
-        await this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob });
-        await assertRevert(this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob }));
+        await this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob });
+        await assertRevert(this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob }));
       });
     });
 
     describe('#changeOfferBid/Ask()', () => {
       beforeEach(async function() {
-        const res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        const res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           charlie,
           ether(50),
           dataAddress,
@@ -344,47 +350,45 @@ contract('PrivatePropertyMarket', accounts => {
         );
         this.rId = res.logs[0].args.orderId;
 
-        await this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob });
+        await this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob });
       });
 
       it('should allow bid/ask combinations', async function() {
-        let res = await this.privatePropertyMarket.saleOffers(this.rId, bob);
+        let res = await this.ppMarket.saleOffers(this.rId, bob);
         assert.equal(res.ask, ether(50));
         assert.equal(res.bid, ether(30));
 
-        await this.privatePropertyMarket.changeSaleOfferAsk(this.rId, bob, ether(45), { from: charlie });
+        await this.ppMarket.changeSaleOfferAsk(this.rId, bob, ether(45), { from: charlie });
 
-        res = await this.privatePropertyMarket.saleOffers(this.rId, bob);
+        res = await this.ppMarket.saleOffers(this.rId, bob);
         assert.equal(res.ask, ether(45));
         assert.equal(res.bid, ether(30));
 
-        await this.privatePropertyMarket.changeSaleOfferBid(this.rId, ether(35), { from: bob });
+        await this.ppMarket.changeSaleOfferBid(this.rId, ether(35), { from: bob });
 
-        res = await this.privatePropertyMarket.saleOffers(this.rId, bob);
+        res = await this.ppMarket.saleOffers(this.rId, bob);
         assert.equal(res.ask, ether(45));
         assert.equal(res.bid, ether(35));
       });
 
       it('should deny another person changing ask price', async function() {
-        await assertRevert(this.privatePropertyMarket.changeSaleOfferAsk(this.rId, bob, ether(45), { from: bob }));
+        await assertRevert(this.ppMarket.changeSaleOfferAsk(this.rId, bob, ether(45), { from: bob }));
       });
 
       it.skip('should deny changing bid price for non-operator, even if it is a token owner', async function() {
-        await assertRevert(this.privatePropertyMarket.changeSaleOfferAsk(this.rId, bob, ether(45), { from: alice }));
+        await assertRevert(this.ppMarket.changeSaleOfferAsk(this.rId, bob, ether(45), { from: alice }));
       });
 
       it('should deny changing bid price for non existing offers', async function() {
-        await assertRevert(
-          this.privatePropertyMarket.changeSaleOfferAsk(this.rId, charlie, ether(45), { from: alice })
-        );
+        await assertRevert(this.ppMarket.changeSaleOfferAsk(this.rId, charlie, ether(45), { from: alice }));
       });
     });
 
     describe('#cancelSaleOrder()', () => {
       it('should allow seller closing the order', async function() {
-        let res = await this.privatePropertyMarket.createSaleOrder(
-          this.privatePropertyToken.address,
-          [this.privatePropertyTokenId1],
+        let res = await this.ppMarket.createSaleOrder(
+          this.ppToken.address,
+          [this.ppTokenId1],
           charlie,
           ether(50),
           dataAddress,
@@ -394,23 +398,23 @@ contract('PrivatePropertyMarket', accounts => {
         );
         this.rId = res.logs[0].args.orderId;
 
-        await this.privatePropertyMarket.createSaleOffer(this.rId, ether(30), { from: bob });
-        await this.privatePropertyMarket.changeSaleOfferAsk(this.rId, bob, ether(35), { from: charlie });
-        await this.privatePropertyMarket.changeSaleOfferBid(this.rId, ether(35), { from: bob });
-        await this.privatePropertyMarket.closeSaleOrder(this.rId, { from: alice });
+        await this.ppMarket.createSaleOffer(this.rId, ether(30), { from: bob });
+        await this.ppMarket.changeSaleOfferAsk(this.rId, bob, ether(35), { from: charlie });
+        await this.ppMarket.changeSaleOfferBid(this.rId, ether(35), { from: bob });
+        await this.ppMarket.closeSaleOrder(this.rId, { from: alice });
 
-        res = await this.privatePropertyMarket.saleOffers(this.rId, bob);
+        res = await this.ppMarket.saleOffers(this.rId, bob);
         assert.equal(res.status, SaleOfferStatus.ACTIVE);
 
-        res = await this.privatePropertyMarket.saleOrders(this.rId);
+        res = await this.ppMarket.saleOrders(this.rId);
         assert.equal(res.status, SaleOrderStatus.INACTIVE);
       });
     });
   });
 
   describe('protocol fee', () => {
-    async function submit(privatePropertyMarket, tokenAddress, tokenIds, docs, value = 0) {
-      await privatePropertyMarket.createSaleOrder(
+    async function submit(ppMarket, tokenAddress, tokenIds, docs, value = 0) {
+      await ppMarket.createSaleOrder(
         tokenAddress,
         tokenIds,
         bob,
@@ -426,23 +430,13 @@ contract('PrivatePropertyMarket', accounts => {
     }
 
     beforeEach(async function() {
-      this.privatePropertyMarket = await PrivatePropertyMarket.new(
-        this.ppgr.address,
-        this.galtToken.address,
-        ethFee,
-        galtFee
-      );
-      this.args = [
-        this.privatePropertyMarket,
-        this.privatePropertyToken.address,
-        [this.privatePropertyTokenId1],
-        dataAddress
-      ];
+      this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
+      this.args = [this.ppMarket, this.ppToken.address, [this.ppTokenId1], dataAddress];
     });
 
     describe('payments', async function() {
       it('should accept GALT payments with a registered value', async function() {
-        await this.galtToken.approve(this.privatePropertyMarket.address, ether(10), { from: alice });
+        await this.galtToken.approve(this.ppMarket.address, ether(10), { from: alice });
         await submit(...this.args, 0);
       });
 
@@ -451,14 +445,14 @@ contract('PrivatePropertyMarket', accounts => {
       });
 
       it('should deny GALT payments with an approved value higher than a registered', async function() {
-        await this.galtToken.approve(this.privatePropertyMarket.address, ether(11), { from: alice });
+        await this.galtToken.approve(this.ppMarket.address, ether(11), { from: alice });
         await submit(...this.args, 0);
-        const res = await this.galtToken.balanceOf(this.privatePropertyMarket.address);
+        const res = await this.galtToken.balanceOf(this.ppMarket.address);
         assert.equal(res, ether(10));
       });
 
       it('should deny GALT payments with an approved value lower than a registered', async function() {
-        await this.galtToken.approve(this.privatePropertyMarket.address, ether(9), { from: alice });
+        await this.galtToken.approve(this.ppMarket.address, ether(9), { from: alice });
         await assertRevert(submit(...this.args, 0));
       });
 
