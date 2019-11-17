@@ -26,6 +26,8 @@ contract PPLocker is IPPLocker {
   event Withdrawal(uint256 reputation);
   event TokenBurned(uint256 tokenId);
 
+  bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
+
   IPPGlobalRegistry public globalRegistry;
 
   address public owner;
