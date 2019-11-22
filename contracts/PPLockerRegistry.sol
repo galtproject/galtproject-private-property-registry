@@ -9,6 +9,7 @@
 
 pragma solidity 0.5.10;
 
+import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/libs/contracts/traits/OwnableAndInitializable.sol";
 import "./interfaces/IPPLockerRegistry.sol";
 import "./interfaces/IPPLocker.sol";
@@ -20,6 +21,7 @@ import "./interfaces/IPPGlobalRegistry.sol";
  * @notice Tracks all the valid lockers of a given type.
  */
 contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
+  using ArraySet for ArraySet.AddressSet;
 
   bytes32 public constant ROLE_LOCKER_REGISTRAR = bytes32("LOCKER_REGISTRAR");
 
@@ -30,10 +32,11 @@ contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
 
   IPPGlobalRegistry public globalRegistry;
 
-  address[] public lockerList;
-
   // Locker address => Details
   mapping(address => Details) public lockers;
+
+  // Locker address => Details
+  mapping(address => ArraySet.AddressSet) internal lockersByOwner;
 
   modifier onlyFactory() {
     require(
@@ -56,7 +59,7 @@ contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
     locker.active = true;
     locker.factory = msg.sender;
 
-    lockerList.push(_locker);
+    lockersByOwner[IPPLocker(_locker).owner()].add(_locker);
 
     emit AddLocker(_locker, IPPLocker(_locker).owner(), locker.factory);
   }
@@ -73,7 +76,11 @@ contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
     return lockers[_locker].active;
   }
 
-  function getAllLockers() external view returns (address[] memory) {
-    return lockerList;
+  function getLockerListByOwner(address _owner) external view returns (address[] memory) {
+    return lockersByOwner[_owner].elements();
+  }
+
+  function getLockerCountByOwner(address _owner) external view returns (uint256) {
+    return lockersByOwner[_owner].size();
   }
 }

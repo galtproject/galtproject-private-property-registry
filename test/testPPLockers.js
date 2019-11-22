@@ -91,7 +91,7 @@ contract('PPLockers', accounts => {
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
-    assert.sameMembers(await this.ppLockerRegistry.getAllLockers(), [lockerAddress]);
+    assert.sameMembers(await this.ppLockerRegistry.getLockerListByOwner(alice), [lockerAddress]);
 
     // deposit token
     await token.approve(locker.address, aliceTokenId, { from: alice });
