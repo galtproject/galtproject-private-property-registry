@@ -78,10 +78,7 @@ contract ChargesFee is Ownable {
   function withdrawErc20(address _tokenAddress, address _to) external onlyFeeCollector {
     uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
 
-    require(
-      IERC20(_tokenAddress).transfer(_to, balance) == true,
-      "Failed to transfer ERC20 tokens"
-    );
+    IERC20(_tokenAddress).transfer(_to, balance);
 
     emit WithdrawErc20(_to, _tokenAddress, balance);
   }
@@ -104,7 +101,7 @@ contract ChargesFee is Ownable {
 
   function _acceptPayment() internal {
     if (msg.value == 0) {
-      require(galtToken.transferFrom(msg.sender, address(this), galtFee) == true, "Failed to transfer GALT tokens");
+      galtToken.transferFrom(msg.sender, address(this), galtFee);
     } else {
       require(msg.value == ethFee, "Fee and msg.value not equal");
     }
