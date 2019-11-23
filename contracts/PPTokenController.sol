@@ -9,11 +9,14 @@
 
 pragma solidity ^0.5.10;
 
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract PPTokenController is Ownable {
+  using SafeMath for uint256;
+
   event SetGeoDataManager(address indexed geoDataManager);
   event NewProposal(
     uint256 indexed proposalId,
@@ -112,7 +115,7 @@ contract PPTokenController is Ownable {
 
     (bool ok,) = address(tokenContract)
       .call
-      .gas(gasleft() - 35000)(p.data);
+      .gas(gasleft().sub(50000))(p.data);
 
     if (ok == false) {
       emit ProposalExecutionFailed(_proposalId);
