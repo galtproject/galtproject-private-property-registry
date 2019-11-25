@@ -135,15 +135,17 @@ contract PPLocker is IPPLocker {
       uint256 _tokenId,
       uint256 _reputation,
       bool _tokenDeposited,
-      bool _tokenBurned
+      bool _tokenBurned,
+      address _tokenContract
     )
   {
     return (
       owner,
-    tokenId,
+      tokenId,
       reputation,
       tokenDeposited,
-      tokenBurned
+      tokenBurned,
+      tokenContract
     );
   }
 
