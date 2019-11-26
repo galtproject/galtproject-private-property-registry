@@ -145,7 +145,7 @@ contract PPLocker is IPPLocker {
       reputation,
       tokenDeposited,
       tokenBurned,
-      tokenContract
+      address(tokenContract)
     );
   }
 
