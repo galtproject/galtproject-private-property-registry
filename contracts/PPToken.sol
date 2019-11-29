@@ -29,6 +29,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     // USER_INPUT or CONTRACT
     AreaSource areaSource;
     // Calculated either by contract (for land plots and buildings) or by manual input
+    // in sq. meters (1 sq. meter == 1 eth)
     uint256 area;
 
     bytes32 ledgerIdentifier;
@@ -98,6 +99,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     Property storage p = properties[_privatePropertyId];
 
     if (msg.sender == minter) {
+      // Will REVERT if there is no owner assigned to the token
+      ownerOf(_privatePropertyId);
+
       require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
       p.setupStage = PropertyInitialSetupStage.DETAILS;
     } else {

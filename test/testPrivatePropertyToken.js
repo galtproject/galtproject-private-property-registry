@@ -57,6 +57,21 @@ contract('PPToken and PPTokenController', accounts => {
       res = await token.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.privatePropertyId;
 
+      await assertRevert(
+        token.setDetails(
+          123123,
+          // tokenType
+          2,
+          1,
+          123,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz',
+          { from: minter }
+        ),
+        'ERC721: owner query for nonexistent token'
+      );
+
       // SET DETAILS
       await token.setDetails(
         aliceTokenId,
