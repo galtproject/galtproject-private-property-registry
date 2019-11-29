@@ -29,6 +29,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     // USER_INPUT or CONTRACT
     AreaSource areaSource;
     // Calculated either by contract (for land plots and buildings) or by manual input
+    // in sq. meters (1 sq. meter == 1 eth)
     uint256 area;
 
     bytes32 ledgerIdentifier;
