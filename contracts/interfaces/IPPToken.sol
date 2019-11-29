@@ -40,7 +40,8 @@ interface IPPToken {
     NULL,
     LAND_PLOT,
     BUILDING,
-    ROOM
+    ROOM,
+    PACKAGE
   }
 
   // ERC20 METHOD
