@@ -98,6 +98,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     Property storage p = properties[_privatePropertyId];
 
     if (msg.sender == minter) {
+      // Will REVERT if there is no owner assigned to the token
+      ownerOf(_privatePropertyId);
+
       require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
       p.setupStage = PropertyInitialSetupStage.DETAILS;
     } else {
