@@ -36,7 +36,7 @@ contract PPTokenController is Ownable {
     bool tokenOwnerApproved;
     bool geoDataManagerApproved;
     bytes data;
-    string description;
+    string dataLink;
   }
 
   IERC721 public tokenContract;
@@ -60,7 +60,7 @@ contract PPTokenController is Ownable {
 
   function propose(
     bytes calldata _data,
-    string calldata _description
+    string calldata _dataLink
   )
     external
   {
@@ -80,7 +80,7 @@ contract PPTokenController is Ownable {
 
     p.creator = msgSender;
     p.data = _data;
-    p.description = _description;
+    p.dataLink = _dataLink;
 
     emit NewProposal(proposalId, tokenId, msg.sender);
   }
