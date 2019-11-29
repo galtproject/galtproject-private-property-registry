@@ -70,7 +70,7 @@ interface IPPToken {
     external;
 
   function mint(address _to) external;
-  function burn(uint256 _privatePropertyId) external;
+  function burn(uint256 _tokenId, bytes32 _tokenIdHash) external;
 
   // GETTERS
 

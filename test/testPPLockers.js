@@ -17,6 +17,8 @@ const { ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3
 const { utf8ToHex } = web3.utils;
 const bytes32 = utf8ToHex;
 
+const ONE_HOUR = 60 * 60;
+
 contract('PPLockers', accounts => {
   const [owner, alice, registryOwner, minter, lockerFeeManager] = accounts;
 
@@ -62,7 +64,7 @@ contract('PPLockers', accounts => {
   });
 
   it('should correctly build locker', async function() {
-    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, {
+    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
       from: registryOwner,
       value: ether(10)
     });

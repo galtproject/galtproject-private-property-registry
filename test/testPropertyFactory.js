@@ -9,6 +9,8 @@ const { ether, gwei, assertRevert, assertEthBalanceChanged } = require('@galtpro
 const { utf8ToHex } = web3.utils;
 const bytes32 = utf8ToHex;
 
+const ONE_HOUR = 60 * 60;
+
 contract('PPTokenFactory', accounts => {
   const [owner, alice, anywhere] = accounts;
 
@@ -48,7 +50,7 @@ contract('PPTokenFactory', accounts => {
     assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), 0);
 
     await this.galtToken.approve(this.ppTokenFactory.address, galtFee, { from: alice });
-    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, { from: alice });
+    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, { from: alice });
 
     assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), galtFee);
 
@@ -64,7 +66,7 @@ contract('PPTokenFactory', accounts => {
     const aliceBalanceBefore = await web3.eth.getBalance(alice);
     let factoryBalanceBefore = await web3.eth.getBalance(this.ppTokenFactory.address);
 
-    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, {
+    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
       from: alice,
       value: ethFee,
       gasPrice: gwei(0.1)

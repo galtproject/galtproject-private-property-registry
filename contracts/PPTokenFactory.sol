@@ -39,7 +39,8 @@ contract PPTokenFactory is Ownable, ChargesFee {
   function build(
     string calldata _tokenName,
     string calldata _tokenSymbol,
-    string calldata _dataLink
+    string calldata _dataLink,
+    uint256 _defaultBurnDuration
   )
     external
     payable
@@ -52,7 +53,7 @@ contract PPTokenFactory is Ownable, ChargesFee {
       _tokenName,
       _tokenSymbol
     );
-    PPTokenController ppTokenController = new PPTokenController(ppToken);
+    PPTokenController ppTokenController = new PPTokenController(ppToken, _defaultBurnDuration);
 
     // setting up contracts
     ppToken.setDataLink(_dataLink);

@@ -10,10 +10,16 @@ const galt = require('@galtproject/utils');
 PPToken.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
 
-const { ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
+const { web3 } = PPToken;
+
+const { ether, assertRevert, evmIncreaseTime } = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
+
 const bytes32 = utf8ToHex;
+
+const ONE_HOUR = 60 * 60;
+const TWO_HOURS = 60 * 60 * 2;
 
 contract('PPToken and PPTokenController', accounts => {
   const [systemOwner, registryOwner, minter, geoDataManager, alice, bob] = accounts;
@@ -47,7 +53,7 @@ contract('PPToken and PPTokenController', accounts => {
 
   describe('token creation', () => {
     it('should allow the minter minting a new token', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', { from: registryOwner });
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
       const token = await PPToken.at(res.logs[4].args.token);
       const controller = await PPTokenController.at(res.logs[4].args.controller);
 
@@ -94,7 +100,7 @@ contract('PPToken and PPTokenController', accounts => {
 
   describe('token update', () => {
     it('should allow a token owner submitting token update proposals', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', { from: registryOwner });
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
       const token = await PPToken.at(res.logs[4].args.token);
       const controller = await PPTokenController.at(res.logs[4].args.controller);
 
@@ -137,6 +143,119 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(hexToUtf8(res.ledgerIdentifier), 'foo');
       assert.equal(res.humanAddress, 'bar');
       assert.equal(res.dataLink, 'buzz');
+    });
+  });
+
+  describe('token burn', () => {
+    it('should allow token burn after a custom timeout', async function() {
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const token = await PPToken.at(res.logs[4].args.token);
+      const controller = await PPTokenController.at(res.logs[4].args.controller);
+
+      await token.setMinter(minter, { from: registryOwner });
+      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      const aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      await assertRevert(
+        controller.setBurnTimeoutDuration(aliceTokenId, TWO_HOURS, { from: bob }),
+        'Only token owner allowed'
+      );
+      await assertRevert(
+        controller.setBurnTimeoutDuration(aliceTokenId, 0, { from: alice }),
+        'Invalid timeout duration'
+      );
+      await controller.setBurnTimeoutDuration(aliceTokenId, TWO_HOURS, { from: alice });
+
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: bob }), 'Ownable: caller is not the owner');
+      await assertRevert(
+        controller.initiateTokenBurn(123123, { from: registryOwner }),
+        'ERC721: owner query for nonexistent token'
+      );
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: registryOwner });
+      const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + TWO_HOURS;
+      assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
+
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: registryOwner }), 'Burn already initiated');
+
+      assert.equal(await controller.defaultBurnTimeoutDuration(), ONE_HOUR);
+      assert.equal(await controller.burnTimeoutAt(123123), 0);
+      assert.equal(await controller.burnTimeoutAt(aliceTokenId), timeoutAt);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'Timeout has not passed yet');
+
+      await evmIncreaseTime(ONE_HOUR + 1);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'Timeout has not passed yet');
+
+      await evmIncreaseTime(ONE_HOUR + 1);
+
+      await controller.burnTokenByTimeout(aliceTokenId);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'ERC721: owner query for nonexistent token');
+      await assertRevert(token.ownerOf(aliceTokenId), 'ERC721: owner query for nonexistent token');
+    });
+
+    it('should allow token burn by a default timeout', async function() {
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const token = await PPToken.at(res.logs[4].args.token);
+      const controller = await PPTokenController.at(res.logs[4].args.controller);
+
+      await token.setMinter(minter, { from: registryOwner });
+      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      const aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: bob }), 'Ownable: caller is not the owner');
+      await assertRevert(
+        controller.initiateTokenBurn(123123, { from: registryOwner }),
+        'ERC721: owner query for nonexistent token'
+      );
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: registryOwner });
+      const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + ONE_HOUR;
+      assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
+
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: registryOwner }), 'Burn already initiated');
+
+      assert.equal(await controller.defaultBurnTimeoutDuration(), ONE_HOUR);
+      assert.equal(await controller.burnTimeoutAt(123123), 0);
+      assert.equal(await controller.burnTimeoutAt(aliceTokenId), timeoutAt);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'Timeout has not passed yet');
+
+      await evmIncreaseTime(ONE_HOUR + 1);
+
+      await controller.burnTokenByTimeout(aliceTokenId);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'ERC721: owner query for nonexistent token');
+      await assertRevert(token.ownerOf(aliceTokenId), 'ERC721: owner query for nonexistent token');
+    });
+
+    it('should allow token burn by an owner', async function() {
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const token = await PPToken.at(res.logs[4].args.token);
+      // const controller = await PPTokenController.at(res.logs[4].args.controller);
+
+      await token.setMinter(minter, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      const aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      await assertRevert(
+        token.burn(aliceTokenId, web3.utils.sha3(aliceTokenId), { from: alice }),
+        "Hash doesn't match"
+      );
+      await assertRevert(
+        token.burn(aliceTokenId, web3.utils.soliditySha3(aliceTokenId), { from: bob }),
+        'Either controller or owner allowed'
+      );
+      await token.burn(aliceTokenId, web3.utils.soliditySha3(aliceTokenId), { from: alice });
+      await assertRevert(
+        token.burn(aliceTokenId, web3.utils.soliditySha3(aliceTokenId), { from: alice }),
+        'ERC721: owner query for nonexistent token'
+      );
     });
   });
 });
