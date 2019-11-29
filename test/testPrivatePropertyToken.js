@@ -128,7 +128,7 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(res.tokenOwnerApproved, true);
       assert.equal(res.executed, true);
       assert.equal(res.data, data);
-      assert.equal(res.description, 'foo');
+      assert.equal(res.dataLink, 'foo');
 
       res = await token.getDetails(aliceTokenId);
       assert.equal(res.tokenType, 2);
