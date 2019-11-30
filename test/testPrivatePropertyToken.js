@@ -119,7 +119,7 @@ contract('PPToken and PPTokenController', accounts => {
       res = await token.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.privatePropertyId;
 
-      const data = token.contract.methods
+      let data = token.contract.methods
         .setDetails(
           aliceTokenId,
           // tokenType
@@ -135,7 +135,7 @@ contract('PPToken and PPTokenController', accounts => {
       await assertRevert(controller.propose(data, 'foo', { from: bob }), 'Missing permissions');
 
       res = await controller.propose(data, 'foo', { from: alice });
-      const proposalId = res.logs[0].args.proposalId;
+      let proposalId = res.logs[0].args.proposalId;
       await controller.approve(proposalId, { from: geoDataManager });
 
       res = await controller.proposals(proposalId);
@@ -152,6 +152,21 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(hexToUtf8(res.ledgerIdentifier), 'foo');
       assert.equal(res.humanAddress, 'bar');
       assert.equal(res.dataLink, 'buzz');
+
+      const newContour = contour.concat([galt.geohashToNumber('qwerqwereeee').toString(10)]);
+
+      data = token.contract.methods
+        .setContour(aliceTokenId, newContour, -43)
+        .encodeABI();
+
+      res = await controller.propose(data, 'foo', { from: alice });
+      proposalId = res.logs[0].args.proposalId;
+      await controller.approve(proposalId, { from: geoDataManager });
+
+      res = await controller.proposals(proposalId);
+
+      assert.sameMembers(await token.getContour(aliceTokenId), newContour);
+      assert.equal(await token.getHighestPoint(aliceTokenId), -43);
     });
   });
 });
