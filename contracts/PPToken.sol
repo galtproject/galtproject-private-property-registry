@@ -140,9 +140,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetContour(msg.sender, _privatePropertyId);
   }
 
-  function burn(uint256 _tokenId, bytes32 _tokenIdHash) external {
-    require(msg.sender == controller || msg.sender == ownerOf(_tokenId), "Either controller or owner allowed");
-    require(keccak256(abi.encode(_tokenId)) == _tokenIdHash, "Hash doesn't match");
+  function burn(uint256 _tokenId) external {
+    require(msg.sender == controller, "Only controller allowed");
 
     address owner = ownerOf(_tokenId);
 

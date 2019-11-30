@@ -248,29 +248,30 @@ contract('PPToken and PPTokenController', accounts => {
       await assertRevert(token.ownerOf(aliceTokenId), 'ERC721: owner query for nonexistent token');
     });
 
-    it('should allow token burn by an owner', async function() {
+    it('should allow token burn by an owner proposal', async function() {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
       const token = await PPToken.at(res.logs[4].args.token);
-      // const controller = await PPTokenController.at(res.logs[4].args.controller);
+      const controller = await PPTokenController.at(res.logs[4].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
+      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
       res = await token.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.privatePropertyId;
 
-      await assertRevert(
-        token.burn(aliceTokenId, web3.utils.sha3(aliceTokenId), { from: alice }),
-        "Hash doesn't match"
-      );
-      await assertRevert(
-        token.burn(aliceTokenId, web3.utils.soliditySha3(aliceTokenId), { from: bob }),
-        'Either controller or owner allowed'
-      );
-      await token.burn(aliceTokenId, web3.utils.soliditySha3(aliceTokenId), { from: alice });
-      await assertRevert(
-        token.burn(aliceTokenId, web3.utils.soliditySha3(aliceTokenId), { from: alice }),
-        'ERC721: owner query for nonexistent token'
-      );
+      await assertRevert(token.burn(aliceTokenId, { from: alice }), 'Only controller allowed');
+
+      const data = token.contract.methods.burn(aliceTokenId).encodeABI();
+      res = await controller.propose(data, 'foo', { from: alice });
+      const proposalId = res.logs[0].args.proposalId;
+      await controller.approve(proposalId, { from: geoDataManager });
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.creator, alice);
+      assert.equal(res.tokenOwnerApproved, true);
+      assert.equal(res.executed, true);
+      assert.equal(res.data, data);
+      assert.equal(res.dataLink, 'foo');
     });
   });
 });

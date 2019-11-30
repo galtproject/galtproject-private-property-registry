@@ -113,7 +113,7 @@ contract PPLocker is IPPLocker {
    * @param _tokenIdHash keccak256 hash of the token ID to prevent accidental token burn
    */
   function burnToken(bytes32 _tokenIdHash) external onlyOwner notBurned {
-    tokenContract.burn(tokenId, _tokenIdHash);
+//    tokenContract.burn(tokenId, _tokenIdHash);
     tokenBurned = true;
 
     emit TokenBurned(tokenId);
