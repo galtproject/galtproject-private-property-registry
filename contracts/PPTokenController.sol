@@ -33,6 +33,7 @@ contract PPTokenController is Ownable {
   event SetBurnTimeout(uint256 indexed tokenId, uint256 timeout);
   event InitiateTokenBurn(uint256 indexed tokenId, uint256 timeoutAt);
   event BurnTokenByTimeout(uint256 indexed tokenId);
+  event CancelTokenBurn(uint256 indexed tokenId);
 
   struct Proposal {
     address creator;
@@ -91,6 +92,15 @@ contract PPTokenController is Ownable {
     burnTimeoutAt[_tokenId] = timeoutAt;
 
     emit InitiateTokenBurn(_tokenId, timeoutAt);
+  }
+
+  function cancelTokenBurn(uint256 _tokenId) external {
+    require(burnTimeoutAt[_tokenId] != 0, "Burn not initiated");
+    require(tokenContract.ownerOf(_tokenId) == msg.sender, "Only token owner allowed");
+
+    burnTimeoutAt[_tokenId] = 0;
+
+    emit CancelTokenBurn(_tokenId);
   }
 
   function burnTokenByTimeout(uint256 _tokenId) external {
