@@ -97,6 +97,7 @@ interface IPPToken {
       uint256 area,
       bytes32 ledgerIdentifier,
       string memory humanAddress,
-      string memory dataLink
+      string memory dataLink,
+      bool setupStage
     );
 }
