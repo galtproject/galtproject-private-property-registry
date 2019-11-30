@@ -98,6 +98,6 @@ interface IPPToken {
       bytes32 ledgerIdentifier,
       string memory humanAddress,
       string memory dataLink,
-      bool setupStage
+      PropertyInitialSetupStage setupStage
     );
 }
