@@ -57,6 +57,8 @@ Object.freeze(ValidationStatus);
 Object.freeze(PaymentMethods);
 Object.freeze(Currency);
 
+const ONE_HOUR = 60 * 60;
+
 contract('PPMarket', accounts => {
   const [coreTeam, minter, alice, bob, charlie] = accounts;
 
@@ -88,7 +90,7 @@ contract('PPMarket', accounts => {
     // ACL setup
     await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
 
-    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, { value: 0 });
+    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, ONE_HOUR, { value: 0 });
     this.ppToken = await PPToken.at(res.logs[4].args.token);
 
     this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);

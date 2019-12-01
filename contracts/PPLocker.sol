@@ -108,19 +108,6 @@ contract PPLocker is IPPLocker {
     emit ReputationBurn(address(_tra));
   }
 
-  /*
-   * @notice Burn token in case when it is stuck due some SRA misbehaviour
-   * @param _tokenIdHash keccak256 hash of the token ID to prevent accidental token burn
-   */
-  function burnToken(bytes32 _tokenIdHash) external onlyOwner notBurned {
-    require(keccak256(abi.encode(tokenId)) == _tokenIdHash, "Hash doesn't match");
-
-    tokenContract.burn(tokenId);
-    tokenBurned = true;
-
-    emit TokenBurned(tokenId);
-  }
-
   // GETTERS
 
   function isOwner() public view returns (bool) {
