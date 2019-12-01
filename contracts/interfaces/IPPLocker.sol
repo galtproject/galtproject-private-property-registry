@@ -14,7 +14,7 @@ import "./IPPToken.sol";
 
 
 interface IPPLocker {
-  function deposit(IPPToken _tokenContract, uint256 _tokenId) external;
+  function deposit(IPPToken _tokenContract, uint256 _tokenId) external payable;
   function withdraw() external;
   function approveMint(IRA _tra) external;
   function burn(IRA _tra) external;

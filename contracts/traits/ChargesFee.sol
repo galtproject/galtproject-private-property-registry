@@ -11,10 +11,13 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 
 
 contract ChargesFee is Ownable {
+  using SafeERC20 for IERC20;
+
   event SetFeeManager(address addr);
   event SetFeeCollector(address addr);
   event SetEthFee(uint256 ethFee);

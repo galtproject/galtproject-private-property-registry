@@ -14,7 +14,7 @@ import "./traits/ChargesFee.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPTokenRegistry.sol";
 import "./PPToken.sol";
-import "./PPTokenController.sol";
+import "./PPTokenControllerFactory.sol";
 
 
 /**
@@ -25,12 +25,20 @@ contract PPTokenFactory is Ownable, ChargesFee {
   event SetGlobalRegistry(address globalRegistry);
 
   IPPGlobalRegistry public globalRegistry;
+  PPTokenControllerFactory public ppTokenControllerFactory;
 
-  constructor(address _globalRegistry, address _galtToken, uint256 _ethFee, uint256 _galtFee)
+  constructor(
+    address _ppTokenControllerFactory,
+    address _globalRegistry,
+    address _galtToken,
+    uint256 _ethFee,
+    uint256 _galtFee
+  )
     public
     ChargesFee(_galtToken, _ethFee, _galtFee)
     Ownable()
   {
+    ppTokenControllerFactory = PPTokenControllerFactory(_ppTokenControllerFactory);
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
   }
 
@@ -53,7 +61,7 @@ contract PPTokenFactory is Ownable, ChargesFee {
       _tokenName,
       _tokenSymbol
     );
-    PPTokenController ppTokenController = new PPTokenController(ppToken, _defaultBurnDuration);
+    PPTokenController ppTokenController = ppTokenControllerFactory.build(ppToken, _defaultBurnDuration);
 
     // setting up contracts
     ppToken.setDataLink(_dataLink);

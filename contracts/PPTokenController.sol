@@ -11,29 +11,14 @@ pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPToken.sol";
+import "./interfaces/IPPTokenController.sol";
 
 
-contract PPTokenController is Ownable {
+contract PPTokenController is IPPTokenController, Ownable {
   using SafeMath for uint256;
-
-  event SetGeoDataManager(address indexed geoDataManager);
-  event NewProposal(
-    uint256 indexed proposalId,
-    uint256 indexed tokenId,
-    address indexed creator
-  );
-  event ProposalExecuted(uint256 indexed proposalId);
-  event ProposalExecutionFailed(uint256 indexed proposalId);
-  event ProposalApproval(
-    uint256 indexed proposalId,
-    uint256 indexed tokenId
-  );
-  event SetBurnTimeout(uint256 indexed tokenId, uint256 timeout);
-  event InitiateTokenBurn(uint256 indexed tokenId, uint256 timeoutAt);
-  event BurnTokenByTimeout(uint256 indexed tokenId);
-  event CancelTokenBurn(uint256 indexed tokenId);
 
   struct Proposal {
     address creator;
@@ -54,6 +39,8 @@ contract PPTokenController is Ownable {
   mapping(uint256 => uint256) public burnTimeoutDuration;
   // tokenId => burnTimeoutAt
   mapping(uint256 => uint256) public burnTimeoutAt;
+  // key => fee
+  mapping(bytes32 => uint256) public fees;
 
   constructor(IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
@@ -61,6 +48,9 @@ contract PPTokenController is Ownable {
     defaultBurnTimeoutDuration = _defaultBurnTimeoutDuration;
 
     tokenContract = _tokenContract;
+  }
+
+  function() external payable {
   }
 
   // OWNER INTERFACE
@@ -77,6 +67,27 @@ contract PPTokenController is Ownable {
     burnTimeoutDuration[_tokenId] = _duration;
 
     emit SetBurnTimeout(_tokenId, _duration);
+  }
+
+  function setFee(bytes32 _key, uint256 _value) external onlyOwner {
+    fees[_key] = _value;
+    emit SetFee(_key, _value);
+  }
+
+  function withdrawErc20(address _tokenAddress, address _to) external onlyOwner {
+    uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
+
+    IERC20(_tokenAddress).transfer(_to, balance);
+
+    emit WithdrawErc20(_to, _tokenAddress, balance);
+  }
+
+  function withdrawEth(address payable _to) external onlyOwner {
+    uint256 balance = address(this).balance;
+
+    _to.transfer(balance);
+
+    emit WithdrawEth(_to, balance);
   }
 
   function initiateTokenBurn(uint256 _tokenId) external onlyOwner {

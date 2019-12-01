@@ -1,4 +1,5 @@
 const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
+const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
 const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
 const PPACL = artifacts.require('PPACL.sol');
@@ -12,7 +13,13 @@ PPTokenController.numberFormat = 'String';
 
 const { web3 } = PPToken;
 
-const { ether, assertRevert, evmIncreaseTime } = require('@galtproject/solidity-test-chest')(web3);
+const {
+  ether,
+  assertRevert,
+  evmIncreaseTime,
+  assertErc20BalanceChanged,
+  assertEthBalanceChanged
+} = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
 
@@ -33,6 +40,7 @@ contract('PPToken and PPTokenController', accounts => {
     this.galtToken = await MintableErc20Token.new();
     await this.galtToken.mint(systemOwner, galtFee);
     await this.galtToken.mint(registryOwner, galtFee);
+    await this.galtToken.mint(alice, ether(1000));
 
     this.ppgr = await PPGlobalRegistry.new();
     this.acl = await PPACL.new();
@@ -41,7 +49,14 @@ contract('PPToken and PPTokenController', accounts => {
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
 
-    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+    this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
+    this.ppTokenFactory = await PPTokenFactory.new(
+      this.ppTokenControllerFactory.address,
+      this.ppgr.address,
+      this.galtToken.address,
+      0,
+      0
+    );
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
@@ -54,8 +69,8 @@ contract('PPToken and PPTokenController', accounts => {
   describe('token creation', () => {
     it('should allow the minter minting a new token', async function() {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
-      const token = await PPToken.at(res.logs[4].args.token);
-      const controller = await PPTokenController.at(res.logs[4].args.controller);
+      const token = await PPToken.at(res.logs[5].args.token);
+      const controller = await PPTokenController.at(res.logs[5].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -116,8 +131,8 @@ contract('PPToken and PPTokenController', accounts => {
   describe('token update', () => {
     it('should allow a token owner submitting token update proposals', async function() {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
-      const token = await PPToken.at(res.logs[4].args.token);
-      const controller = await PPTokenController.at(res.logs[4].args.controller);
+      const token = await PPToken.at(res.logs[5].args.token);
+      const controller = await PPTokenController.at(res.logs[5].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -182,8 +197,8 @@ contract('PPToken and PPTokenController', accounts => {
 
     beforeEach(async function() {
       res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
-      token = await PPToken.at(res.logs[4].args.token);
-      controller = await PPTokenController.at(res.logs[4].args.controller);
+      token = await PPToken.at(res.logs[5].args.token);
+      controller = await PPTokenController.at(res.logs[5].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -309,6 +324,46 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(res.executed, true);
       assert.equal(res.data, data);
       assert.equal(res.dataLink, 'foo');
+    });
+  });
+
+  describe('commission withdrawals', () => {
+    it('should allow ETH withdrawals', async function() {
+      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const controller = await PPTokenController.at(res.logs[5].args.controller);
+
+      await web3.eth.sendTransaction({ from: alice, to: controller.address, value: ether(42) });
+
+      assert.equal(await web3.eth.getBalance(controller.address), ether(42));
+
+      const bobBalanceBefore = await web3.eth.getBalance(bob);
+
+      await controller.withdrawEth(bob, { from: registryOwner });
+
+      const bobBalanceAfter = await web3.eth.getBalance(bob);
+
+      assertEthBalanceChanged(bobBalanceBefore, bobBalanceAfter, ether(42));
+
+      assert.equal(await web3.eth.getBalance(controller.address), ether(0));
+    });
+
+    it('should allow GALT withdrawals', async function() {
+      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const controller = await PPTokenController.at(res.logs[5].args.controller);
+
+      await this.galtToken.transfer(controller.address, ether(42), { from: alice });
+
+      assert.equal(await this.galtToken.balanceOf(controller.address), ether(42));
+
+      const bobBalanceBefore = await this.galtToken.balanceOf(bob);
+
+      await controller.withdrawErc20(this.galtToken.address, bob, { from: registryOwner });
+
+      const bobBalanceAfter = await this.galtToken.balanceOf(bob);
+
+      assertErc20BalanceChanged(bobBalanceBefore, bobBalanceAfter, ether(42));
+
+      assert.equal(await this.galtToken.balanceOf(controller.address), ether(0));
     });
   });
 });

@@ -10,16 +10,25 @@
 pragma solidity 0.5.10;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "@galtproject/libs/contracts/traits/Marketable.sol";
 import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPToken.sol";
 import "./traits/ChargesFee.sol";
 
 
 contract PPMarket is Marketable, Ownable, ChargesFee {
+  using SafeERC20 for IERC20;
+  using SafeMath for uint256;
+
+  bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
+  bytes32 public constant ETH_FEE_KEY = bytes32("LOCKER_ETH");
+
   struct SaleOrderDetails {
     address propertyToken;
     uint256[] propertyTokenIds;
@@ -38,7 +47,6 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     uint256 _galtFee
   )
     public
-
     ChargesFee(_galtToken, _ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
@@ -57,8 +65,8 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     payable
     returns (uint256)
   {
-    _acceptPayment();
     _performCreateSaleOrderChecks(_propertyToken, _propertyTokenIds);
+    _acceptPayment(_propertyToken);
 
     uint256 id = _createSaleOrder(
       _operator,
@@ -74,6 +82,25 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     details.dataAddress = _dataAddress;
 
     return id;
+  }
+
+  // Overrides ChargesFee._acceptPayment() and accepts an additional property owner fee along with the protocol fee
+  function _acceptPayment(address _propertyToken) internal {
+    address payable controller = IPPToken(_propertyToken).controller();
+
+    if (msg.value == 0) {
+      galtToken.transferFrom(msg.sender, address(this), galtFee);
+
+      uint256 propertyOwnerFee = IPPTokenController(controller).fees(GALT_FEE_KEY);
+      galtToken.transferFrom(msg.sender, controller, propertyOwnerFee);
+    } else {
+      uint256 propertyOwnerFee = IPPTokenController(controller).fees(ETH_FEE_KEY);
+      uint256 totalFee = ethFee.add(propertyOwnerFee);
+
+      require(msg.value == totalFee, "Invalid fee");
+
+      controller.transfer(propertyOwnerFee);
+    }
   }
 
   function closeSaleOrder(

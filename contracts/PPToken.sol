@@ -39,7 +39,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   uint256 public tokenIdCounter;
   address public minter;
-  address public controller;
+  address payable public controller;
   string public tokenDataLink;
 
   mapping(uint256 => Property) internal properties;
@@ -67,7 +67,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetMinter(_minter);
   }
 
-  function setController(address _controller) external onlyOwner {
+  function setController(address payable _controller) external onlyOwner {
     controller = _controller;
 
     emit SetController(_controller);

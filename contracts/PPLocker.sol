@@ -9,11 +9,13 @@
 
 pragma solidity 0.5.10;
 
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPLocker.sol";
 import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 
 
@@ -27,6 +29,8 @@ contract PPLocker is IPPLocker {
   event TokenBurned(uint256 tokenId);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
+  bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
+  bytes32 public constant ETH_FEE_KEY = bytes32("LOCKER_ETH");
 
   IPPGlobalRegistry public globalRegistry;
 
@@ -60,8 +64,17 @@ contract PPLocker is IPPLocker {
     owner = _owner;
   }
 
-  function deposit(IPPToken _tokenContract, uint256 _tokenId) external onlyOwner onlyValidTokenContract(_tokenContract) {
+  function deposit(
+    IPPToken _tokenContract,
+    uint256 _tokenId
+  )
+    external
+    payable
+    onlyOwner
+    onlyValidTokenContract(_tokenContract)
+  {
     require(!tokenDeposited, "Token already deposited");
+    _acceptPayment(_tokenContract);
 
     tokenContract = _tokenContract;
     tokenId = _tokenId;
@@ -71,6 +84,21 @@ contract PPLocker is IPPLocker {
     _tokenContract.transferFrom(msg.sender, address(this), _tokenId);
 
     emit Deposit(reputation);
+  }
+
+  function _acceptPayment(IPPToken _tokenContract) internal {
+    if (msg.value == 0) {
+      uint256 fee = IPPTokenController(_tokenContract.controller()).fees(GALT_FEE_KEY);
+
+      IERC20 galtToken = IERC20(globalRegistry.getGaltTokenAddress());
+      galtToken.transferFrom(msg.sender, _tokenContract.controller(), fee);
+    } else {
+      uint256 fee = IPPTokenController(_tokenContract.controller()).fees(ETH_FEE_KEY);
+
+      require(msg.value == fee, "Invalid ETH fee");
+
+      _tokenContract.controller().transfer(msg.value);
+    }
   }
 
   function withdraw() external onlyOwner notBurned {

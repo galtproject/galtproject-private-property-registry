@@ -51,7 +51,7 @@ interface IPPToken {
   // PERMISSIONED METHODS
 
   function setMinter(address _minter) external;
-  function setController(address _controller) external;
+  function setController(address payable _controller) external;
   function setDetails(
     uint256 _privatePropertyId,
     TokenType _tokenType,
@@ -74,6 +74,8 @@ interface IPPToken {
   function burn(uint256 _tokenId) external;
 
   // GETTERS
+  function controller() external view returns (address payable);
+  function minter() external view returns (address);
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
   function exists(uint256 _tokenId) external view returns (bool);

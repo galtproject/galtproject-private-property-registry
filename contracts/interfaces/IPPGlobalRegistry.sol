@@ -18,6 +18,7 @@ contract IPPGlobalRegistry {
   // GETTERS
   function getContract(bytes32 _key) external view returns (address);
   function getACL() external view returns (IACL);
+  function getGaltTokenAddress() external view returns (address);
   function getPPTokenRegistryAddress() external view returns (address);
   function getPPLockerRegistryAddress() external view returns (address);
   function getPPMarketAddress() external view returns (address);
