@@ -15,7 +15,13 @@ const { web3 } = PPMarket;
 const { utf8ToHex } = web3.utils;
 const bytes32 = utf8ToHex;
 
-const { zeroAddress, ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
+const {
+  zeroAddress,
+  ether,
+  assertRevert,
+  assertErc20BalanceChanged,
+  assertEthBalanceChanged
+} = require('@galtproject/solidity-test-chest')(web3);
 
 const SaleOrderStatus = {
   INACTIVE: 0,
@@ -445,33 +451,97 @@ contract('PPMarket', accounts => {
     });
 
     describe('payments', async function() {
-      it('should accept GALT payments with a registered value', async function() {
-        await this.galtToken.approve(this.ppMarket.address, ether(10), { from: alice });
-        await submit(...this.args, 0);
+      describe('without property owner fee', () => {
+        it('should accept GALT payments with a registered value', async function() {
+          await this.galtToken.approve(this.ppMarket.address, ether(10), { from: alice });
+          await submit(...this.args, 0);
+        });
+
+        it('should accept ETH payments with a registered value', async function() {
+          await submit(...this.args, ether(5));
+        });
+
+        it('should deny GALT payments with an approved value higher than a registered', async function() {
+          await this.galtToken.approve(this.ppMarket.address, ether(11), { from: alice });
+          await submit(...this.args, 0);
+          const res = await this.galtToken.balanceOf(this.ppMarket.address);
+          assert.equal(res, ether(10));
+        });
+
+        it('should deny GALT payments with an approved value lower than a registered', async function() {
+          await this.galtToken.approve(this.ppMarket.address, ether(9), { from: alice });
+          await assertRevert(submit(...this.args, 0));
+        });
+
+        it('should deny ETH payments with a value higher than a registered one', async function() {
+          await assertRevert(submit(...this.args, ether(6)));
+        });
+
+        it('should deny ETH payments with a value lower than a registered one', async function() {
+          await assertRevert(submit(...this.args, ether(4)));
+        });
+      });
+    });
+
+    describe('with property owner fee set', () => {
+      beforeEach(async function() {
+        // marketGalt,marketEth,lockerGalt,lockerEth
+        await this.ppToken.setFees(ether(1), ether(2), 0, 0);
       });
 
       it('should accept ETH payments with a registered value', async function() {
-        await submit(...this.args, ether(5));
+        const aliceBalanceBefore = await web3.eth.getBalance(alice);
+        const marketBalanceBefore = await web3.eth.getBalance(this.ppMarket.address);
+        const tokenBalanceBefore = await web3.eth.getBalance(this.ppToken.address);
+
+        await submit(...this.args, ether(7));
+
+        const aliceBalanceAfter = await web3.eth.getBalance(alice);
+        const marketBalanceAfter = await web3.eth.getBalance(this.ppMarket.address);
+        const tokenBalanceAfter = await web3.eth.getBalance(this.ppToken.address);
+
+        assertEthBalanceChanged(aliceBalanceBefore, aliceBalanceAfter, ether(-7));
+        assertEthBalanceChanged(marketBalanceBefore, marketBalanceAfter, ether(5));
+        assertEthBalanceChanged(tokenBalanceBefore, tokenBalanceAfter, ether(2));
       });
 
-      it('should deny GALT payments with an approved value higher than a registered', async function() {
+      it('should accept GALT payments with a registered value', async function() {
         await this.galtToken.approve(this.ppMarket.address, ether(11), { from: alice });
         await submit(...this.args, 0);
+      });
+
+      it('should allow GALT approvasl for payments with an approved value higher than a registered', async function() {
+        await this.galtToken.approve(this.ppMarket.address, ether(12), { from: alice });
+
+        const aliceBalanceBefore = await this.galtToken.balanceOf(alice);
+        const marketBalanceBefore = await this.galtToken.balanceOf(this.ppMarket.address);
+        const tokenBalanceBefore = await this.galtToken.balanceOf(this.ppToken.address);
+
+        await submit(...this.args, 0);
+
+        const aliceBalanceAfter = await this.galtToken.balanceOf(alice);
+        const marketBalanceAfter = await this.galtToken.balanceOf(this.ppMarket.address);
+        const tokenBalanceAfter = await this.galtToken.balanceOf(this.ppToken.address);
+
         const res = await this.galtToken.balanceOf(this.ppMarket.address);
         assert.equal(res, ether(10));
+
+        assertErc20BalanceChanged(aliceBalanceBefore, aliceBalanceAfter, ether(-11));
+        assertErc20BalanceChanged(marketBalanceBefore, marketBalanceAfter, ether(10));
+        assertErc20BalanceChanged(tokenBalanceBefore, tokenBalanceAfter, ether(1));
       });
 
       it('should deny GALT payments with an approved value lower than a registered', async function() {
-        await this.galtToken.approve(this.ppMarket.address, ether(9), { from: alice });
+        await this.galtToken.approve(this.ppMarket.address, ether(10.5), { from: alice });
         await assertRevert(submit(...this.args, 0));
       });
 
       it('should deny ETH payments with a value higher than a registered one', async function() {
-        await assertRevert(submit(...this.args, ether(6)));
+        await assertRevert(submit(...this.args, ether(8)));
       });
 
       it('should deny ETH payments with a value lower than a registered one', async function() {
-        await assertRevert(submit(...this.args, ether(4)));
+        await assertRevert(submit(...this.args, ether(6)));
       });
     });
   });
