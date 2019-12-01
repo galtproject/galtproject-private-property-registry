@@ -1,4 +1,5 @@
 const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
+const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
 const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
 const PPACL = artifacts.require('PPACL.sol');
@@ -31,7 +32,14 @@ contract('PPTokenFactory', accounts => {
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
 
-    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+    this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
+    this.ppTokenFactory = await PPTokenFactory.new(
+      this.ppTokenControllerFactory.address,
+      this.ppgr.address,
+      this.galtToken.address,
+      0,
+      0
+    );
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);

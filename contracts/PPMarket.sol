@@ -38,14 +38,13 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     uint256 _galtFee
   )
     public
-
     ChargesFee(_galtToken, _ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
   }
 
   function createSaleOrder(
-    address _propertyToken,
+    address payable _propertyToken,
     uint256[] calldata _propertyTokenIds,
     address _operator,
     uint256 _ask,
@@ -85,7 +84,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   }
 
   function _performCreateSaleOrderChecks(
-    address _propertyToken,
+    address payable _propertyToken,
     uint256[] memory _propertyTokenIds
   )
     internal

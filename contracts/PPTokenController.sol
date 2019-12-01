@@ -108,7 +108,8 @@ contract PPTokenController is Ownable {
     require(block.timestamp > burnTimeoutAt[_tokenId], "Timeout has not passed yet");
     require(tokenContract.ownerOf(_tokenId) != address(0), "Token already burned");
 
-    IPPToken(address(tokenContract)).burn(_tokenId);
+    address payable tc = address(uint160(address(tokenContract)));
+    IPPToken(tc).burn(_tokenId);
 
     emit BurnTokenByTimeout(_tokenId);
   }

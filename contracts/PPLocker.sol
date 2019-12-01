@@ -9,6 +9,7 @@
 
 pragma solidity 0.5.10;
 
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./interfaces/IPPToken.sol";
@@ -60,8 +61,17 @@ contract PPLocker is IPPLocker {
     owner = _owner;
   }
 
-  function deposit(IPPToken _tokenContract, uint256 _tokenId) external onlyOwner onlyValidTokenContract(_tokenContract) {
+  function deposit(
+    IPPToken _tokenContract,
+    uint256 _tokenId
+  )
+    external
+    payable
+    onlyOwner
+    onlyValidTokenContract(_tokenContract)
+  {
     require(!tokenDeposited, "Token already deposited");
+    _acceptPayment(_tokenContract);
 
     tokenContract = _tokenContract;
     tokenId = _tokenId;
@@ -71,6 +81,21 @@ contract PPLocker is IPPLocker {
     _tokenContract.transferFrom(msg.sender, address(this), _tokenId);
 
     emit Deposit(reputation);
+  }
+
+  function _acceptPayment(IPPToken _tokenContract) internal {
+    if (msg.value == 0) {
+      uint256 fee = _tokenContract.lockerGaltFee();
+
+      IERC20 galtToken = IERC20(globalRegistry.getGaltTokenAddress());
+      galtToken.transferFrom(msg.sender, address(_tokenContract), fee);
+    } else {
+      uint256 fee = _tokenContract.lockerEthFee();
+
+      require(msg.value == fee, "Invalid ETH fee");
+
+      address(_tokenContract).transfer(msg.value);
+    }
   }
 
   function withdraw() external onlyOwner notBurned {

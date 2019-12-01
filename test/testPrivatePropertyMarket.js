@@ -1,6 +1,7 @@
 const PPMarket = artifacts.require('./PPMarket.sol');
 const PPToken = artifacts.require('./PPToken.sol');
 const PPTokenFactory = artifacts.require('./PPTokenFactory.sol');
+const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPGlobalRegistry = artifacts.require('./PPGlobalRegistry.sol');
 const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
 const PPACL = artifacts.require('PPACL.sol');
@@ -81,7 +82,14 @@ contract('PPMarket', accounts => {
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
 
-    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+    this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
+    this.ppTokenFactory = await PPTokenFactory.new(
+      this.ppTokenControllerFactory.address,
+      this.ppgr.address,
+      this.galtToken.address,
+      0,
+      0
+    );
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
@@ -91,7 +99,7 @@ contract('PPMarket', accounts => {
     await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
 
     const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, ONE_HOUR, { value: 0 });
-    this.ppToken = await PPToken.at(res.logs[4].args.token);
+    this.ppToken = await PPToken.at(res.logs[5].args.token);
 
     this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
     this.ppToken.setMinter(minter);

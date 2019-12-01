@@ -1,4 +1,5 @@
 const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
+const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPToken = artifacts.require('PPToken.sol');
 const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
 const PPLockerFactory = artifacts.require('PPLockerFactory.sol');
@@ -12,7 +13,7 @@ const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/to
 PPToken.numberFormat = 'String';
 PPLocker.numberFormat = 'String';
 
-const { ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
+const { ether, assertRevert, zeroAddress } = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex } = web3.utils;
 const bytes32 = utf8ToHex;
@@ -41,11 +42,19 @@ contract('PPLockers', accounts => {
     await this.ppTokenRegistry.initialize(this.ppgr.address);
     await this.ppLockerRegistry.initialize(this.ppgr.address);
 
-    this.ppTokenFactory = await PPTokenFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+    this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
+    this.ppTokenFactory = await PPTokenFactory.new(
+      this.ppTokenControllerFactory.address,
+      this.ppgr.address,
+      this.galtToken.address,
+      0,
+      0
+    );
     this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), this.galtToken.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_LOCKER_REGISTRY(), this.ppLockerRegistry.address);
 
@@ -63,13 +72,12 @@ contract('PPLockers', accounts => {
     await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
   });
 
-  it('should correctly build locker', async function() {
+  it('should correctly build a locker with no fee', async function() {
     let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
       from: registryOwner,
       value: ether(10)
     });
-    const token = await PPToken.at(res.logs[4].args.token);
-    // TODO: mint
+    const token = await PPToken.at(res.logs[5].args.token);
 
     await token.setMinter(minter, { from: registryOwner });
 
@@ -119,5 +127,66 @@ contract('PPLockers', accounts => {
     await locker.withdraw({ from: alice });
 
     assert.equal(await token.ownerOf(aliceTokenId), alice);
+  });
+
+  describe('deposit commission', () => {
+    let token;
+    let lockerAddress;
+    let locker;
+    let aliceTokenId;
+    let res;
+
+    beforeEach(async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
+        from: registryOwner,
+        value: ether(10)
+      });
+      token = await PPToken.at(res.logs[5].args.token);
+
+      await token.setMinter(minter, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+      lockerAddress = res.logs[0].args.locker;
+      locker = await PPLocker.at(lockerAddress);
+    });
+
+    it('could accept only ETH payments', async function() {
+      // marketGalt,marketEth,lockerGalt,lockerEth
+      await token.setFees(0, 0, 0, ether(4), { from: registryOwner });
+      await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), zeroAddress);
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+
+      await assertRevert(locker.deposit(token.address, aliceTokenId, { from: alice }), 'GALT_TOKEN not set');
+      await assertRevert(
+        locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(3) }),
+        'Invalid ETH fee'
+      );
+      await locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(4) });
+    });
+
+    it('could accept only GALT payments', async function() {
+      // marketGalt,marketEth,lockerGalt,lockerEth
+      await token.setFees(0, 0, ether(4), ether(99999), { from: registryOwner });
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+
+      await assertRevert(
+        locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(123123) }),
+        'Invalid ETH fee'
+      );
+      await assertRevert(
+        locker.deposit(token.address, aliceTokenId, { from: alice }),
+        'SafeMath: subtraction overflow'
+      );
+
+      await this.galtToken.approve(locker.address, ether(4), { from: alice });
+      await locker.deposit(token.address, aliceTokenId, { from: alice });
+    });
   });
 });

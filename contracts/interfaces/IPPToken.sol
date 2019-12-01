@@ -24,6 +24,14 @@ interface IPPToken {
   );
   event Mint(address indexed to, uint256 indexed privatePropertyId);
   event Burn(address indexed from, uint256 indexed privatePropertyId);
+  event SetFees(
+    uint256 marketGaltFee,
+    uint256 marketEthFee,
+    uint256 lockerGaltFee,
+    uint256 lockerEthFee
+  );
+  event WithdrawEth(address indexed to, uint256 amount);
+  event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
 
   enum PropertyInitialSetupStage {
     PENDING,
@@ -74,6 +82,10 @@ interface IPPToken {
   function burn(uint256 _tokenId) external;
 
   // GETTERS
+  function marketEthFee() external view returns (uint256);
+  function marketGaltFee() external view returns (uint256);
+  function lockerEthFee() external view returns (uint256);
+  function lockerGaltFee() external view returns (uint256);
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
   function exists(uint256 _tokenId) external view returns (bool);
@@ -99,4 +111,6 @@ interface IPPToken {
       string memory humanAddress,
       string memory dataLink
     );
+
+  function() external payable;
 }
