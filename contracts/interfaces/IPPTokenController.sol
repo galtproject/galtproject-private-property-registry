@@ -23,6 +23,10 @@ interface IPPTokenController {
     uint256 indexed proposalId,
     uint256 indexed tokenId
   );
+  event ProposalRejection(
+    uint256 indexed proposalId,
+    uint256 indexed tokenId
+  );
   event SetBurnTimeout(uint256 indexed tokenId, uint256 timeout);
   event InitiateTokenBurn(uint256 indexed tokenId, uint256 timeoutAt);
   event BurnTokenByTimeout(uint256 indexed tokenId);

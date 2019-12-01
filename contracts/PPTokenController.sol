@@ -20,9 +20,17 @@ import "./interfaces/IPPTokenController.sol";
 contract PPTokenController is IPPTokenController, Ownable {
   using SafeMath for uint256;
 
+  enum ProposalStatus {
+    NULL,
+    PENDING,
+    APPROVED,
+    EXECUTED,
+    REJECTED
+  }
+
   struct Proposal {
     address creator;
-    bool executed;
+    ProposalStatus status;
     bool tokenOwnerApproved;
     bool geoDataManagerApproved;
     bytes data;
@@ -149,6 +157,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     p.creator = msgSender;
     p.data = _data;
     p.dataLink = _dataLink;
+    p.status = ProposalStatus.PENDING;
 
     emit NewProposal(proposalId, tokenId, msg.sender);
   }
@@ -156,6 +165,8 @@ contract PPTokenController is IPPTokenController, Ownable {
   function approve(uint256 _proposalId) external {
     Proposal storage p = proposals[_proposalId];
     uint256 tokenId = fetchTokenId(p.data);
+
+    require(p.status == ProposalStatus.PENDING, "Expect PENDING status");
 
     if (p.geoDataManagerApproved == true) {
       require(msg.sender == tokenContract.ownerOf(tokenId), "Missing permissions");
@@ -169,7 +180,28 @@ contract PPTokenController is IPPTokenController, Ownable {
 
     emit ProposalApproval(_proposalId, tokenId);
 
+    p.status = ProposalStatus.APPROVED;
+
     execute(_proposalId);
+  }
+
+  function reject(uint256 _proposalId) external {
+    Proposal storage p = proposals[_proposalId];
+    uint256 tokenId = fetchTokenId(p.data);
+
+    require(p.status == ProposalStatus.PENDING, "Expect PENDING status");
+
+    if (p.geoDataManagerApproved == true) {
+      require(msg.sender == tokenContract.ownerOf(tokenId), "Missing permissions");
+    } else if (p.tokenOwnerApproved == true) {
+      require(msg.sender == geoDataManager, "Missing permissions");
+    } else {
+      revert("Missing permissions");
+    }
+
+    p.status = ProposalStatus.REJECTED;
+
+    emit ProposalRejection(_proposalId, tokenId);
   }
 
   function execute(uint256 _proposalId) public {
@@ -177,9 +209,9 @@ contract PPTokenController is IPPTokenController, Ownable {
 
     require(p.tokenOwnerApproved == true, "Token owner approval required");
     require(p.geoDataManagerApproved == true, "GeoDataManager approval required");
-    require(p.executed == false, "Already executed");
+    require(p.status == ProposalStatus.APPROVED, "Expect APPROVED status");
 
-    p.executed = true;
+    p.status = ProposalStatus.EXECUTED;
 
     (bool ok,) = address(tokenContract)
       .call
@@ -187,7 +219,7 @@ contract PPTokenController is IPPTokenController, Ownable {
 
     if (ok == false) {
       emit ProposalExecutionFailed(_proposalId);
-      p.executed = false;
+      p.status = ProposalStatus.APPROVED;
     } else {
       emit ProposalExecuted(_proposalId);
     }

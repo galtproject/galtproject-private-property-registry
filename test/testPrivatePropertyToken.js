@@ -29,6 +29,14 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 const TWO_HOURS = 60 * 60 * 2;
 
+const ProposalStatus = {
+  NULL: 0,
+  PENDING: 1,
+  APPROVED: 2,
+  EXECUTED: 3,
+  REJECTED: 4
+};
+
 contract('PPToken and PPTokenController', accounts => {
   const [unknown, systemOwner, registryOwner, minter, geoDataManager, alice, bob] = accounts;
 
@@ -143,6 +151,45 @@ contract('PPToken and PPTokenController', accounts => {
   });
 
   describe('token update', () => {
+    it('should allow a token owner rejecting token update proposals', async function() {
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const token = await PPToken.at(res.logs[5].args.token);
+      const controller = await PPTokenController.at(res.logs[5].args.controller);
+
+      await token.setMinter(minter, { from: registryOwner });
+      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      const aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      const data = token.contract.methods
+        .setDetails(
+          aliceTokenId,
+          // tokenType
+          2,
+          1,
+          123,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz'
+        )
+        .encodeABI();
+
+      res = await controller.propose(data, 'foo', { from: geoDataManager });
+      const proposalId = res.logs[0].args.proposalId;
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.PENDING);
+
+      await controller.reject(proposalId, { from: alice });
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.REJECTED);
+
+      await assertRevert(controller.approve(proposalId), 'Expect PENDING status');
+      await assertRevert(controller.execute(proposalId), 'Token owner approval required');
+    });
+
     it('should allow a token owner submitting token update proposals', async function() {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
       const token = await PPToken.at(res.logs[5].args.token);
@@ -171,12 +218,16 @@ contract('PPToken and PPTokenController', accounts => {
 
       res = await controller.propose(data, 'foo', { from: alice });
       let proposalId = res.logs[0].args.proposalId;
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.PENDING);
+
       await controller.approve(proposalId, { from: geoDataManager });
 
       res = await controller.proposals(proposalId);
       assert.equal(res.creator, alice);
       assert.equal(res.tokenOwnerApproved, true);
-      assert.equal(res.executed, true);
+      assert.equal(res.status, ProposalStatus.EXECUTED);
       assert.equal(res.data, data);
       assert.equal(res.dataLink, 'foo');
 
@@ -335,7 +386,7 @@ contract('PPToken and PPTokenController', accounts => {
       res = await controller.proposals(proposalId);
       assert.equal(res.creator, alice);
       assert.equal(res.tokenOwnerApproved, true);
-      assert.equal(res.executed, true);
+      assert.equal(res.status, ProposalStatus.EXECUTED);
       assert.equal(res.data, data);
       assert.equal(res.dataLink, 'foo');
     });
