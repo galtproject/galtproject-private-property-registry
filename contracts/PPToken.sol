@@ -214,7 +214,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       uint256 area,
       bytes32 ledgerIdentifier,
       string memory humanAddress,
-      string memory dataLink
+      string memory dataLink,
+      PropertyInitialSetupStage setupStage
     )
   {
     Property storage p = properties[_privatePropertyId];
@@ -227,7 +228,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       p.area,
       p.ledgerIdentifier,
       p.humanAddress,
-      p.dataLink
+      p.dataLink,
+      p.setupStage
     );
   }
 }
