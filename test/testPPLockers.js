@@ -131,6 +131,7 @@ contract('PPLockers', accounts => {
 
   describe('deposit commission', () => {
     let token;
+    let anotherToken;
     let lockerAddress;
     let locker;
     let aliceTokenId;
@@ -142,8 +143,14 @@ contract('PPLockers', accounts => {
         value: ether(10)
       });
       token = await PPToken.at(res.logs[5].args.token);
+      res = await this.ppTokenFactory.build('Land Plots', 'LPL', registryDataLink, ONE_HOUR, {
+        from: registryOwner,
+        value: ether(10)
+      });
+      anotherToken = await PPToken.at(res.logs[5].args.token);
 
       await token.setMinter(minter, { from: registryOwner });
+      await anotherToken.setMinter(minter, { from: registryOwner });
 
       res = await token.mint(alice, { from: minter });
       aliceTokenId = res.logs[0].args.privatePropertyId;
@@ -187,6 +194,65 @@ contract('PPLockers', accounts => {
 
       await this.galtToken.approve(locker.address, ether(4), { from: alice });
       await locker.deposit(token.address, aliceTokenId, { from: alice });
+    });
+
+    it('should require another ETH payment for another registry after withdrawal', async function() {
+      // marketGalt,marketEth,lockerGalt,lockerEth
+      await token.setFees(0, 0, 0, ether(4), { from: registryOwner });
+      await anotherToken.setFees(0, 0, 0, ether(42), { from: registryOwner });
+
+      res = await anotherToken.mint(alice, { from: minter });
+      const anotherAliceTokenId = res.logs[0].args.privatePropertyId;
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+
+      await locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(4) });
+
+      await locker.withdraw({ from: alice });
+
+      await anotherToken.approve(locker.address, anotherAliceTokenId, { from: alice });
+      await assertRevert(
+        locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice, value: ether(4) }),
+        'Invalid ETH fee'
+      );
+
+      await locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice, value: ether(42) });
+
+      assert.equal(await web3.eth.getBalance(token.address), ether(4));
+      assert.equal(await web3.eth.getBalance(anotherToken.address), ether(42));
+    });
+
+    it('should require another GALT payment for another registry after withdrawal', async function() {
+      // marketGalt,marketEth,lockerGalt,lockerEth
+      await token.setFees(0, 0, ether(4), ether(99999), { from: registryOwner });
+      await anotherToken.setFees(0, 0, ether(42), ether(99999), { from: registryOwner });
+
+      res = await anotherToken.mint(alice, { from: minter });
+      const anotherAliceTokenId = res.logs[0].args.privatePropertyId;
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+
+      await this.galtToken.approve(locker.address, ether(4), { from: alice });
+      await locker.deposit(token.address, aliceTokenId, { from: alice });
+
+      await locker.withdraw({ from: alice });
+
+      await this.galtToken.mint(alice, ether(42));
+
+      await anotherToken.approve(locker.address, anotherAliceTokenId, { from: alice });
+      await this.galtToken.approve(locker.address, ether(4), { from: alice });
+      await assertRevert(
+        locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice }),
+        'SafeMath: subtraction overflow'
+      );
+
+      await this.galtToken.approve(locker.address, ether(42), { from: alice });
+      await locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice });
+
+      assert.equal(await this.galtToken.balanceOf(token.address), ether(4));
+      assert.equal(await this.galtToken.balanceOf(anotherToken.address), ether(42));
     });
   });
 });

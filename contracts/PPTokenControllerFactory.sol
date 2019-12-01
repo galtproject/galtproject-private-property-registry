@@ -19,7 +19,7 @@ import "./PPTokenController.sol";
 contract PPTokenControllerFactory {
   // USER INTERFACE
 
-  function build(IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) external returns (PPTokenController){
+  function build(IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) external returns (PPTokenController) {
     PPTokenController ppTokenController = new PPTokenController(_tokenContract, _defaultBurnTimeoutDuration);
 
     ppTokenController.transferOwnership(msg.sender);
