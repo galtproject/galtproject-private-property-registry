@@ -41,6 +41,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   address public minter;
   address payable public controller;
   string public tokenDataLink;
+  bytes32 public legalAgreementIpfsHash;
 
   mapping(uint256 => Property) internal properties;
 
@@ -59,6 +60,12 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     tokenDataLink = _dataLink;
 
     emit SetDataLink(_dataLink);
+  }
+
+  function setLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash) external onlyOwner {
+    legalAgreementIpfsHash = _legalAgreementIpfsHash;
+
+    emit SetLegalAgreementIpfsHash(_legalAgreementIpfsHash);
   }
 
   function setMinter(address _minter) external onlyOwner {

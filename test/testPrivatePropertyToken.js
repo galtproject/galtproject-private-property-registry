@@ -18,7 +18,8 @@ const {
   assertRevert,
   evmIncreaseTime,
   assertErc20BalanceChanged,
-  assertEthBalanceChanged
+  assertEthBalanceChanged,
+  numberToEvmWord
 } = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
@@ -64,6 +65,19 @@ contract('PPToken and PPTokenController', accounts => {
 
     // ACL setup
     await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
+  });
+
+  it('should allow an owner setting legal agreement ipfs hash', async function() {
+    const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+    const token = await PPToken.at(res.logs[5].args.token);
+
+    await assertRevert(
+      token.setLegalAgreementIpfsHash(numberToEvmWord(42), { from: alice }),
+      'Ownable: caller is not the owner'
+    );
+    await token.setLegalAgreementIpfsHash(numberToEvmWord(42), { from: registryOwner });
+
+    assert.equal(await token.legalAgreementIpfsHash(), numberToEvmWord(42));
   });
 
   describe('token creation', () => {
