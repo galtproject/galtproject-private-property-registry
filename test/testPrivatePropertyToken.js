@@ -155,9 +155,7 @@ contract('PPToken and PPTokenController', accounts => {
 
       const newContour = contour.concat([galt.geohashToNumber('qwerqwereeee').toString(10)]);
 
-      data = token.contract.methods
-        .setContour(aliceTokenId, newContour, -43)
-        .encodeABI();
+      data = token.contract.methods.setContour(aliceTokenId, newContour, -43).encodeABI();
 
       res = await controller.propose(data, 'foo', { from: alice });
       proposalId = res.logs[0].args.proposalId;
