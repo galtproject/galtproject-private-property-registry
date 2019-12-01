@@ -15,6 +15,7 @@ import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPLocker.sol";
 import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 
 
@@ -28,6 +29,8 @@ contract PPLocker is IPPLocker {
   event TokenBurned(uint256 tokenId);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
+  bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
+  bytes32 public constant ETH_FEE_KEY = bytes32("LOCKER_ETH");
 
   IPPGlobalRegistry public globalRegistry;
 
@@ -85,16 +88,16 @@ contract PPLocker is IPPLocker {
 
   function _acceptPayment(IPPToken _tokenContract) internal {
     if (msg.value == 0) {
-      uint256 fee = _tokenContract.lockerGaltFee();
+      uint256 fee = IPPTokenController(_tokenContract.controller()).fees(GALT_FEE_KEY);
 
       IERC20 galtToken = IERC20(globalRegistry.getGaltTokenAddress());
-      galtToken.transferFrom(msg.sender, address(_tokenContract), fee);
+      galtToken.transferFrom(msg.sender, _tokenContract.controller(), fee);
     } else {
-      uint256 fee = _tokenContract.lockerEthFee();
+      uint256 fee = IPPTokenController(_tokenContract.controller()).fees(ETH_FEE_KEY);
 
       require(msg.value == fee, "Invalid ETH fee");
 
-      address(_tokenContract).transfer(msg.value);
+      _tokenContract.controller().transfer(msg.value);
     }
   }
 

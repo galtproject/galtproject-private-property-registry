@@ -10,7 +10,6 @@
 pragma solidity ^0.5.10;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPToken.sol";
 
@@ -40,13 +39,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   uint256 public tokenIdCounter;
   address public minter;
-  address public controller;
+  address payable public controller;
   string public tokenDataLink;
-
-  uint256 public marketGaltFee;
-  uint256 public marketEthFee;
-  uint256 public lockerGaltFee;
-  uint256 public lockerEthFee;
 
   mapping(uint256 => Property) internal properties;
 
@@ -59,48 +53,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   constructor(string memory _name, string memory _symbol) public ERC721Full(_name, _symbol) {
   }
 
-  function() external payable {
-  }
-
   // OWNER INTERFACE
-
-  function setFees(
-    uint256 _marketGaltFee,
-    uint256 _marketEthFee,
-    uint256 _lockerGaltFee,
-    uint256 _lockerEthFee
-  )
-    external
-    onlyOwner
-  {
-    marketGaltFee = _marketGaltFee;
-    marketEthFee = _marketEthFee;
-    lockerGaltFee = _lockerGaltFee;
-    lockerEthFee = _lockerEthFee;
-
-    emit SetFees(
-      _marketGaltFee,
-      _marketEthFee,
-      _lockerGaltFee,
-      _lockerEthFee
-    );
-  }
-
-  function withdrawErc20(address _tokenAddress, address _to) external onlyOwner {
-    uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
-
-    IERC20(_tokenAddress).transfer(_to, balance);
-
-    emit WithdrawErc20(_to, _tokenAddress, balance);
-  }
-
-  function withdrawEth(address payable _to) external onlyOwner {
-    uint256 balance = address(this).balance;
-
-    _to.transfer(balance);
-
-    emit WithdrawEth(_to, balance);
-  }
 
   function setDataLink(string calldata _dataLink) external onlyOwner {
     tokenDataLink = _dataLink;
@@ -114,7 +67,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetMinter(_minter);
   }
 
-  function setController(address _controller) external onlyOwner {
+  function setController(address payable _controller) external onlyOwner {
     controller = _controller;
 
     emit SetController(_controller);

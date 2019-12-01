@@ -1,4 +1,5 @@
 const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
+const PPTokenController = artifacts.require('PPTokenController.sol');
 const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPToken = artifacts.require('PPToken.sol');
 const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
@@ -133,6 +134,8 @@ contract('PPLockers', accounts => {
     let token;
     let anotherToken;
     let lockerAddress;
+    let controller;
+    let anotherController;
     let locker;
     let aliceTokenId;
     let res;
@@ -143,11 +146,13 @@ contract('PPLockers', accounts => {
         value: ether(10)
       });
       token = await PPToken.at(res.logs[5].args.token);
+      controller = await PPTokenController.at(res.logs[5].args.controller);
       res = await this.ppTokenFactory.build('Land Plots', 'LPL', registryDataLink, ONE_HOUR, {
         from: registryOwner,
         value: ether(10)
       });
       anotherToken = await PPToken.at(res.logs[5].args.token);
+      anotherController = await PPTokenController.at(res.logs[5].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await anotherToken.setMinter(minter, { from: registryOwner });
@@ -161,8 +166,7 @@ contract('PPLockers', accounts => {
     });
 
     it('could accept only ETH payments', async function() {
-      // marketGalt,marketEth,lockerGalt,lockerEth
-      await token.setFees(0, 0, 0, ether(4), { from: registryOwner });
+      await controller.setFee(await locker.ETH_FEE_KEY(), ether(4), { from: registryOwner });
       await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), zeroAddress);
 
       // deposit token
@@ -177,8 +181,7 @@ contract('PPLockers', accounts => {
     });
 
     it('could accept only GALT payments', async function() {
-      // marketGalt,marketEth,lockerGalt,lockerEth
-      await token.setFees(0, 0, ether(4), ether(99999), { from: registryOwner });
+      await controller.setFee(await locker.GALT_FEE_KEY(), ether(4), { from: registryOwner });
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
@@ -197,9 +200,8 @@ contract('PPLockers', accounts => {
     });
 
     it('should require another ETH payment for another registry after withdrawal', async function() {
-      // marketGalt,marketEth,lockerGalt,lockerEth
-      await token.setFees(0, 0, 0, ether(4), { from: registryOwner });
-      await anotherToken.setFees(0, 0, 0, ether(42), { from: registryOwner });
+      await controller.setFee(await locker.ETH_FEE_KEY(), ether(4), { from: registryOwner });
+      await anotherController.setFee(await locker.ETH_FEE_KEY(), ether(42), { from: registryOwner });
 
       res = await anotherToken.mint(alice, { from: minter });
       const anotherAliceTokenId = res.logs[0].args.privatePropertyId;
@@ -219,14 +221,14 @@ contract('PPLockers', accounts => {
 
       await locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice, value: ether(42) });
 
-      assert.equal(await web3.eth.getBalance(token.address), ether(4));
-      assert.equal(await web3.eth.getBalance(anotherToken.address), ether(42));
+      assert.equal(await web3.eth.getBalance(controller.address), ether(4));
+      assert.equal(await web3.eth.getBalance(anotherController.address), ether(42));
     });
 
     it('should require another GALT payment for another registry after withdrawal', async function() {
       // marketGalt,marketEth,lockerGalt,lockerEth
-      await token.setFees(0, 0, ether(4), ether(99999), { from: registryOwner });
-      await anotherToken.setFees(0, 0, ether(42), ether(99999), { from: registryOwner });
+      await controller.setFee(await locker.GALT_FEE_KEY(), ether(4), { from: registryOwner });
+      await anotherController.setFee(await locker.GALT_FEE_KEY(), ether(42), { from: registryOwner });
 
       res = await anotherToken.mint(alice, { from: minter });
       const anotherAliceTokenId = res.logs[0].args.privatePropertyId;
@@ -251,8 +253,8 @@ contract('PPLockers', accounts => {
       await this.galtToken.approve(locker.address, ether(42), { from: alice });
       await locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice });
 
-      assert.equal(await this.galtToken.balanceOf(token.address), ether(4));
-      assert.equal(await this.galtToken.balanceOf(anotherToken.address), ether(42));
+      assert.equal(await this.galtToken.balanceOf(controller.address), ether(4));
+      assert.equal(await this.galtToken.balanceOf(anotherController.address), ether(42));
     });
   });
 });

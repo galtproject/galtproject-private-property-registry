@@ -16,6 +16,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "@galtproject/libs/contracts/traits/Marketable.sol";
 import "./interfaces/IPPTokenRegistry.sol";
+import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPToken.sol";
 import "./traits/ChargesFee.sol";
@@ -24,6 +25,9 @@ import "./traits/ChargesFee.sol";
 contract PPMarket is Marketable, Ownable, ChargesFee {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
+
+  bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
+  bytes32 public constant ETH_FEE_KEY = bytes32("LOCKER_ETH");
 
   struct SaleOrderDetails {
     address propertyToken;
@@ -49,7 +53,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   }
 
   function createSaleOrder(
-    address payable _propertyToken,
+    address _propertyToken,
     uint256[] calldata _propertyTokenIds,
     address _operator,
     uint256 _ask,
@@ -61,8 +65,8 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     payable
     returns (uint256)
   {
-    _acceptPayment(_propertyToken);
     _performCreateSaleOrderChecks(_propertyToken, _propertyTokenIds);
+    _acceptPayment(_propertyToken);
 
     uint256 id = _createSaleOrder(
       _operator,
@@ -81,19 +85,21 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   }
 
   // Overrides ChargesFee._acceptPayment() and accepts an additional property owner fee along with the protocol fee
-  function _acceptPayment(address payable _propertyToken) internal {
+  function _acceptPayment(address _propertyToken) internal {
+    address payable controller = IPPToken(_propertyToken).controller();
+
     if (msg.value == 0) {
       galtToken.transferFrom(msg.sender, address(this), galtFee);
 
-      uint256 propertyOwnerFee = IPPToken(_propertyToken).marketGaltFee();
-      galtToken.transferFrom(msg.sender, address(_propertyToken), propertyOwnerFee);
+      uint256 propertyOwnerFee = IPPTokenController(controller).fees(GALT_FEE_KEY);
+      galtToken.transferFrom(msg.sender, controller, propertyOwnerFee);
     } else {
-      uint256 propertyOwnerFee = IPPToken(_propertyToken).marketEthFee();
+      uint256 propertyOwnerFee = IPPTokenController(controller).fees(ETH_FEE_KEY);
       uint256 totalFee = ethFee.add(propertyOwnerFee);
 
       require(msg.value == totalFee, "Invalid fee");
 
-      _propertyToken.transfer(propertyOwnerFee);
+      controller.transfer(propertyOwnerFee);
     }
   }
 
@@ -106,7 +112,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   }
 
   function _performCreateSaleOrderChecks(
-    address payable _propertyToken,
+    address _propertyToken,
     uint256[] memory _propertyTokenIds
   )
     internal

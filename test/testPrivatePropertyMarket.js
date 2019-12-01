@@ -1,5 +1,6 @@
 const PPMarket = artifacts.require('./PPMarket.sol');
 const PPToken = artifacts.require('./PPToken.sol');
+const PPTokenController = artifacts.require('./PPTokenController.sol');
 const PPTokenFactory = artifacts.require('./PPTokenFactory.sol');
 const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPGlobalRegistry = artifacts.require('./PPGlobalRegistry.sol');
@@ -106,6 +107,7 @@ contract('PPMarket', accounts => {
 
     const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, ONE_HOUR, { value: 0 });
     this.ppToken = await PPToken.at(res.logs[5].args.token);
+    this.ppController = await PPTokenController.at(res.logs[5].args.controller);
 
     this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
     this.ppToken.setMinter(minter);
@@ -486,19 +488,20 @@ contract('PPMarket', accounts => {
     describe('with property owner fee set', () => {
       beforeEach(async function() {
         // marketGalt,marketEth,lockerGalt,lockerEth
-        await this.ppToken.setFees(ether(1), ether(2), 0, 0);
+        await this.ppController.setFee(await this.ppMarket.GALT_FEE_KEY(), ether(1));
+        await this.ppController.setFee(await this.ppMarket.ETH_FEE_KEY(), ether(2));
       });
 
       it('should accept ETH payments with a registered value', async function() {
         const aliceBalanceBefore = await web3.eth.getBalance(alice);
         const marketBalanceBefore = await web3.eth.getBalance(this.ppMarket.address);
-        const tokenBalanceBefore = await web3.eth.getBalance(this.ppToken.address);
+        const tokenBalanceBefore = await web3.eth.getBalance(this.ppController.address);
 
         await submit(...this.args, ether(7));
 
         const aliceBalanceAfter = await web3.eth.getBalance(alice);
         const marketBalanceAfter = await web3.eth.getBalance(this.ppMarket.address);
-        const tokenBalanceAfter = await web3.eth.getBalance(this.ppToken.address);
+        const tokenBalanceAfter = await web3.eth.getBalance(this.ppController.address);
 
         assertEthBalanceChanged(aliceBalanceBefore, aliceBalanceAfter, ether(-7));
         assertEthBalanceChanged(marketBalanceBefore, marketBalanceAfter, ether(5));
@@ -515,13 +518,13 @@ contract('PPMarket', accounts => {
 
         const aliceBalanceBefore = await this.galtToken.balanceOf(alice);
         const marketBalanceBefore = await this.galtToken.balanceOf(this.ppMarket.address);
-        const tokenBalanceBefore = await this.galtToken.balanceOf(this.ppToken.address);
+        const tokenBalanceBefore = await this.galtToken.balanceOf(this.ppController.address);
 
         await submit(...this.args, 0);
 
         const aliceBalanceAfter = await this.galtToken.balanceOf(alice);
         const marketBalanceAfter = await this.galtToken.balanceOf(this.ppMarket.address);
-        const tokenBalanceAfter = await this.galtToken.balanceOf(this.ppToken.address);
+        const tokenBalanceAfter = await this.galtToken.balanceOf(this.ppController.address);
 
         const res = await this.galtToken.balanceOf(this.ppMarket.address);
         assert.equal(res, ether(10));
