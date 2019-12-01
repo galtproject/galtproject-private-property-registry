@@ -13,7 +13,13 @@ PPTokenController.numberFormat = 'String';
 
 const { web3 } = PPToken;
 
-const { ether, assertRevert, evmIncreaseTime } = require('@galtproject/solidity-test-chest')(web3);
+const {
+  ether,
+  assertRevert,
+  evmIncreaseTime,
+  assertErc20BalanceChanged,
+  assertEthBalanceChanged
+} = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
 
@@ -34,6 +40,7 @@ contract('PPToken and PPTokenController', accounts => {
     this.galtToken = await MintableErc20Token.new();
     await this.galtToken.mint(systemOwner, galtFee);
     await this.galtToken.mint(registryOwner, galtFee);
+    await this.galtToken.mint(alice, ether(1000));
 
     this.ppgr = await PPGlobalRegistry.new();
     this.acl = await PPACL.new();
@@ -304,6 +311,46 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(res.executed, true);
       assert.equal(res.data, data);
       assert.equal(res.dataLink, 'foo');
+    });
+  });
+
+  describe('commission withdrawals', () => {
+    it('should allow ETH withdrawals', async function() {
+      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const token = await PPToken.at(res.logs[5].args.token);
+
+      await web3.eth.sendTransaction({ from: alice, to: token.address, value: ether(42) });
+
+      assert.equal(await web3.eth.getBalance(token.address), ether(42));
+
+      const bobBalanceBefore = await web3.eth.getBalance(bob);
+
+      await token.withdrawEth(bob, { from: registryOwner });
+
+      const bobBalanceAfter = await web3.eth.getBalance(bob);
+
+      assertEthBalanceChanged(bobBalanceBefore, bobBalanceAfter, ether(42));
+
+      assert.equal(await web3.eth.getBalance(token.address), ether(0));
+    });
+
+    it('should allow GALT withdrawals', async function() {
+      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const token = await PPToken.at(res.logs[5].args.token);
+
+      await this.galtToken.transfer(token.address, ether(42), { from: alice });
+
+      assert.equal(await this.galtToken.balanceOf(token.address), ether(42));
+
+      const bobBalanceBefore = await this.galtToken.balanceOf(bob);
+
+      await token.withdrawErc20(this.galtToken.address, bob, { from: registryOwner });
+
+      const bobBalanceAfter = await this.galtToken.balanceOf(bob);
+
+      assertErc20BalanceChanged(bobBalanceBefore, bobBalanceAfter, ether(42));
+
+      assert.equal(await this.galtToken.balanceOf(token.address), ether(0));
     });
   });
 });
