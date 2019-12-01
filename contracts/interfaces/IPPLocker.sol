@@ -18,7 +18,6 @@ interface IPPLocker {
   function withdraw() external;
   function approveMint(IRA _tra) external;
   function burn(IRA _tra) external;
-  function burnToken(bytes32 _tokenIdHash) external;
   function isMinted(address _tra) external view returns (bool);
   function getTras() external view returns (address[] memory);
   function getTrasCount() external view returns (uint256);
