@@ -27,6 +27,7 @@ interface IPPTokenController {
     uint256 indexed proposalId,
     uint256 indexed tokenId
   );
+  event SetBurner(address burner);
   event SetBurnTimeout(uint256 indexed tokenId, uint256 timeout);
   event InitiateTokenBurn(uint256 indexed tokenId, uint256 timeoutAt);
   event BurnTokenByTimeout(uint256 indexed tokenId);
@@ -36,6 +37,7 @@ interface IPPTokenController {
   event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
 
   function fees(bytes32) external returns (uint256);
+  function setBurner(address _burner) external;
   function setGeoDataManager(address _geoDataManager) external;
   function setBurnTimeoutDuration(uint256 _tokenId, uint256 _duration) external;
   function setFee(bytes32 _key, uint256 _value) external;

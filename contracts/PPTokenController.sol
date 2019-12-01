@@ -39,6 +39,7 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   IERC721 public tokenContract;
   address public geoDataManager;
+  address public burner;
   uint256 public defaultBurnTimeoutDuration;
   uint256 internal idCounter;
 
@@ -66,6 +67,12 @@ contract PPTokenController is IPPTokenController, Ownable {
     geoDataManager = _geoDataManager;
 
     emit SetGeoDataManager(_geoDataManager);
+  }
+
+  function setBurner(address _burner) external onlyOwner {
+    burner = _burner;
+
+    emit SetBurner(_burner);
   }
 
   function setBurnTimeoutDuration(uint256 _tokenId, uint256 _duration) external {
@@ -98,7 +105,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit WithdrawEth(_to, balance);
   }
 
-  function initiateTokenBurn(uint256 _tokenId) external onlyOwner {
+  function initiateTokenBurn(uint256 _tokenId) external {
+    require(msg.sender == burner, "Only burner allowed");
     require(burnTimeoutAt[_tokenId] == 0, "Burn already initiated");
     require(tokenContract.ownerOf(_tokenId) != address(0), "Token doesn't exists");
 

@@ -38,7 +38,7 @@ const ProposalStatus = {
 };
 
 contract('PPToken and PPTokenController', accounts => {
-  const [unknown, systemOwner, registryOwner, minter, geoDataManager, alice, bob] = accounts;
+  const [unknown, systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob] = accounts;
 
   const galtFee = ether(20);
 
@@ -266,6 +266,7 @@ contract('PPToken and PPTokenController', accounts => {
       controller = await PPTokenController.at(res.logs[5].args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
+      await controller.setBurner(burner, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
       res = await token.mint(alice, { from: minter });
@@ -283,16 +284,16 @@ contract('PPToken and PPTokenController', accounts => {
       );
       await controller.setBurnTimeoutDuration(aliceTokenId, TWO_HOURS, { from: alice });
 
-      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: bob }), 'Ownable: caller is not the owner');
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: registryOwner }), 'Only burner allowed');
       await assertRevert(
-        controller.initiateTokenBurn(123123, { from: registryOwner }),
+        controller.initiateTokenBurn(123123, { from: burner }),
         'ERC721: owner query for nonexistent token'
       );
-      res = await controller.initiateTokenBurn(aliceTokenId, { from: registryOwner });
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: burner });
       const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + TWO_HOURS;
       assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
 
-      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: registryOwner }), 'Burn already initiated');
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: burner }), 'Burn already initiated');
 
       assert.equal(await controller.defaultBurnTimeoutDuration(), ONE_HOUR);
       assert.equal(await controller.burnTimeoutAt(123123), 0);
@@ -313,16 +314,16 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow token burn by a default timeout', async function() {
-      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: bob }), 'Ownable: caller is not the owner');
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: bob }), 'Only burner allowed');
       await assertRevert(
-        controller.initiateTokenBurn(123123, { from: registryOwner }),
+        controller.initiateTokenBurn(123123, { from: burner }),
         'ERC721: owner query for nonexistent token'
       );
-      res = await controller.initiateTokenBurn(aliceTokenId, { from: registryOwner });
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: burner });
       const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + ONE_HOUR;
       assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
 
-      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: registryOwner }), 'Burn already initiated');
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: burner }), 'Burn already initiated');
 
       assert.equal(await controller.defaultBurnTimeoutDuration(), ONE_HOUR);
       assert.equal(await controller.burnTimeoutAt(123123), 0);
@@ -339,11 +340,11 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow a token owner cancelling already initiated token burn', async function() {
-      res = await controller.initiateTokenBurn(aliceTokenId, { from: registryOwner });
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: burner });
       const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + ONE_HOUR;
       assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
 
-      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: registryOwner }), 'Burn already initiated');
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: burner }), 'Burn already initiated');
 
       assert.equal(await controller.defaultBurnTimeoutDuration(), ONE_HOUR);
       assert.equal(await controller.burnTimeoutAt(123123), 0);
@@ -365,7 +366,7 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(await token.ownerOf(aliceTokenId), alice);
 
       // burn from the second attempt
-      await controller.initiateTokenBurn(aliceTokenId, { from: registryOwner });
+      await controller.initiateTokenBurn(aliceTokenId, { from: burner });
       await evmIncreaseTime(ONE_HOUR + 1);
 
       await controller.burnTokenByTimeout(aliceTokenId, { from: unknown });
