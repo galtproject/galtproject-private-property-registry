@@ -13,6 +13,7 @@ pragma solidity ^0.5.10;
 interface IPPToken {
   event SetMinter(address indexed minter);
   event SetDataLink(string indexed dataLink);
+  event SetLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash);
   event SetController(address indexed controller);
   event SetDetails(
     address indexed geoDataManager,
@@ -51,6 +52,8 @@ interface IPPToken {
   // PERMISSIONED METHODS
 
   function setMinter(address _minter) external;
+  function setDataLink(string calldata _dataLink) external;
+  function setLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash) external;
   function setController(address payable _controller) external;
   function setDetails(
     uint256 _privatePropertyId,
