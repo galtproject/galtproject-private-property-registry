@@ -62,7 +62,8 @@ contract PPTokenController is IPPTokenController, Ownable {
   function() external payable {
   }
 
-  // OWNER INTERFACE
+  // CONTRACT OWNER INTERFACE
+
   function setGeoDataManager(address _geoDataManager) external onlyOwner {
     geoDataManager = _geoDataManager;
 
@@ -73,20 +74,6 @@ contract PPTokenController is IPPTokenController, Ownable {
     burner = _burner;
 
     emit SetBurner(_burner);
-  }
-
-  function setBurnTimeoutDuration(uint256 _tokenId, uint256 _duration) external {
-    require(tokenContract.ownerOf(_tokenId) == msg.sender, "Only token owner allowed");
-    require(_duration > 0, "Invalid timeout duration");
-
-    burnTimeoutDuration[_tokenId] = _duration;
-
-    emit SetBurnTimeout(_tokenId, _duration);
-  }
-
-  function setFee(bytes32 _key, uint256 _value) external onlyOwner {
-    fees[_key] = _value;
-    emit SetFee(_key, _value);
   }
 
   function withdrawErc20(address _tokenAddress, address _to) external onlyOwner {
@@ -105,6 +92,13 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit WithdrawEth(_to, balance);
   }
 
+  function setFee(bytes32 _key, uint256 _value) external onlyOwner {
+    fees[_key] = _value;
+    emit SetFee(_key, _value);
+  }
+
+  // BURNER INTERFACE
+
   function initiateTokenBurn(uint256 _tokenId) external {
     require(msg.sender == burner, "Only burner allowed");
     require(burnTimeoutAt[_tokenId] == 0, "Burn already initiated");
@@ -121,6 +115,17 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit InitiateTokenBurn(_tokenId, timeoutAt);
   }
 
+  // TOKEN OWNER INTERFACE
+
+  function setBurnTimeoutDuration(uint256 _tokenId, uint256 _duration) external {
+    require(tokenContract.ownerOf(_tokenId) == msg.sender, "Only token owner allowed");
+    require(_duration > 0, "Invalid timeout duration");
+
+    burnTimeoutDuration[_tokenId] = _duration;
+
+    emit SetBurnTimeout(_tokenId, _duration);
+  }
+
   function cancelTokenBurn(uint256 _tokenId) external {
     require(burnTimeoutAt[_tokenId] != 0, "Burn not initiated");
     require(tokenContract.ownerOf(_tokenId) == msg.sender, "Only token owner allowed");
@@ -130,17 +135,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit CancelTokenBurn(_tokenId);
   }
 
-  function burnTokenByTimeout(uint256 _tokenId) external {
-    require(burnTimeoutAt[_tokenId] != 0, "Timeout not set");
-    require(block.timestamp > burnTimeoutAt[_tokenId], "Timeout has not passed yet");
-    require(tokenContract.ownerOf(_tokenId) != address(0), "Token already burned");
-
-    IPPToken(address(tokenContract)).burn(_tokenId);
-
-    emit BurnTokenByTimeout(_tokenId);
-  }
-
-  // USER INTERFACE
+  // COMMON INTERFACE
 
   function propose(
     bytes calldata _data,
@@ -212,6 +207,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit ProposalRejection(_proposalId, tokenId);
   }
 
+  // PERMISSIONLESS INTERFACE
+
   function execute(uint256 _proposalId) public {
     Proposal storage p = proposals[_proposalId];
 
@@ -231,6 +228,16 @@ contract PPTokenController is IPPTokenController, Ownable {
     } else {
       emit ProposalExecuted(_proposalId);
     }
+  }
+
+  function burnTokenByTimeout(uint256 _tokenId) external {
+    require(burnTimeoutAt[_tokenId] != 0, "Timeout not set");
+    require(block.timestamp > burnTimeoutAt[_tokenId], "Timeout has not passed yet");
+    require(tokenContract.ownerOf(_tokenId) != address(0), "Token already burned");
+
+    IPPToken(address(tokenContract)).burn(_tokenId);
+
+    emit BurnTokenByTimeout(_tokenId);
   }
 
   // INTERNAL
