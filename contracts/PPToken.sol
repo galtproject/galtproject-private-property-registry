@@ -110,9 +110,12 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       ownerOf(_privatePropertyId);
 
       require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
-      p.setupStage = PropertyInitialSetupStage.DETAILS;
     } else {
       require(msg.sender == controller, "Only Controller allowed");
+    }
+
+    if (p.setupStage == PropertyInitialSetupStage.PENDING) {
+      p.setupStage = PropertyInitialSetupStage.DETAILS;
     }
 
     p.tokenType = _tokenType;
@@ -134,11 +137,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   {
     Property storage p = properties[_privatePropertyId];
 
+    require(p.setupStage != PropertyInitialSetupStage.PENDING, "PENDING setup stage not allowed");
+
     if (msg.sender == minter) {
       require(p.setupStage == PropertyInitialSetupStage.DETAILS, "Requires DETAILS setup stage");
-      p.setupStage = PropertyInitialSetupStage.DONE;
     } else {
       require(msg.sender == controller, "Only Controller allowed");
+    }
+
+    if (p.setupStage == PropertyInitialSetupStage.DETAILS) {
+      p.setupStage = PropertyInitialSetupStage.DONE;
     }
 
     p.contour = _contour;
