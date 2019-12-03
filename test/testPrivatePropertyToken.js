@@ -6,6 +6,7 @@ const PPACL = artifacts.require('PPACL.sol');
 const PPToken = artifacts.require('PPToken.sol');
 const PPTokenController = artifacts.require('PPTokenController.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const MockPPToken = artifacts.require('MockPPToken.sol');
 const galt = require('@galtproject/utils');
 
 PPToken.numberFormat = 'String';
@@ -38,7 +39,7 @@ const ProposalStatus = {
 };
 
 contract('PPToken and PPTokenController', accounts => {
-  const [unknown, systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob] = accounts;
+  const [unknown, systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, charlie, dan] = accounts;
 
   const galtFee = ether(20);
 
@@ -400,6 +401,53 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(res.status, ProposalStatus.EXECUTED);
       assert.equal(res.data, data);
       assert.equal(res.dataLink, 'foo');
+    });
+  });
+
+  describe('tokenURI', () => {
+    let res;
+    let token;
+    let mintableToken;
+    let aliceTokenId;
+    let bobTokenId;
+    let charlieTokenId;
+    let danTokenId;
+
+    beforeEach(async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      token = await PPToken.at(res.logs[5].args.token);
+      mintableToken = await MockPPToken.new('Foo', 'BAR');
+
+      await token.setMinter(minter, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await token.mint(bob, { from: minter });
+      bobTokenId = res.logs[0].args.privatePropertyId;
+      res = await token.mint(charlie, { from: minter });
+      charlieTokenId = res.logs[0].args.privatePropertyId;
+
+      danTokenId = 9999999999;
+      res = await mintableToken.hackMint(dan, danTokenId);
+    });
+
+    it('should return only ID as a tokenURI by default', async function() {
+      assert.equal(await token.tokenURI(1), aliceTokenId);
+      assert.equal(await token.tokenURI(2), bobTokenId);
+      assert.equal(await token.tokenURI(3), charlieTokenId);
+
+      assert.equal(await mintableToken.tokenURI(9999999999), danTokenId);
+    });
+
+    it('should generate correct tokenURI', async function() {
+      await assertRevert(token.setBaseURI('https://galtproject.io/foo/bar/'), 'Ownable: caller is not the owner');
+      await token.setBaseURI('https://galtproject.io/foo/bar/', { from: registryOwner });
+      await mintableToken.setBaseURI('https://galtproject.io/buzz/bar/');
+
+      assert.equal(await token.tokenURI(1), `https://galtproject.io/foo/bar/1`);
+      assert.equal(await token.tokenURI(2), `https://galtproject.io/foo/bar/2`);
+      assert.equal(await token.tokenURI(3), `https://galtproject.io/foo/bar/3`);
+      assert.equal(await mintableToken.tokenURI(9999999999), `https://galtproject.io/buzz/bar/9999999999`);
     });
   });
 
