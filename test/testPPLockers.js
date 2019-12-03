@@ -74,7 +74,7 @@ contract('PPLockers', accounts => {
   });
 
   it('should correctly build a locker with no fee', async function() {
-    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
+    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
       from: registryOwner,
       value: ether(10)
     });
@@ -141,13 +141,13 @@ contract('PPLockers', accounts => {
     let res;
 
     beforeEach(async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner,
         value: ether(10)
       });
       token = await PPToken.at(res.logs[5].args.token);
       controller = await PPTokenController.at(res.logs[5].args.controller);
-      res = await this.ppTokenFactory.build('Land Plots', 'LPL', registryDataLink, ONE_HOUR, {
+      res = await this.ppTokenFactory.build('Land Plots', 'LPL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner,
         value: ether(10)
       });

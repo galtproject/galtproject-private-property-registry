@@ -48,7 +48,10 @@ contract PPTokenFactory is Ownable, ChargesFee {
     string calldata _tokenName,
     string calldata _tokenSymbol,
     string calldata _dataLink,
-    uint256 _defaultBurnDuration
+    uint256 _defaultBurnDuration,
+    bytes32[] calldata _feeKeys,
+    uint256[] calldata _feeValues,
+    bytes32 _legalAgreementIpfsHash
   )
     external
     payable
@@ -65,9 +68,14 @@ contract PPTokenFactory is Ownable, ChargesFee {
 
     // setting up contracts
     ppToken.setDataLink(_dataLink);
+    ppToken.setLegalAgreementIpfsHash(_legalAgreementIpfsHash);
     ppToken.setMinter(msg.sender);
     ppToken.setController(address(ppTokenController));
     ppTokenController.setGeoDataManager(msg.sender);
+
+    for (uint256 i = 0; i < _feeKeys.length; i++) {
+      ppTokenController.setFee(_feeKeys[i], _feeValues[i]);
+    }
 
     // transferring ownership
     ppTokenController.transferOwnership(msg.sender);
