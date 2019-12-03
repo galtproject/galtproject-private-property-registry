@@ -12,6 +12,10 @@ lint:
 	npm run ethlint
 	npm run eslint
 
+lint-fix:
+	npm run ethlint
+	npm run eslint-fix
+
 test:
 	-npm test
 	-tput bel

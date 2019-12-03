@@ -43,8 +43,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   address public minter;
   address payable public controller;
   string public tokenDataLink;
-  bytes32 public legalAgreementIpfsHash;
   string public baseURI;
+
+  bytes32[] public legalAgreementIpfsHashList;
 
   mapping(uint256 => Property) internal properties;
 
@@ -73,7 +74,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   }
 
   function setLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash) external onlyOwner {
-    legalAgreementIpfsHash = _legalAgreementIpfsHash;
+    legalAgreementIpfsHashList.push(_legalAgreementIpfsHash);
 
     emit SetLegalAgreementIpfsHash(_legalAgreementIpfsHash);
   }
@@ -184,7 +185,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   // GETTERS
 
-   /**
+  /**
     * @dev Returns the URI for a given token ID. May return an empty string.
     *
     * If the token's URI is non-empty and a base URI was set (via
@@ -197,6 +198,10 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
     // abi.encodePacked is being used to concatenate strings
     return string(abi.encodePacked(baseURI, Strings.fromUint256(_tokenId)));
+  }
+
+  function getLastLegalAgreementIpfsHash() external view returns (bytes32) {
+    return legalAgreementIpfsHashList[legalAgreementIpfsHashList.length - 1];
   }
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory) {

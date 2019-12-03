@@ -77,7 +77,9 @@ contract('PPToken and PPTokenController', accounts => {
   });
 
   it('should allow an owner setting legal agreement ipfs hash', async function() {
-    const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+    const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+      from: registryOwner
+    });
     const token = await PPToken.at(res.logs[5].args.token);
 
     await assertRevert(
@@ -86,12 +88,14 @@ contract('PPToken and PPTokenController', accounts => {
     );
     await token.setLegalAgreementIpfsHash(numberToEvmWord(42), { from: registryOwner });
 
-    assert.equal(await token.legalAgreementIpfsHash(), numberToEvmWord(42));
+    assert.equal(await token.getLastLegalAgreementIpfsHash(), numberToEvmWord(42));
   });
 
   describe('token creation', () => {
     it('should allow the minter minting a new token', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       const token = await PPToken.at(res.logs[5].args.token);
       const controller = await PPTokenController.at(res.logs[5].args.controller);
 
@@ -153,7 +157,9 @@ contract('PPToken and PPTokenController', accounts => {
 
   describe('token update', () => {
     it('should allow a token owner rejecting token update proposals', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       const token = await PPToken.at(res.logs[5].args.token);
       const controller = await PPTokenController.at(res.logs[5].args.controller);
 
@@ -192,7 +198,9 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow a token owner submitting token update proposals', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       const token = await PPToken.at(res.logs[5].args.token);
       const controller = await PPTokenController.at(res.logs[5].args.controller);
 
@@ -262,7 +270,9 @@ contract('PPToken and PPTokenController', accounts => {
     let aliceTokenId;
 
     beforeEach(async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       token = await PPToken.at(res.logs[5].args.token);
       controller = await PPTokenController.at(res.logs[5].args.controller);
 
@@ -443,7 +453,9 @@ contract('PPToken and PPTokenController', accounts => {
 
   describe('commission withdrawals', () => {
     it('should allow ETH withdrawals', async function() {
-      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       const controller = await PPTokenController.at(res.logs[5].args.controller);
 
       await web3.eth.sendTransaction({ from: alice, to: controller.address, value: ether(42) });
@@ -462,7 +474,9 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow GALT withdrawals', async function() {
-      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       const controller = await PPTokenController.at(res.logs[5].args.controller);
 
       await this.galtToken.transfer(controller.address, ether(42), { from: alice });

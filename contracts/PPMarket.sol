@@ -26,8 +26,8 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
-  bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
-  bytes32 public constant ETH_FEE_KEY = bytes32("LOCKER_ETH");
+  bytes32 public constant GALT_FEE_KEY = bytes32("MARKET_GALT");
+  bytes32 public constant ETH_FEE_KEY = bytes32("MARKET_ETH");
 
   struct SaleOrderDetails {
     address propertyToken;
