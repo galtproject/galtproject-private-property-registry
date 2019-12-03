@@ -12,6 +12,8 @@ pragma solidity ^0.5.10;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPToken.sol";
+// TODO: use OZ v2.4.x Strings.sol instead
+import "./Strings.sol";
 
 
 contract PPToken is IPPToken, ERC721Full, Ownable {
@@ -42,6 +44,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   address payable public controller;
   string public tokenDataLink;
   bytes32 public legalAgreementIpfsHash;
+  string public baseURI;
 
   mapping(uint256 => Property) internal properties;
 
@@ -52,9 +55,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   }
 
   constructor(string memory _name, string memory _symbol) public ERC721Full(_name, _symbol) {
+    baseURI = "";
   }
 
   // OWNER INTERFACE
+
+  function setBaseURI(string calldata _baseURI) external onlyOwner {
+    baseURI = _baseURI;
+
+    emit SetBaseURI(baseURI);
+  }
 
   function setDataLink(string calldata _dataLink) external onlyOwner {
     tokenDataLink = _dataLink;
@@ -173,6 +183,21 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   }
 
   // GETTERS
+
+   /**
+    * @dev Returns the URI for a given token ID. May return an empty string.
+    *
+    * If the token's URI is non-empty and a base URI was set (via
+    * {_setBaseURI}), it will be added to the token ID's URI as a prefix.
+    *
+    * Reverts if the token ID does not exist.
+    */
+  function tokenURI(uint256 _tokenId) external view returns (string memory) {
+    require(_exists(_tokenId), "PPToken: URI query for nonexistent token");
+
+    // abi.encodePacked is being used to concatenate strings
+    return string(abi.encodePacked(baseURI, Strings.fromUint256(_tokenId)));
+  }
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory) {
     return _tokensOfOwner(_owner);
