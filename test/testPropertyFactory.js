@@ -2,6 +2,8 @@ const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
 const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
 const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
 const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
+const PPToken = artifacts.require('PPToken.sol');
+const PPTokenController = artifacts.require('PPTokenController.sol');
 const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 
@@ -58,7 +60,9 @@ contract('PPTokenFactory', accounts => {
     assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), 0);
 
     await this.galtToken.approve(this.ppTokenFactory.address, galtFee, { from: alice });
-    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, { from: alice });
+    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+      from: alice
+    });
 
     assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), galtFee);
 
@@ -74,7 +78,7 @@ contract('PPTokenFactory', accounts => {
     const aliceBalanceBefore = await web3.eth.getBalance(alice);
     let factoryBalanceBefore = await web3.eth.getBalance(this.ppTokenFactory.address);
 
-    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, {
+    await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
       from: alice,
       value: ethFee,
       gasPrice: gwei(0.1)
@@ -97,5 +101,32 @@ contract('PPTokenFactory', accounts => {
 
     assertEthBalanceChanged(anyoneBalanceBefore, anyoneBalanceAfter, ethFee);
     assertEthBalanceChanged(factoryBalanceBefore, factoryBalanceAfter, `-${ethFee}`);
+  });
+
+  it('should correctly set fees', async function() {
+    assert.equal(await this.galtToken.balanceOf(this.ppTokenFactory.address), 0);
+
+    await this.galtToken.approve(this.ppTokenFactory.address, galtFee, { from: alice });
+
+    const inputLockerFee = ether(10);
+
+    const res = await this.ppTokenFactory.build(
+      'Buildings',
+      'BDL',
+      registryDataLink,
+      ONE_HOUR,
+      [utf8ToHex('LOCKER_ETH')],
+      [inputLockerFee],
+      utf8ToHex(''),
+      { from: alice }
+    );
+
+    const token = await PPToken.at(res.logs[5].args.token);
+
+    const controller = await PPTokenController.at(await token.controller());
+
+    const resultLockerFee = await controller.fees(utf8ToHex('LOCKER_ETH'));
+
+    assert.equal(inputLockerFee, resultLockerFee);
   });
 });

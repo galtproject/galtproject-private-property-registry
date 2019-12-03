@@ -30,6 +30,7 @@
     "deploy": "truffle migrate --network local",
     "coverage": "SOLIDITY_COVERAGE=yes solidity-coverage",
     "eslint": "eslint .",
+    "eslint-fix": "eslint . --fix",
     "ethlint": "solium --dir ."
   },
   "author": "",
