@@ -35,16 +35,11 @@ contract('PPTokenFactory', accounts => {
     await this.ppTokenRegistry.initialize(this.ppgr.address);
 
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
-    this.ppTokenFactory = await PPTokenFactory.new(
-      this.ppTokenControllerFactory.address,
-      this.ppgr.address,
-      this.galtToken.address,
-      0,
-      0
-    );
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), this.galtToken.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
 
     // ACL setup

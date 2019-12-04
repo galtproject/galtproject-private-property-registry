@@ -42,12 +42,11 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
 
   constructor(
     IPPGlobalRegistry _globalRegistry,
-    address _galtToken,
     uint256 _ethFee,
     uint256 _galtFee
   )
     public
-    ChargesFee(_galtToken, _ethFee, _galtFee)
+    ChargesFee(_ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
   }
@@ -84,25 +83,6 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     return id;
   }
 
-  // Overrides ChargesFee._acceptPayment() and accepts an additional property owner fee along with the protocol fee
-  function _acceptPayment(address _propertyToken) internal {
-    address payable controller = IPPToken(_propertyToken).controller();
-
-    if (msg.value == 0) {
-      galtToken.transferFrom(msg.sender, address(this), galtFee);
-
-      uint256 propertyOwnerFee = IPPTokenController(controller).fees(GALT_FEE_KEY);
-      galtToken.transferFrom(msg.sender, controller, propertyOwnerFee);
-    } else {
-      uint256 propertyOwnerFee = IPPTokenController(controller).fees(ETH_FEE_KEY);
-      uint256 totalFee = ethFee.add(propertyOwnerFee);
-
-      require(msg.value == totalFee, "Invalid fee");
-
-      controller.transfer(propertyOwnerFee);
-    }
-  }
-
   function closeSaleOrder(
     uint256 _orderId
   )
@@ -127,6 +107,31 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
       tokenId = _propertyTokenIds[i];
       require(IPPToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
       require(IERC721(_propertyToken).ownerOf(tokenId) == msg.sender, "Sender should own the token");
+    }
+  }
+
+  // INTERNAL
+
+  function _galtToken() internal view returns (IERC20) {
+    return IERC20(globalRegistry.getGaltTokenAddress());
+  }
+
+  // Overrides ChargesFee._acceptPayment() and accepts an additional property owner fee along with the protocol fee
+  function _acceptPayment(address _propertyToken) internal {
+    address payable controller = IPPToken(_propertyToken).controller();
+
+    if (msg.value == 0) {
+      _galtToken().transferFrom(msg.sender, address(this), galtFee);
+
+      uint256 propertyOwnerFee = IPPTokenController(controller).fees(GALT_FEE_KEY);
+      _galtToken().transferFrom(msg.sender, controller, propertyOwnerFee);
+    } else {
+      uint256 propertyOwnerFee = IPPTokenController(controller).fees(ETH_FEE_KEY);
+      uint256 totalFee = ethFee.add(propertyOwnerFee);
+
+      require(msg.value == totalFee, "Invalid fee");
+
+      controller.transfer(propertyOwnerFee);
     }
   }
 

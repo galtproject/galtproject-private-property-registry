@@ -23,12 +23,11 @@ contract PPLockerFactory is Ownable, ChargesFee {
 
   constructor(
     IPPGlobalRegistry _globalRegistry,
-    address _galtToken,
     uint256 _ethFee,
     uint256 _galtFee
   )
     public
-    ChargesFee(_galtToken, _ethFee, _galtFee)
+    ChargesFee(_ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
   }
@@ -43,5 +42,11 @@ contract PPLockerFactory is Ownable, ChargesFee {
     emit NewPPLocker(msg.sender, address(locker));
 
     return IPPLocker(locker);
+  }
+
+  // INTERNAL
+
+  function _galtToken() internal view returns (IERC20) {
+    return IERC20(globalRegistry.getGaltTokenAddress());
   }
 }
