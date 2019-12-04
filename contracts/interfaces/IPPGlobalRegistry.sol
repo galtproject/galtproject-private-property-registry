@@ -12,7 +12,7 @@ pragma solidity ^0.5.10;
 import "@galtproject/core/contracts/interfaces/IACL.sol";
 
 
-contract IPPGlobalRegistry {
+interface IPPGlobalRegistry {
   function setContract(bytes32 _key, address _value) external;
 
   // GETTERS
