@@ -71,7 +71,7 @@ contract('PPMarket', accounts => {
   const [coreTeam, minter, alice, bob, charlie] = accounts;
 
   const registryDataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3j1';
-  const dataAddress = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3jq';
+  const dataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3jq';
 
   // both for a factory and a market
   const ethFee = ether(5);
@@ -137,7 +137,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice, value: ether(5) }
@@ -162,7 +162,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1, this.ppTokenId2],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ERC20,
           this.galtToken.address,
           { from: alice, value: ether(5) }
@@ -189,7 +189,7 @@ contract('PPMarket', accounts => {
             [this.ppTokenId1],
             bob,
             ether(50),
-            dataAddress,
+            dataLink,
             EscrowCurrency.ETH,
             zeroAddress,
             { from: bob, value: ether(5) }
@@ -205,7 +205,7 @@ contract('PPMarket', accounts => {
             [this.ppTokenId1],
             bob,
             ether(50),
-            dataAddress,
+            dataLink,
             EscrowCurrency.ETH,
             zeroAddress,
             { from: bob, value: ether(5) }
@@ -220,7 +220,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice, value: ether(5) }
@@ -231,7 +231,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice, value: ether(5) }
@@ -247,7 +247,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice }
@@ -273,7 +273,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ERC20,
           this.galtToken.address,
           { from: alice }
@@ -299,7 +299,7 @@ contract('PPMarket', accounts => {
             [this.ppTokenId1],
             bob,
             ether(50),
-            dataAddress,
+            dataLink,
             EscrowCurrency.ETH,
             zeroAddress,
             { from: bob }
@@ -317,7 +317,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           bob,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice, value: ether(5) }
@@ -363,7 +363,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           charlie,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice, value: ether(5) }
@@ -411,7 +411,7 @@ contract('PPMarket', accounts => {
           [this.ppTokenId1],
           charlie,
           ether(50),
-          dataAddress,
+          dataLink,
           EscrowCurrency.ETH,
           zeroAddress,
           { from: alice, value: ether(5) }
@@ -439,7 +439,7 @@ contract('PPMarket', accounts => {
         tokenIds,
         bob,
         ether(50),
-        dataAddress,
+        dataLink,
         EscrowCurrency.ETH,
         zeroAddress,
         {
@@ -451,7 +451,7 @@ contract('PPMarket', accounts => {
 
     beforeEach(async function() {
       this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
-      this.args = [this.ppMarket, this.ppToken.address, [this.ppTokenId1], dataAddress];
+      this.args = [this.ppMarket, this.ppToken.address, [this.ppTokenId1], dataLink];
     });
 
     describe('payments', async function() {
