@@ -26,19 +26,11 @@ contract ChargesFee is Ownable {
   event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
   event WithdrawErc721(address indexed to, address indexed tokenAddress, uint256 tokenId);
 
-  IERC20 public galtToken;
-
   uint256 public ethFee;
   uint256 public galtFee;
 
   address public feeManager;
   address public feeCollector;
-
-  constructor(address _galtToken, uint256 _ethFee, uint256 _galtFee) public {
-    galtToken = IERC20(_galtToken);
-    ethFee = _ethFee;
-    galtFee = _galtFee;
-  }
 
   modifier onlyFeeManager() {
     require(msg.sender == feeManager, "ChargesFee: caller is not the feeManager");
@@ -49,6 +41,13 @@ contract ChargesFee is Ownable {
     require(msg.sender == feeCollector, "ChargesFee: caller is not the feeCollector");
     _;
   }
+
+  constructor(uint256 _ethFee, uint256 _galtFee) public {
+    ethFee = _ethFee;
+    galtFee = _galtFee;
+  }
+
+  function _galtToken() internal view returns (IERC20);
 
   // Setters
 
@@ -104,7 +103,7 @@ contract ChargesFee is Ownable {
 
   function _acceptPayment() internal {
     if (msg.value == 0) {
-      galtToken.transferFrom(msg.sender, address(this), galtFee);
+      _galtToken().transferFrom(msg.sender, address(this), galtFee);
     } else {
       require(msg.value == ethFee, "Fee and msg.value not equal");
     }

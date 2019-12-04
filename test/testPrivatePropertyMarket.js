@@ -90,16 +90,11 @@ contract('PPMarket', accounts => {
     await this.ppTokenRegistry.initialize(this.ppgr.address);
 
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
-    this.ppTokenFactory = await PPTokenFactory.new(
-      this.ppTokenControllerFactory.address,
-      this.ppgr.address,
-      this.galtToken.address,
-      0,
-      0
-    );
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), this.galtToken.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
 
     // ACL setup
@@ -111,7 +106,7 @@ contract('PPMarket', accounts => {
     this.ppToken = await PPToken.at(res.logs[5].args.token);
     this.ppController = await PPTokenController.at(res.logs[5].args.controller);
 
-    this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
+    this.ppMarket = await PPMarket.new(this.ppgr.address, ethFee, galtFee);
     this.ppToken.setMinter(minter);
 
     await this.galtToken.mint(alice, ether(10000000));
@@ -450,7 +445,7 @@ contract('PPMarket', accounts => {
     }
 
     beforeEach(async function() {
-      this.ppMarket = await PPMarket.new(this.ppgr.address, this.galtToken.address, ethFee, galtFee);
+      this.ppMarket = await PPMarket.new(this.ppgr.address, ethFee, galtFee);
       this.args = [this.ppMarket, this.ppToken.address, [this.ppTokenId1], dataLink];
     });
 

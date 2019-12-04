@@ -44,14 +44,8 @@ contract('PPLockers', accounts => {
     await this.ppLockerRegistry.initialize(this.ppgr.address);
 
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
-    this.ppTokenFactory = await PPTokenFactory.new(
-      this.ppTokenControllerFactory.address,
-      this.ppgr.address,
-      this.galtToken.address,
-      0,
-      0
-    );
-    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, this.galtToken.address, 0, 0);
+    this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
+    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);

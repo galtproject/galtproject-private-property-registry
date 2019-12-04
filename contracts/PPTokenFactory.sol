@@ -10,6 +10,7 @@
 pragma solidity ^0.5.13;
 
 import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./traits/ChargesFee.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPTokenRegistry.sol";
@@ -30,12 +31,11 @@ contract PPTokenFactory is Ownable, ChargesFee {
   constructor(
     address _ppTokenControllerFactory,
     address _globalRegistry,
-    address _galtToken,
     uint256 _ethFee,
     uint256 _galtFee
   )
     public
-    ChargesFee(_galtToken, _ethFee, _galtFee)
+    ChargesFee(_ethFee, _galtFee)
     Ownable()
   {
     ppTokenControllerFactory = PPTokenControllerFactory(_ppTokenControllerFactory);
@@ -87,5 +87,11 @@ contract PPTokenFactory is Ownable, ChargesFee {
     emit Build(address(ppToken), address(ppTokenController));
 
     return address(ppToken);
+  }
+
+  // INTERNAL
+
+  function _galtToken() internal view returns (IERC20) {
+    return IERC20(globalRegistry.getGaltTokenAddress());
   }
 }
