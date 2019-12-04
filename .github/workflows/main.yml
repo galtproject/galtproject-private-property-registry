@@ -26,4 +26,4 @@ jobs:
         chmod 700 ~/.ssh
         ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
         npm install
-        make lint && make compile && make test
+        make lint && make compile && npm run test

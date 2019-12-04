@@ -11,9 +11,8 @@ pragma solidity ^0.5.13;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/drafts/Strings.sol";
 import "./interfaces/IPPToken.sol";
-// TODO: use OZ v2.4.x Strings.sol instead
-import "./Strings.sol";
 
 
 contract PPToken is IPPToken, ERC721Full, Ownable {

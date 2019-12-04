@@ -414,7 +414,9 @@ contract('PPToken and PPTokenController', accounts => {
     let danTokenId;
 
     beforeEach(async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, { from: registryOwner });
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
       token = await PPToken.at(res.logs[5].args.token);
       mintableToken = await MockPPToken.new('Foo', 'BAR');
 
