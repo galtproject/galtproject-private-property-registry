@@ -7,10 +7,10 @@
  * [Basic Agreement](ipfs/QmaCiXUmSrP16Gz8Jdzq6AJESY1EAANmmwha15uR3c1bsS)).
  */
 
-pragma solidity ^0.5.10;
+pragma solidity ^0.5.13;
 
 import "@galtproject/libs/contracts/traits/OwnableAndInitializable.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 
