@@ -32,7 +32,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   struct SaleOrderDetails {
     address propertyToken;
     uint256[] propertyTokenIds;
-    string dataAddress;
+    string dataLink;
   }
 
   IPPGlobalRegistry internal globalRegistry;
@@ -57,7 +57,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     uint256[] calldata _propertyTokenIds,
     address _operator,
     uint256 _ask,
-    string calldata _dataAddress,
+    string calldata _dataLink,
     EscrowCurrency _currency,
     IERC20 _erc20address
   )
@@ -79,7 +79,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
 
     details.propertyToken = _propertyToken;
     details.propertyTokenIds = _propertyTokenIds;
-    details.dataAddress = _dataAddress;
+    details.dataLink = _dataLink;
 
     return id;
   }
@@ -135,9 +135,9 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   function getSaleOrderDetails(uint256 _rId) external view returns (
     uint256[] memory propertyTokenIds,
     address propertyToken,
-    string memory dataAddress
+    string memory dataLink
   )
   {
-    return (saleOrderDetails[_rId].propertyTokenIds, saleOrderDetails[_rId].propertyToken, saleOrderDetails[_rId].dataAddress);
+    return (saleOrderDetails[_rId].propertyTokenIds, saleOrderDetails[_rId].propertyToken, saleOrderDetails[_rId].dataLink);
   }
 }
