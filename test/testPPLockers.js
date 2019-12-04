@@ -192,7 +192,7 @@ contract('PPLockers', accounts => {
       );
       await assertRevert(
         locker.deposit(token.address, aliceTokenId, { from: alice }),
-        'SafeMath: subtraction overflow'
+        'ERC20: transfer amount exceeds allowance'
       );
 
       await this.galtToken.approve(locker.address, ether(4), { from: alice });
@@ -247,7 +247,7 @@ contract('PPLockers', accounts => {
       await this.galtToken.approve(locker.address, ether(4), { from: alice });
       await assertRevert(
         locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice }),
-        'SafeMath: subtraction overflow'
+        'ERC20: transfer amount exceeds allowance'
       );
 
       await this.galtToken.approve(locker.address, ether(42), { from: alice });

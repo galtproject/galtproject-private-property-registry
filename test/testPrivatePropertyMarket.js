@@ -105,7 +105,9 @@ contract('PPMarket', accounts => {
     // ACL setup
     await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
 
-    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, ONE_HOUR, { value: 0 });
+    const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+      value: 0
+    });
     this.ppToken = await PPToken.at(res.logs[5].args.token);
     this.ppController = await PPTokenController.at(res.logs[5].args.controller);
 
