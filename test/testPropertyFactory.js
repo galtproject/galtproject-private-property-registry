@@ -6,6 +6,7 @@ const PPToken = artifacts.require('PPToken.sol');
 const PPTokenController = artifacts.require('PPTokenController.sol');
 const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const _ = require('lodash');
 
 const { ether, gwei, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -116,7 +117,7 @@ contract('PPTokenFactory', accounts => {
       { from: alice }
     );
 
-    const token = await PPToken.at(res.logs[5].args.token);
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
 
     const controller = await PPTokenController.at(await token.controller());
 
