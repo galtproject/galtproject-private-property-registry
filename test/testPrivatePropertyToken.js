@@ -462,10 +462,7 @@ contract('PPToken and PPTokenController', accounts => {
 
       const bobBalanceBefore = await web3.eth.getBalance(bob);
 
-      await assertRevert(
-        controller.withdrawEth(bob, { from: bob }),
-        'Missing permissions'
-      );
+      await assertRevert(controller.withdrawEth(bob, { from: bob }), 'Missing permissions');
 
       await controller.withdrawEth(bob, { from: registryOwner });
 
@@ -488,10 +485,7 @@ contract('PPToken and PPTokenController', accounts => {
 
       const bobBalanceBefore = await this.galtToken.balanceOf(bob);
 
-      await assertRevert(
-        controller.withdrawErc20(bob, { from: bob }),
-        'Missing permissions'
-      );
+      await assertRevert(controller.withdrawErc20(bob, { from: bob }), 'Missing permissions');
 
       await controller.withdrawErc20(this.galtToken.address, bob, { from: registryOwner });
 
