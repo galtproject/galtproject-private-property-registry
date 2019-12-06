@@ -88,6 +88,32 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   )
     external
   {
+    SaleOrder storage saleOrder = saleOrders[_orderId];
+    require(saleOrder.seller == msg.sender, "Market. Only seller allowed");
+    _closeSaleOrder(_orderId);
+  }
+
+  function closeNotActualSaleOrder(
+    uint256 _orderId
+  )
+    external
+  {
+    SaleOrder storage saleOrder = saleOrders[_orderId];
+    SaleOrderDetails storage details = saleOrderDetails[_orderId];
+
+    IPPToken propertyToken = IPPToken(details.propertyToken);
+
+    uint256 len = details.propertyTokenIds.length;
+
+    bool someTokenNotOwnedBySeller = false;
+    for (uint256 i = 0; i < len; i++) {
+      if (propertyToken.ownerOf(details.propertyTokenIds[i]) != saleOrder.seller) {
+        someTokenNotOwnedBySeller = true;
+        break;
+      }
+    }
+
+    require(someTokenNotOwnedBySeller, "Market. All tokens owned by seller");
     _closeSaleOrder(_orderId);
   }
 
