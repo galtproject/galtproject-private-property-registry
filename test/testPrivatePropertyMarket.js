@@ -399,7 +399,7 @@ contract('PPMarket', accounts => {
       });
     });
 
-    describe('#cancelSaleOrder()', () => {
+    describe('#closeSaleOrder()', () => {
       it('should allow seller closing the order', async function() {
         let res = await this.ppMarket.createSaleOrder(
           this.ppToken.address,
@@ -424,6 +424,31 @@ contract('PPMarket', accounts => {
         res = await this.ppMarket.saleOrders(this.rId);
         assert.equal(res.status, SaleOrderStatus.INACTIVE);
       });
+    });
+  });
+
+  describe('#closeNotActualSaleOrder()', () => {
+    it('should allow anyone closing not actual order', async function() {
+      let res = await this.ppMarket.createSaleOrder(
+        this.ppToken.address,
+        [this.ppTokenId1, this.ppTokenId2],
+        charlie,
+        ether(50),
+        dataLink,
+        EscrowCurrency.ETH,
+        zeroAddress,
+        { from: alice, value: ether(5) }
+      );
+      this.rId = res.logs[0].args.orderId;
+
+      await assertRevert(this.ppMarket.closeNotActualSaleOrder(this.rId, { from: bob }));
+
+      await this.ppToken.transferFrom(alice, charlie, this.ppTokenId1, { from: alice });
+
+      await this.ppMarket.closeNotActualSaleOrder(this.rId, { from: bob });
+
+      res = await this.ppMarket.saleOrders(this.rId);
+      assert.equal(res.status, SaleOrderStatus.INACTIVE);
     });
   });
 

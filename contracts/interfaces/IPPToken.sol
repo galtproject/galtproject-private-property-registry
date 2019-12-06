@@ -82,6 +82,7 @@ interface IPPToken {
   function minter() external view returns (address);
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
+  function ownerOf(uint256 _tokenId) external view returns (address);
   function exists(uint256 _tokenId) external view returns (bool);
   function getType(uint256 _tokenId) external view returns (TokenType);
   function getContour(uint256 _tokenId) external view returns (uint256[] memory);
