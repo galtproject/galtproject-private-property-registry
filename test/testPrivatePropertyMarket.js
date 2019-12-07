@@ -7,6 +7,7 @@ const PPGlobalRegistry = artifacts.require('./PPGlobalRegistry.sol');
 const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
 const PPACL = artifacts.require('PPACL.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
@@ -103,8 +104,8 @@ contract('PPMarket', accounts => {
     const res = await this.ppTokenFactory.build('Foo', 'BAR', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
       value: 0
     });
-    this.ppToken = await PPToken.at(res.logs[5].args.token);
-    this.ppController = await PPTokenController.at(res.logs[5].args.controller);
+    this.ppToken = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+    this.ppController = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
     this.ppMarket = await PPMarket.new(this.ppgr.address, ethFee, galtFee);
     this.ppToken.setMinter(minter);

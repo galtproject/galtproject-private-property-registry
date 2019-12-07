@@ -10,6 +10,7 @@ const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
 const PPACL = artifacts.require('PPACL.sol');
 const MockRA = artifacts.require('MockRA.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
 PPLocker.numberFormat = 'String';
@@ -72,7 +73,7 @@ contract('PPLockers', accounts => {
       from: registryOwner,
       value: ether(10)
     });
-    const token = await PPToken.at(res.logs[5].args.token);
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
 
     await token.setMinter(minter, { from: registryOwner });
 
@@ -139,14 +140,14 @@ contract('PPLockers', accounts => {
         from: registryOwner,
         value: ether(10)
       });
-      token = await PPToken.at(res.logs[5].args.token);
-      controller = await PPTokenController.at(res.logs[5].args.controller);
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
       res = await this.ppTokenFactory.build('Land Plots', 'LPL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner,
         value: ether(10)
       });
-      anotherToken = await PPToken.at(res.logs[5].args.token);
-      anotherController = await PPTokenController.at(res.logs[5].args.controller);
+      anotherToken = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      anotherController = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await anotherToken.setMinter(minter, { from: registryOwner });

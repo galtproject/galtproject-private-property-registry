@@ -41,6 +41,7 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   IERC721 public tokenContract;
   address public geoDataManager;
+  address public feeManager;
   address public burner;
   uint256 public defaultBurnTimeoutDuration;
   uint256 internal idCounter;
@@ -72,13 +73,21 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit SetGeoDataManager(_geoDataManager);
   }
 
+  function setFeeManager(address _feeManager) external onlyOwner {
+    feeManager = _feeManager;
+
+    emit SetFeeManager(_feeManager);
+  }
+
   function setBurner(address _burner) external onlyOwner {
     burner = _burner;
 
     emit SetBurner(_burner);
   }
 
-  function withdrawErc20(address _tokenAddress, address _to) external onlyOwner {
+  function withdrawErc20(address _tokenAddress, address _to) external {
+    require(msg.sender == feeManager, "Missing permissions");
+
     uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
 
     IERC20(_tokenAddress).transfer(_to, balance);
@@ -86,7 +95,9 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit WithdrawErc20(_to, _tokenAddress, balance);
   }
 
-  function withdrawEth(address payable _to) external onlyOwner {
+  function withdrawEth(address payable _to) external {
+    require(msg.sender == feeManager, "Missing permissions");
+
     uint256 balance = address(this).balance;
 
     _to.transfer(balance);
@@ -94,7 +105,9 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit WithdrawEth(_to, balance);
   }
 
-  function setFee(bytes32 _key, uint256 _value) external onlyOwner {
+  function setFee(bytes32 _key, uint256 _value) external {
+    require(msg.sender == feeManager, "Missing permissions");
+
     fees[_key] = _value;
     emit SetFee(_key, _value);
   }
