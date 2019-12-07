@@ -14,7 +14,7 @@ interface IPPToken {
   event SetMinter(address indexed minter);
   event SetBaseURI(string baseURI);
   event SetDataLink(string indexed dataLink);
-  event SetLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash);
+  event SetLegalAgreementIpfsHash(bytes32 legalAgreementIpfsHash);
   event SetController(address indexed controller);
   event SetDetails(
     address indexed geoDataManager,
