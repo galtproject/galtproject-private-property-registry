@@ -100,6 +100,7 @@ contract('PPToken and PPTokenController', accounts => {
 
       res = await token.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.privatePropertyId;
+      const createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
 
       await assertRevert(
         token.setDetails(
@@ -148,6 +149,8 @@ contract('PPToken and PPTokenController', accounts => {
 
       assert.sameMembers(await token.getContour(aliceTokenId), contour);
       assert.equal(await token.getHighestPoint(aliceTokenId), -42);
+
+      assert.equal(await token.propertyCreatedAt(aliceTokenId), createdAt);
     });
   });
 
@@ -278,6 +281,54 @@ contract('PPToken and PPTokenController', accounts => {
 
       res = await token.mint(alice, { from: minter });
       aliceTokenId = res.logs[0].args.privatePropertyId;
+    });
+
+    it('should remove data on burn', async function() {
+      await token.setDetails(
+        aliceTokenId,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        { from: minter }
+      );
+
+      res = await token.getDetails(aliceTokenId);
+      assert.equal(res.tokenType, 2);
+      assert.equal(res.areaSource, 1);
+      assert.equal(res.area, 123);
+      assert.equal(hexToUtf8(res.ledgerIdentifier), 'foo');
+      assert.equal(res.humanAddress, 'bar');
+      assert.equal(res.dataLink, 'buzz');
+
+      // SET CONTOUR
+      await token.setContour(
+        aliceTokenId,
+        contour,
+        // highestPoint
+        -42,
+        { from: minter }
+      );
+      assert.sameMembers(await token.getContour(aliceTokenId), contour);
+      assert.equal(await token.getHighestPoint(aliceTokenId), -42);
+
+      // burn
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: burner });
+      const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + ONE_HOUR;
+      assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
+
+      await evmIncreaseTime(ONE_HOUR + 2);
+
+      await controller.burnTokenByTimeout(aliceTokenId);
+
+      res = await token.getDetails(aliceTokenId);
+      assert.equal(res.area, 0);
+      assert.equal(res.tokenType, 0);
+      assert.equal(res.contour.length, 0);
+      assert.equal(await token.getHighestPoint(aliceTokenId), 0);
     });
 
     it('should allow token burn after a custom timeout', async function() {
@@ -446,6 +497,51 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(await token.tokenURI(2), `https://galtproject.io/foo/bar/2`);
       assert.equal(await token.tokenURI(3), `https://galtproject.io/foo/bar/3`);
       assert.equal(await mintableToken.tokenURI(9999999999), `https://galtproject.io/buzz/bar/9999999999`);
+    });
+  });
+
+  describe('extra data', () => {
+    let res;
+    let token;
+    let aliceTokenId;
+
+    beforeEach(async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
+      token = await PPToken.at(res.logs[5].args.token);
+
+      await token.setMinter(minter, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      await token.setController(bob, { from: registryOwner });
+    });
+
+    it('should allow controller setting extraData', async function() {
+      assert.equal(hexToUtf8(await token.extraData(bytes32('foo'))), '');
+
+      await assertRevert(
+        token.setExtraData(bytes32('foo'), bytes32('bar'), { from: alice }),
+        'Only controller allowed'
+      );
+      await token.setExtraData(bytes32('foo'), bytes32('bar'), { from: bob });
+
+      assert.equal(hexToUtf8(await token.extraData(bytes32('foo'))), 'bar');
+    });
+
+    it('should allow controller setting property extraData', async function() {
+      assert.equal(hexToUtf8(await token.propertyExtraData(aliceTokenId, bytes32('foo'))), '');
+
+      await assertRevert(
+        token.setPropertyExtraData(aliceTokenId, bytes32('foo'), bytes32('bar'), { from: alice }),
+        'Only controller allowed'
+      );
+      await token.setPropertyExtraData(aliceTokenId, bytes32('foo'), bytes32('bar'), { from: bob });
+
+      assert.equal(hexToUtf8(await token.propertyExtraData(aliceTokenId, bytes32('foo'))), 'bar');
+      assert.equal(hexToUtf8(await token.propertyExtraData(123, bytes32('foo'))), '');
     });
   });
 

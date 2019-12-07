@@ -46,10 +46,23 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   bytes32[] public legalAgreementIpfsHashList;
 
+  // tokenId => details
   mapping(uint256 => Property) internal properties;
+  // tokenId => timestamp
+  mapping(uint256 => uint256) public propertyCreatedAt;
+  // tokenId => (key => value)
+  mapping(uint256 => mapping(bytes32 => bytes32)) public propertyExtraData;
+  // key => value
+  mapping(bytes32 => bytes32) public extraData;
 
   modifier onlyMinter() {
     require(msg.sender == minter, "Only minter allowed");
+
+    _;
+  }
+
+  modifier onlyController() {
+    require(msg.sender == controller, "Only controller allowed");
 
     _;
   }
@@ -98,6 +111,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit Mint(_to, id);
 
     _mint(_to, id);
+
+    propertyCreatedAt[id] = block.timestamp;
   }
 
   // CONTROLLER INTERFACE
@@ -165,14 +180,26 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetContour(msg.sender, _privatePropertyId);
   }
 
-  function burn(uint256 _tokenId) external {
-    require(msg.sender == controller, "Only controller allowed");
-
+  function burn(uint256 _tokenId) external onlyController {
     address owner = ownerOf(_tokenId);
+
+    delete properties[_tokenId];
 
     _burn(owner, _tokenId);
 
     emit Burn(owner, _tokenId);
+  }
+
+  function setExtraData(bytes32 _key, bytes32 _value) external onlyController {
+    extraData[_key] = _value;
+
+    emit SetExtraData(_key, _value);
+  }
+
+  function setPropertyExtraData(uint256 _tokenId, bytes32 _key, bytes32 _value) external onlyController {
+    propertyExtraData[_tokenId][_key] = _value;
+
+    emit SetPropertyExtraData(_tokenId, _key, _value);
   }
 
   // INTERNAL

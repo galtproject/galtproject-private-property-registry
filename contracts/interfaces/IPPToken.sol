@@ -24,6 +24,8 @@ interface IPPToken {
     address indexed geoDataManager,
     uint256 indexed privatePropertyId
   );
+  event SetExtraData(bytes32 indexed key, bytes32 value);
+  event SetPropertyExtraData(uint256 indexed propertyId, bytes32 indexed key, bytes32 value);
   event Mint(address indexed to, uint256 indexed privatePropertyId);
   event Burn(address indexed from, uint256 indexed privatePropertyId);
 
