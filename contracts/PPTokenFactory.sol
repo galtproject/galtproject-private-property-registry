@@ -73,9 +73,13 @@ contract PPTokenFactory is Ownable, ChargesFee {
     ppToken.setController(address(ppTokenController));
     ppTokenController.setGeoDataManager(msg.sender);
 
+    ppTokenController.setFeeManager(address(this));
+
     for (uint256 i = 0; i < _feeKeys.length; i++) {
       ppTokenController.setFee(_feeKeys[i], _feeValues[i]);
     }
+
+    ppTokenController.setFeeManager(msg.sender);
 
     // transferring ownership
     ppTokenController.transferOwnership(msg.sender);

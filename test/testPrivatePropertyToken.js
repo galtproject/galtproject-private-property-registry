@@ -8,6 +8,7 @@ const PPTokenController = artifacts.require('PPTokenController.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 const MockPPToken = artifacts.require('MockPPToken.sol');
 const galt = require('@galtproject/utils');
+const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
@@ -75,7 +76,7 @@ contract('PPToken and PPTokenController', accounts => {
     const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
       from: registryOwner
     });
-    const token = await PPToken.at(res.logs[5].args.token);
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
 
     await assertRevert(
       token.setLegalAgreementIpfsHash(numberToEvmWord(42), { from: alice }),
@@ -91,8 +92,8 @@ contract('PPToken and PPTokenController', accounts => {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const token = await PPToken.at(res.logs[5].args.token);
-      const controller = await PPTokenController.at(res.logs[5].args.controller);
+      const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -155,8 +156,8 @@ contract('PPToken and PPTokenController', accounts => {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const token = await PPToken.at(res.logs[5].args.token);
-      const controller = await PPTokenController.at(res.logs[5].args.controller);
+      const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -196,8 +197,8 @@ contract('PPToken and PPTokenController', accounts => {
       let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const token = await PPToken.at(res.logs[5].args.token);
-      const controller = await PPTokenController.at(res.logs[5].args.controller);
+      const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
@@ -268,8 +269,8 @@ contract('PPToken and PPTokenController', accounts => {
       res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      token = await PPToken.at(res.logs[5].args.token);
-      controller = await PPTokenController.at(res.logs[5].args.controller);
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setBurner(burner, { from: registryOwner });
@@ -412,7 +413,7 @@ contract('PPToken and PPTokenController', accounts => {
       res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      token = await PPToken.at(res.logs[5].args.token);
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       mintableToken = await MockPPToken.new('Foo', 'BAR');
 
       await token.setMinter(minter, { from: registryOwner });
@@ -453,13 +454,15 @@ contract('PPToken and PPTokenController', accounts => {
       const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const controller = await PPTokenController.at(res.logs[5].args.controller);
+      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await web3.eth.sendTransaction({ from: alice, to: controller.address, value: ether(42) });
 
       assert.equal(await web3.eth.getBalance(controller.address), ether(42));
 
       const bobBalanceBefore = await web3.eth.getBalance(bob);
+
+      await assertRevert(controller.withdrawEth(bob, { from: bob }), 'Missing permissions');
 
       await controller.withdrawEth(bob, { from: registryOwner });
 
@@ -474,13 +477,15 @@ contract('PPToken and PPTokenController', accounts => {
       const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const controller = await PPTokenController.at(res.logs[5].args.controller);
+      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await this.galtToken.transfer(controller.address, ether(42), { from: alice });
 
       assert.equal(await this.galtToken.balanceOf(controller.address), ether(42));
 
       const bobBalanceBefore = await this.galtToken.balanceOf(bob);
+
+      await assertRevert(controller.withdrawErc20(this.galtToken.address, bob, { from: bob }), 'Missing permissions');
 
       await controller.withdrawErc20(this.galtToken.address, bob, { from: registryOwner });
 

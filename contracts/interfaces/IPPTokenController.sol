@@ -12,6 +12,7 @@ pragma solidity ^0.5.13;
 
 interface IPPTokenController {
   event SetGeoDataManager(address indexed geoDataManager);
+  event SetFeeManager(address indexed geoDataManager);
   event NewProposal(
     uint256 indexed proposalId,
     uint256 indexed tokenId,
