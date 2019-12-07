@@ -499,6 +499,51 @@ contract('PPToken and PPTokenController', accounts => {
     });
   });
 
+  describe('extra data', () => {
+    let res;
+    let token;
+    let aliceTokenId;
+
+    beforeEach(async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
+      token = await PPToken.at(res.logs[5].args.token);
+
+      await token.setMinter(minter, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      await token.setController(bob, { from: registryOwner });
+    });
+
+    it('should allow controller setting extraData', async function() {
+      assert.equal(hexToUtf8(await token.extraData(bytes32('foo'))), '');
+
+      await assertRevert(
+        token.setExtraData(bytes32('foo'), bytes32('bar'), { from: alice }),
+        'Only controller allowed'
+      );
+      await token.setExtraData(bytes32('foo'), bytes32('bar'), { from: bob });
+
+      assert.equal(hexToUtf8(await token.extraData(bytes32('foo'))), 'bar');
+    });
+
+    it('should allow controller setting property extraData', async function() {
+      assert.equal(hexToUtf8(await token.propertyExtraData(aliceTokenId, bytes32('foo'))), '');
+
+      await assertRevert(
+        token.setPropertyExtraData(aliceTokenId, bytes32('foo'), bytes32('bar'), { from: alice }),
+        'Only controller allowed'
+      );
+      await token.setPropertyExtraData(aliceTokenId, bytes32('foo'), bytes32('bar'), { from: bob });
+
+      assert.equal(hexToUtf8(await token.propertyExtraData(aliceTokenId, bytes32('foo'))), 'bar');
+      assert.equal(hexToUtf8(await token.propertyExtraData(123, bytes32('foo'))), '');
+    });
+  });
+
   describe('commission withdrawals', () => {
     it('should allow ETH withdrawals', async function() {
       const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
