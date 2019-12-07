@@ -279,6 +279,54 @@ contract('PPToken and PPTokenController', accounts => {
       aliceTokenId = res.logs[0].args.privatePropertyId;
     });
 
+    it('should remove data on burn', async function() {
+      await token.setDetails(
+        aliceTokenId,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        { from: minter }
+      );
+
+      res = await token.getDetails(aliceTokenId);
+      assert.equal(res.tokenType, 2);
+      assert.equal(res.areaSource, 1);
+      assert.equal(res.area, 123);
+      assert.equal(hexToUtf8(res.ledgerIdentifier), 'foo');
+      assert.equal(res.humanAddress, 'bar');
+      assert.equal(res.dataLink, 'buzz');
+
+      // SET CONTOUR
+      await token.setContour(
+        aliceTokenId,
+        contour,
+        // highestPoint
+        -42,
+        { from: minter }
+      );
+      assert.sameMembers(await token.getContour(aliceTokenId), contour);
+      assert.equal(await token.getHighestPoint(aliceTokenId), -42);
+
+      // burn
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: burner });
+      const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + ONE_HOUR;
+      assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
+
+      await evmIncreaseTime(ONE_HOUR + 2);
+
+      await controller.burnTokenByTimeout(aliceTokenId);
+
+      res = await token.getDetails(aliceTokenId);
+      assert.equal(res.area, 0);
+      assert.equal(res.tokenType, 0);
+      assert.equal(res.contour.length, 0);
+      assert.equal(await token.getHighestPoint(aliceTokenId), 0);
+    });
+
     it('should allow token burn after a custom timeout', async function() {
       await assertRevert(
         controller.setBurnTimeoutDuration(aliceTokenId, TWO_HOURS, { from: bob }),

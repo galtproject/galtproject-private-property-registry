@@ -170,6 +170,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
     address owner = ownerOf(_tokenId);
 
+    delete properties[_tokenId];
+
     _burn(owner, _tokenId);
 
     emit Burn(owner, _tokenId);
