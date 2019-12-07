@@ -575,7 +575,7 @@ contract('PPToken and PPTokenController', accounts => {
       res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      token = await PPToken.at(res.logs[5].args.token);
+      token = await PPToken.at(res.logs[7].args.token);
 
       await token.setMinter(minter, { from: registryOwner });
 
