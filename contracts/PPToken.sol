@@ -46,7 +46,10 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   bytes32[] public legalAgreementIpfsHashList;
 
+  // tokenId => details
   mapping(uint256 => Property) internal properties;
+  // tokenId => timestamp
+  mapping(uint256 => uint256) public propertyCreatedAt;
 
   modifier onlyMinter() {
     require(msg.sender == minter, "Only minter allowed");
@@ -98,6 +101,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit Mint(_to, id);
 
     _mint(_to, id);
+
+    propertyCreatedAt[id] = block.timestamp;
   }
 
   // CONTROLLER INTERFACE

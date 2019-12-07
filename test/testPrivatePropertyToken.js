@@ -99,6 +99,7 @@ contract('PPToken and PPTokenController', accounts => {
 
       res = await token.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.privatePropertyId;
+      const createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
 
       await assertRevert(
         token.setDetails(
@@ -147,6 +148,8 @@ contract('PPToken and PPTokenController', accounts => {
 
       assert.sameMembers(await token.getContour(aliceTokenId), contour);
       assert.equal(await token.getHighestPoint(aliceTokenId), -42);
+
+      assert.equal(await token.propertyCreatedAt(aliceTokenId), createdAt);
     });
   });
 
