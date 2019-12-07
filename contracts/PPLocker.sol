@@ -26,7 +26,6 @@ contract PPLocker is IPPLocker {
   event ReputationBurn(address indexed sra);
   event Deposit(uint256 reputation);
   event Withdrawal(uint256 reputation);
-  event TokenBurned(uint256 tokenId);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
   bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
@@ -38,7 +37,6 @@ contract PPLocker is IPPLocker {
   uint256 public tokenId;
   uint256 public reputation;
   bool public tokenDeposited;
-  bool public tokenBurned;
   IPPToken public tokenContract;
 
   // Token Reputation Accounting Contracts
@@ -46,11 +44,6 @@ contract PPLocker is IPPLocker {
 
   modifier onlyOwner() {
     require(isOwner(), "Not the locker owner");
-    _;
-  }
-
-  modifier notBurned() {
-    require(tokenBurned == false, "Token has already burned");
     _;
   }
 
@@ -101,7 +94,7 @@ contract PPLocker is IPPLocker {
     }
   }
 
-  function withdraw() external onlyOwner notBurned {
+  function withdraw() external onlyOwner {
     require(tokenDeposited, "Token not deposited");
     require(traSet.size() == 0, "RAs counter should be 0");
 
@@ -118,7 +111,7 @@ contract PPLocker is IPPLocker {
     emit Withdrawal(reputation);
   }
 
-  function approveMint(IRA _tra) external onlyOwner notBurned {
+  function approveMint(IRA _tra) external onlyOwner {
     require(!traSet.has(address(_tra)), "Already minted to this RA");
     require(_tra.ping() == bytes32("pong"), "Handshake failed");
 
@@ -154,7 +147,6 @@ contract PPLocker is IPPLocker {
       uint256 _tokenId,
       uint256 _reputation,
       bool _tokenDeposited,
-      bool _tokenBurned,
       address _tokenContract
     )
   {
@@ -163,7 +155,6 @@ contract PPLocker is IPPLocker {
       tokenId,
       reputation,
       tokenDeposited,
-      tokenBurned,
       address(tokenContract)
     );
   }
