@@ -496,10 +496,7 @@ contract('PPToken and PPTokenController', accounts => {
       await evmIncreaseTime(ONE_HOUR + 1);
 
       await controller.burnTokenByTimeout(aliceTokenId, { from: unknown });
-      await assertRevert(
-        locker.cancelTokenBurn({ from: alice }),
-        'ERC721: owner query for nonexistent token'
-      );
+      await assertRevert(locker.cancelTokenBurn({ from: alice }), 'ERC721: owner query for nonexistent token');
     });
 
     it('should allow token burn by an owner proposal', async function() {
