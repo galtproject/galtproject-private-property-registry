@@ -7,6 +7,9 @@ const PPToken = artifacts.require('PPToken.sol');
 const PPTokenController = artifacts.require('PPTokenController.sol');
 const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
 const MockPPToken = artifacts.require('MockPPToken.sol');
+const PPLockerRegistry = artifacts.require('PPLockerRegistry.sol');
+const PPLockerFactory = artifacts.require('PPLockerFactory.sol');
+const PPLocker = artifacts.require('PPLocker.sol');
 const galt = require('@galtproject/utils');
 
 PPToken.numberFormat = 'String';
@@ -39,7 +42,19 @@ const ProposalStatus = {
 };
 
 contract('PPToken and PPTokenController', accounts => {
-  const [unknown, systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, charlie, dan] = accounts;
+  const [
+    unknown,
+    systemOwner,
+    registryOwner,
+    minter,
+    geoDataManager,
+    lockerFeeManager,
+    burner,
+    alice,
+    bob,
+    charlie,
+    dan
+  ] = accounts;
 
   const galtFee = ether(20);
 
@@ -429,6 +444,60 @@ contract('PPToken and PPTokenController', accounts => {
       await controller.burnTokenByTimeout(aliceTokenId, { from: unknown });
       await assertRevert(
         controller.cancelTokenBurn(aliceTokenId, { from: alice }),
+        'ERC721: owner query for nonexistent token'
+      );
+    });
+
+    it('should allow a token owner cancelling already initiated token burn when a token is locked', async function() {
+      this.ppLockerRegistry = await PPLockerRegistry.new();
+      await this.ppLockerRegistry.initialize(this.ppgr.address);
+      this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, 0, 0);
+      await this.ppgr.setContract(await this.ppgr.PPGR_LOCKER_REGISTRY(), this.ppLockerRegistry.address);
+      await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), this.ppLockerFactory.address, true);
+
+      await this.ppLockerFactory.setFeeManager(lockerFeeManager);
+      await this.ppLockerFactory.setEthFee(ether(10), { from: lockerFeeManager });
+      await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
+
+      res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+      const lockerAddress = res.logs[0].args.locker;
+      const locker = await PPLocker.at(lockerAddress);
+
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+      await locker.deposit(token.address, aliceTokenId, { from: alice });
+
+      res = await controller.initiateTokenBurn(aliceTokenId, { from: burner });
+      const timeoutAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp + ONE_HOUR;
+      assert.equal(res.logs[0].args.timeoutAt, timeoutAt);
+
+      await assertRevert(controller.initiateTokenBurn(aliceTokenId, { from: burner }), 'Burn already initiated');
+
+      assert.equal(await controller.defaultBurnTimeoutDuration(), ONE_HOUR);
+      assert.equal(await controller.burnTimeoutAt(123123), 0);
+      assert.equal(await controller.burnTimeoutAt(aliceTokenId), timeoutAt);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'Timeout has not passed yet');
+
+      await evmIncreaseTime(ONE_HOUR - 2);
+
+      await assertRevert(controller.cancelTokenBurn(123123), 'Burn not initiated');
+      await assertRevert(controller.cancelTokenBurn(aliceTokenId, { from: bob }), 'Only token owner allowed');
+      await locker.cancelTokenBurn({ from: alice });
+      await assertRevert(locker.cancelTokenBurn({ from: alice }), 'Burn not initiated');
+
+      await evmIncreaseTime(3);
+
+      await assertRevert(controller.burnTokenByTimeout(aliceTokenId), 'Timeout not set');
+
+      assert.equal(await token.ownerOf(aliceTokenId), locker.address);
+
+      // burn from the second attempt
+      await controller.initiateTokenBurn(aliceTokenId, { from: burner });
+      await evmIncreaseTime(ONE_HOUR + 1);
+
+      await controller.burnTokenByTimeout(aliceTokenId, { from: unknown });
+      await assertRevert(
+        locker.cancelTokenBurn({ from: alice }),
         'ERC721: owner query for nonexistent token'
       );
     });

@@ -136,6 +136,10 @@ contract PPLocker is IPPLocker {
     emit ReputationBurn(address(_tra));
   }
 
+  function cancelTokenBurn() external onlyOwner {
+    IPPTokenController(tokenContract.controller()).cancelTokenBurn(tokenId);
+  }
+
   // GETTERS
 
   function isOwner() public view returns (bool) {
