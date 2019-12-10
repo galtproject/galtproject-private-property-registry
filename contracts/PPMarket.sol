@@ -117,6 +117,8 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     _closeSaleOrder(_orderId);
   }
 
+  // INTERNAL
+
   function _performCreateSaleOrderChecks(
     address _propertyToken,
     uint256[] memory _propertyTokenIds
@@ -135,8 +137,6 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
       require(IERC721(_propertyToken).ownerOf(tokenId) == msg.sender, "Sender should own the token");
     }
   }
-
-  // INTERNAL
 
   function _galtToken() internal view returns (IERC20) {
     return IERC20(globalRegistry.getGaltTokenAddress());
@@ -163,12 +163,19 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
 
   // GETTERS
 
-  function getSaleOrderDetails(uint256 _rId) external view returns (
-    uint256[] memory propertyTokenIds,
-    address propertyToken,
-    string memory dataLink
-  )
+  function getSaleOrderDetails(uint256 _rId)
+    external
+    view
+    returns (
+      uint256[] memory propertyTokenIds,
+      address propertyToken,
+      string memory dataLink
+    )
   {
-    return (saleOrderDetails[_rId].propertyTokenIds, saleOrderDetails[_rId].propertyToken, saleOrderDetails[_rId].dataLink);
+    return (
+      saleOrderDetails[_rId].propertyTokenIds,
+      saleOrderDetails[_rId].propertyToken,
+      saleOrderDetails[_rId].dataLink
+    );
   }
 }
