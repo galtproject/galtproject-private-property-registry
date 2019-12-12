@@ -285,7 +285,11 @@ contract('PPToken and PPTokenController', accounts => {
       res = await controller.proposals(proposalId);
       assert.equal(res.status, ProposalStatus.PENDING);
 
-      await assertRevert(controller.cancel(proposalId, { from: geoDataManager }), 'Only token owner allowed');
+      await assertRevert(
+        controller.cancel(proposalId, { from: geoDataManager }),
+        'Only own proposals can be cancelled.'
+      );
+      await assertRevert(controller.cancel(proposalId, { from: bob }), ' Missing permissions.');
       await controller.cancel(proposalId, { from: alice });
 
       res = await controller.proposals(proposalId);
@@ -294,15 +298,19 @@ contract('PPToken and PPTokenController', accounts => {
       await assertRevert(controller.cancel(proposalId, { from: alice }), 'Expect PENDING status');
     });
 
-    it('should deny cancelling goedata manager proposals', async function() {
+    it('should allow geoDataManager cancelling his proposals', async function() {
       res = await controller.propose(data, 'foo', { from: geoDataManager });
       const proposalId = res.logs[0].args.proposalId;
 
       res = await controller.proposals(proposalId);
       assert.equal(res.status, ProposalStatus.PENDING);
 
-      await assertRevert(controller.cancel(proposalId, { from: alice }), 'Only own proposal can be cancelled');
-      await assertRevert(controller.cancel(proposalId, { from: geoDataManager }), 'Only token owner allowed');
+      await assertRevert(controller.cancel(proposalId, { from: alice }), 'Only own proposals can be cancelled');
+      await assertRevert(controller.cancel(proposalId, { from: bob }), ' Missing permissions.');
+      await controller.cancel(proposalId, { from: geoDataManager });
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.CANCELLED);
     });
   });
 
