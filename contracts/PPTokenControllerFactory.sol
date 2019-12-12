@@ -10,6 +10,7 @@
 pragma solidity ^0.5.13;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
 import "./PPTokenController.sol";
 
 
@@ -19,8 +20,19 @@ import "./PPTokenController.sol";
 contract PPTokenControllerFactory {
   // USER INTERFACE
 
-  function build(IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) external returns (PPTokenController) {
-    PPTokenController ppTokenController = new PPTokenController(_tokenContract, _defaultBurnTimeoutDuration);
+  function build(
+    IPPGlobalRegistry _globalRegistry,
+    IERC721 _tokenContract,
+    uint256 _defaultBurnTimeoutDuration
+  )
+    external
+    returns (PPTokenController)
+  {
+    PPTokenController ppTokenController = new PPTokenController(
+      _globalRegistry,
+      _tokenContract,
+      _defaultBurnTimeoutDuration
+    );
 
     ppTokenController.transferOwnership(msg.sender);
 

@@ -64,7 +64,7 @@ contract PPTokenFactory is Ownable, ChargesFee {
       _tokenName,
       _tokenSymbol
     );
-    PPTokenController ppTokenController = ppTokenControllerFactory.build(ppToken, _defaultBurnDuration);
+    PPTokenController ppTokenController = ppTokenControllerFactory.build(globalRegistry, ppToken, _defaultBurnDuration);
 
     // setting up contracts
     ppToken.setDataLink(_dataLink);

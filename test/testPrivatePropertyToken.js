@@ -105,9 +105,18 @@ contract('PPToken and PPTokenController', accounts => {
 
   describe('token creation', () => {
     it('should allow the minter minting a new token', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
-        from: registryOwner
-      });
+      let res = await this.ppTokenFactory.build(
+        'Buildings',
+        'BDL',
+        'dataLink',
+        ONE_HOUR,
+        [bytes32('PROPOSAL_ETH_FEE_KEY')],
+        [ether(0.1)],
+        utf8ToHex(''),
+        {
+          from: registryOwner
+        }
+      );
       const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
@@ -178,9 +187,18 @@ contract('PPToken and PPTokenController', accounts => {
     let data;
 
     beforeEach(async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
-        from: registryOwner
-      });
+      res = await this.ppTokenFactory.build(
+        'Buildings',
+        'BDL',
+        'dataLink',
+        ONE_HOUR,
+        [bytes32('CONTROLLER_PROPOSAL_ETH')],
+        [ether(0.1)],
+        utf8ToHex(''),
+        {
+          from: registryOwner
+        }
+      );
       token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
@@ -205,31 +223,6 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow a token owner rejecting token update proposals', async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
-        from: registryOwner
-      });
-      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
-      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
-
-      await token.setMinter(minter, { from: registryOwner });
-      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
-
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
-
-      data = token.contract.methods
-        .setDetails(
-          aliceTokenId,
-          // tokenType
-          2,
-          1,
-          123,
-          utf8ToHex('foo'),
-          'bar',
-          'buzz'
-        )
-        .encodeABI();
-
       res = await controller.propose(data, 'foo', { from: geoDataManager });
       const proposalId = res.logs[0].args.proposalId;
 
@@ -246,34 +239,9 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow a token owner submitting token update proposals', async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
-        from: registryOwner
-      });
-      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
-      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
-
-      await token.setMinter(minter, { from: registryOwner });
-      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
-
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
-
-      data = token.contract.methods
-        .setDetails(
-          aliceTokenId,
-          // tokenType
-          2,
-          1,
-          123,
-          utf8ToHex('foo'),
-          'bar',
-          'buzz'
-        )
-        .encodeABI();
-
       await assertRevert(controller.propose(data, 'foo', { from: bob }), 'Missing permissions');
 
-      res = await controller.propose(data, 'foo', { from: alice });
+      res = await controller.propose(data, 'foo', { from: alice, value: ether(0.1) });
       let proposalId = res.logs[0].args.proposalId;
 
       res = await controller.proposals(proposalId);
@@ -300,7 +268,7 @@ contract('PPToken and PPTokenController', accounts => {
 
       data = token.contract.methods.setContour(aliceTokenId, newContour, -43).encodeABI();
 
-      res = await controller.propose(data, 'foo', { from: alice });
+      res = await controller.propose(data, 'foo', { from: alice, value: ether(0.1) });
       proposalId = res.logs[0].args.proposalId;
       await controller.approve(proposalId, { from: geoDataManager });
 
@@ -311,7 +279,7 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow a token owner cancelling his own proposals', async function() {
-      res = await controller.propose(data, 'foo', { from: alice });
+      res = await controller.propose(data, 'foo', { from: alice, value: ether(0.1) });
       const proposalId = res.logs[0].args.proposalId;
 
       res = await controller.proposals(proposalId);
@@ -345,9 +313,18 @@ contract('PPToken and PPTokenController', accounts => {
     let aliceTokenId;
 
     beforeEach(async function() {
-      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
-        from: registryOwner
-      });
+      res = await this.ppTokenFactory.build(
+        'Buildings',
+        'BDL',
+        'dataLink',
+        ONE_HOUR,
+        [bytes32('CONTROLLER_PROPOSAL_ETH')],
+        [ether(0.1)],
+        utf8ToHex(''),
+        {
+          from: registryOwner
+        }
+      );
       token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
@@ -565,7 +542,7 @@ contract('PPToken and PPTokenController', accounts => {
       await assertRevert(token.burn(aliceTokenId, { from: alice }), 'Only controller allowed');
 
       const data = token.contract.methods.burn(aliceTokenId).encodeABI();
-      res = await controller.propose(data, 'foo', { from: alice });
+      res = await controller.propose(data, 'foo', { from: alice, value: ether(0.1) });
       const proposalId = res.logs[0].args.proposalId;
       await controller.approve(proposalId, { from: geoDataManager });
 
