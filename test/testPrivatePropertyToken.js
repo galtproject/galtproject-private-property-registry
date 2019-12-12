@@ -39,7 +39,8 @@ const ProposalStatus = {
   PENDING: 1,
   APPROVED: 2,
   EXECUTED: 3,
-  REJECTED: 4
+  REJECTED: 4,
+  CANCELLED: 5
 };
 
 contract('PPToken and PPTokenController', accounts => {
@@ -170,20 +171,53 @@ contract('PPToken and PPTokenController', accounts => {
   });
 
   describe('token update', () => {
-    it('should allow a token owner rejecting token update proposals', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+    let res;
+    let token;
+    let controller;
+    let aliceTokenId;
+    let data;
+
+    beforeEach(async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
-      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
       res = await token.mint(alice, { from: minter });
-      const aliceTokenId = res.logs[0].args.privatePropertyId;
+      aliceTokenId = res.logs[0].args.privatePropertyId;
 
-      const data = token.contract.methods
+      data = token.contract.methods
+        .setDetails(
+          aliceTokenId,
+          // tokenType
+          2,
+          1,
+          123,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz'
+        )
+        .encodeABI();
+    });
+
+    it('should allow a token owner rejecting token update proposals', async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner
+      });
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+      await token.setMinter(minter, { from: registryOwner });
+      await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
+
+      res = await token.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.privatePropertyId;
+
+      data = token.contract.methods
         .setDetails(
           aliceTokenId,
           // tokenType
@@ -212,19 +246,19 @@ contract('PPToken and PPTokenController', accounts => {
     });
 
     it('should allow a token owner submitting token update proposals', async function() {
-      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
-      const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
-      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
       await token.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
       res = await token.mint(alice, { from: minter });
-      const aliceTokenId = res.logs[0].args.privatePropertyId;
+      aliceTokenId = res.logs[0].args.privatePropertyId;
 
-      let data = token.contract.methods
+      data = token.contract.methods
         .setDetails(
           aliceTokenId,
           // tokenType
@@ -274,6 +308,33 @@ contract('PPToken and PPTokenController', accounts => {
 
       assert.sameMembers(await token.getContour(aliceTokenId), newContour);
       assert.equal(await token.getHighestPoint(aliceTokenId), -43);
+    });
+
+    it('should allow a token owner cancelling his own proposals', async function() {
+      res = await controller.propose(data, 'foo', { from: alice });
+      const proposalId = res.logs[0].args.proposalId;
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.PENDING);
+
+      await assertRevert(controller.cancel(proposalId, { from: geoDataManager }), 'Only token owner allowed');
+      await controller.cancel(proposalId, { from: alice });
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.CANCELLED);
+
+      await assertRevert(controller.cancel(proposalId, { from: alice }), 'Expect PENDING status');
+    });
+
+    it('should deny cancelling goedata manager proposals', async function() {
+      res = await controller.propose(data, 'foo', { from: geoDataManager });
+      const proposalId = res.logs[0].args.proposalId;
+
+      res = await controller.proposals(proposalId);
+      assert.equal(res.status, ProposalStatus.PENDING);
+
+      await assertRevert(controller.cancel(proposalId, { from: alice }), 'Only own proposal can be cancelled');
+      await assertRevert(controller.cancel(proposalId, { from: geoDataManager }), 'Only token owner allowed');
     });
   });
 

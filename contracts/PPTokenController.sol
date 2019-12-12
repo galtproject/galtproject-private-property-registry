@@ -27,7 +27,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     PENDING,
     APPROVED,
     EXECUTED,
-    REJECTED
+    REJECTED,
+    CANCELLED
   }
 
   struct Proposal {
@@ -220,6 +221,20 @@ contract PPTokenController is IPPTokenController, Ownable {
     p.status = ProposalStatus.REJECTED;
 
     emit ProposalRejection(_proposalId, tokenId);
+  }
+
+  function cancel(uint256 _proposalId) external {
+    Proposal storage p = proposals[_proposalId];
+    uint256 tokenId = fetchTokenId(p.data);
+
+    require(p.status == ProposalStatus.PENDING, "Expect PENDING status");
+
+    require(msg.sender == tokenContract.ownerOf(tokenId), "Only token owner allowed");
+    require(p.tokenOwnerApproved == true, "Only own proposal can be cancelled");
+
+    p.status = ProposalStatus.CANCELLED;
+
+    emit ProposalCancellation(_proposalId, tokenId);
   }
 
   // PERMISSIONLESS INTERFACE
