@@ -236,8 +236,13 @@ contract PPTokenController is IPPTokenController, Ownable {
 
     require(p.status == ProposalStatus.PENDING, "Expect PENDING status");
 
-    require(msg.sender == tokenContract.ownerOf(tokenId), "Only token owner allowed");
-    require(p.tokenOwnerApproved == true, "Only own proposal can be cancelled");
+    if (msg.sender == geoDataManager) {
+      require(p.geoDataManagerApproved == true, "Only own proposals can be cancelled");
+    } else if (msg.sender == tokenContract.ownerOf(tokenId)) {
+      require(p.tokenOwnerApproved == true, "Only own proposals can be cancelled");
+    } else {
+      revert("Missing permissions");
+    }
 
     p.status = ProposalStatus.CANCELLED;
 
