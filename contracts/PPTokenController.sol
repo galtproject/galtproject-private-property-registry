@@ -16,11 +16,15 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPTokenController.sol";
+import "./interfaces/IPPGlobalRegistry.sol";
 
 
 contract PPTokenController is IPPTokenController, Ownable {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
+
+  bytes32 public constant PROPOSAL_GALT_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_GALT");
+  bytes32 public constant PROPOSAL_ETH_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_ETH");
 
   enum ProposalStatus {
     NULL,
@@ -40,6 +44,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     string dataLink;
   }
 
+  IPPGlobalRegistry public globalRegistry;
   IERC721 public tokenContract;
   address public geoDataManager;
   address public feeManager;
@@ -55,7 +60,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   // key => fee
   mapping(bytes32 => uint256) public fees;
 
-  constructor(IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
+  constructor(IPPGlobalRegistry _globalRegistry, IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
 
     defaultBurnTimeoutDuration = _defaultBurnTimeoutDuration;
@@ -158,16 +163,18 @@ contract PPTokenController is IPPTokenController, Ownable {
     string calldata _dataLink
   )
     external
+    payable
   {
     address msgSender = msg.sender;
     uint256 tokenId = fetchTokenId(_data);
-    uint256 proposalId = nextId();
+    uint256 proposalId = _nextId();
 
     Proposal storage p = proposals[proposalId];
 
     if (msgSender == geoDataManager) {
       p.geoDataManagerApproved = true;
     } else if (msgSender == tokenContract.ownerOf(tokenId)) {
+      _acceptProposalFee();
       p.tokenOwnerApproved = true;
     } else {
       revert("Missing permissions");
@@ -270,8 +277,6 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit BurnTokenByTimeout(_tokenId);
   }
 
-  // INTERNAL
-
   // @dev Assuming that a tokenId is always the first argument in a method
   function fetchTokenId(bytes memory _data) public pure returns (uint256 tokenId) {
     assembly {
@@ -281,8 +286,22 @@ contract PPTokenController is IPPTokenController, Ownable {
     require(tokenId > 0, "Failed fetching tokenId from encoded data");
   }
 
-  function nextId() internal returns (uint256) {
+  // INTERNAL
+
+  function _nextId() internal returns (uint256) {
     idCounter += 1;
     return idCounter;
+  }
+
+  function _galtToken() internal view returns (IERC20) {
+    return IERC20(globalRegistry.getGaltTokenAddress());
+  }
+
+  function _acceptProposalFee() internal {
+    if (msg.value == 0) {
+      _galtToken().transferFrom(msg.sender, address(this), fees[PROPOSAL_GALT_FEE_KEY]);
+    } else {
+      require(msg.value == fees[PROPOSAL_ETH_FEE_KEY], "Invalid fee");
+    }
   }
 }
