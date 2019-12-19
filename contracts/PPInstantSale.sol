@@ -169,7 +169,7 @@ contract PPInstantSale is Ownable {
 
   // GETTERS
 
-  function getTokenIds() public view returns (uint256[] memory) {
+  function getTokenIds() external view returns (uint256[] memory) {
     return tokenIds;
   }
 

@@ -23,7 +23,7 @@ import "./traits/ChargesFee.sol";
 import "./PPInstantSale.sol";
 
 
-contract PPInstantSaleFactory  {
+contract PPInstantSaleFactory {
   using SafeMath for uint256;
 
   event NewPPInstantSaleContract(address instantSaleContract);
@@ -48,7 +48,7 @@ contract PPInstantSaleFactory  {
     uint256 _marketOrderId,
     address payable _saleBeneficiary
   )
-    public
+    external
     returns (PPInstantSale)
   {
     PPInstantSale instantSale = new PPInstantSale(
