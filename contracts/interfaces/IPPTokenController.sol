@@ -41,7 +41,7 @@ interface IPPTokenController {
   event WithdrawEth(address indexed to, uint256 amount);
   event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
 
-  function fees(bytes32) external returns (uint256);
+  function fees(bytes32) external view returns (uint256);
   function setBurner(address _burner) external;
   function setGeoDataManager(address _geoDataManager) external;
   function setBurnTimeoutDuration(uint256 _tokenId, uint256 _duration) external;

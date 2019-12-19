@@ -64,8 +64,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
 
     defaultBurnTimeoutDuration = _defaultBurnTimeoutDuration;
-
     tokenContract = _tokenContract;
+    globalRegistry = _globalRegistry;
   }
 
   function() external payable {
