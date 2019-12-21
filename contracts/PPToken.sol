@@ -30,7 +30,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   bytes32[] public legalAgreementIpfsHashList;
 
   // tokenId => details
-  mapping(uint256 => Property) internal properties;
+  mapping(uint256 => Property) public properties;
   // tokenId => timestamp
   mapping(uint256 => uint256) public propertyCreatedAt;
   // tokenId => (key => value)
