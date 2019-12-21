@@ -62,6 +62,12 @@ contract PPTokenController is IPPTokenController, Ownable {
   // key => fee
   mapping(bytes32 => uint256) public fees;
 
+  modifier onlyMinter() {
+    require(msg.sender == minter, "Only minter allowed");
+
+    _;
+  }
+
   constructor(IPPGlobalRegistry _globalRegistry, IPPToken _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
 
@@ -145,9 +151,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   }
 
   // MINTER INTERFACE
-  function mint(address _to) external {
-    require(msg.sender == minter, "Only minter allowed");
-
+  function mint(address _to) external onlyMinter {
     uint256 _tokenId = tokenContract.mint(_to);
 
     emit Mint(_to, _tokenId);
@@ -165,8 +169,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     string calldata _dataLink
   )
     external
+    onlyMinter
   {
-    require(msg.sender == minter, "Only Minter allowed");
     // Will REVERT if there is no owner assigned to the token
     tokenContract.ownerOf(_privatePropertyId);
 
@@ -184,9 +188,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     int256 _highestPoint
   )
     external
+    onlyMinter
   {
-    require(msg.sender == minter, "Only Minter allowed");
-
     uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
 
     require(setupStage == uint256(PropertyInitialSetupStage.DETAILS), "Requires DETAILS setup stage");
