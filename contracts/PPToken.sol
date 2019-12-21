@@ -12,34 +12,15 @@ pragma solidity ^0.5.13;
 import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/drafts/Strings.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IPPToken.sol";
 
 
 contract PPToken is IPPToken, ERC721Full, Ownable {
 
-  struct Property {
-    PropertyInitialSetupStage setupStage;
-
-    // (LAND_PLOT,BUILDING,ROOM) Type cannot be changed after token creation
-    TokenType tokenType;
-    // Geohash5z (x,y,z)
-    uint256[] contour;
-    // Meters above the sea
-    int256 highestPoint;
-
-    // USER_INPUT or CONTRACT
-    AreaSource areaSource;
-    // Calculated either by contract (for land plots and buildings) or by manual input
-    // in sq. meters (1 sq. meter == 1 eth)
-    uint256 area;
-
-    bytes32 ledgerIdentifier;
-    string humanAddress;
-    string dataLink;
-  }
+  using SafeMath for uint256;
 
   uint256 public tokenIdCounter;
-  address public minter;
   address payable public controller;
   string public tokenDataLink;
   string public baseURI;
@@ -85,22 +66,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetLegalAgreementIpfsHash(_legalAgreementIpfsHash);
   }
 
-  function setMinter(address _minter) external onlyOwner {
-    minter = _minter;
-
-    emit SetMinter(_minter);
-  }
-
   function setController(address payable _controller) external onlyOwner {
     controller = _controller;
 
     emit SetController(_controller);
   }
 
-  //  MINTER INTERFACE
+  // CONTROLLER INTERFACE
 
-  function mint(address _to) external {
-    require(msg.sender == minter || msg.sender == controller, "Either controller or minter allowed");
+  function mint(address _to) external returns(uint256) {
+    require(msg.sender == controller, "Only controller allowed");
 
     uint256 id = nextTokenId();
 
@@ -109,10 +84,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     _mint(_to, id);
 
     propertyCreatedAt[id] = block.timestamp;
+
+    return id;
   }
+  
+  function incrementSetupStage(uint256 _privatePropertyId) external {
+    Property storage p = properties[_privatePropertyId];
 
-  // CONTROLLER INTERFACE
-
+    p.setupStage = p.setupStage.add(1);
+  }
+  
   function setDetails(
     uint256 _privatePropertyId,
     TokenType _tokenType,
@@ -122,22 +103,11 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     string calldata _humanAddress,
     string calldata _dataLink
   )
-    external
+  external
   {
     Property storage p = properties[_privatePropertyId];
 
-    if (msg.sender == minter) {
-      // Will REVERT if there is no owner assigned to the token
-      ownerOf(_privatePropertyId);
-
-      require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
-    } else {
-      require(msg.sender == controller, "Only Controller allowed");
-    }
-
-    if (p.setupStage == PropertyInitialSetupStage.PENDING) {
-      p.setupStage = PropertyInitialSetupStage.DETAILS;
-    }
+    require(msg.sender == controller, "Only Controller allowed");
 
     p.tokenType = _tokenType;
     p.areaSource = _areaSource;
@@ -154,28 +124,18 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     uint256[] calldata _contour,
     int256 _highestPoint
   )
-    external
+  external
   {
     Property storage p = properties[_privatePropertyId];
 
-    require(p.setupStage != PropertyInitialSetupStage.PENDING, "PENDING setup stage not allowed");
-
-    if (msg.sender == minter) {
-      require(p.setupStage == PropertyInitialSetupStage.DETAILS, "Requires DETAILS setup stage");
-    } else {
-      require(msg.sender == controller, "Only Controller allowed");
-    }
-
-    if (p.setupStage == PropertyInitialSetupStage.DETAILS) {
-      p.setupStage = PropertyInitialSetupStage.DONE;
-    }
+    require(msg.sender == controller, "Only Controller allowed");
 
     p.contour = _contour;
     p.highestPoint = _highestPoint;
 
     emit SetContour(msg.sender, _privatePropertyId);
   }
-
+  
   function burn(uint256 _tokenId) external onlyController {
     address owner = ownerOf(_tokenId);
 
@@ -282,7 +242,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       bytes32 ledgerIdentifier,
       string memory humanAddress,
       string memory dataLink,
-      PropertyInitialSetupStage setupStage
+      uint256 setupStage
     )
   {
     Property storage p = properties[_privatePropertyId];

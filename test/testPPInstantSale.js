@@ -15,6 +15,7 @@ PPToken.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
 PPMarket.numberFormat = 'String';
 PPInstantSale.numberFormat = 'String';
+PPTokenController.numberFormat = 'String';
 
 const { web3 } = PPMarket;
 const { utf8ToHex } = web3.utils;
@@ -107,7 +108,7 @@ contract('PPInstantSale', accounts => {
     this.ppToken = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
     this.ppController = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-    this.ppToken.setMinter(minter);
+    this.ppController.setMinter(minter);
     this.ppController.setFeeManager(feeManager);
     this.ppController.setFee(bytes32('INSTANT_SALE_SHARE_ETH'), ether(4), { from: feeManager });
 
@@ -117,10 +118,10 @@ contract('PPInstantSale', accounts => {
   });
 
   beforeEach(async function() {
-    let res = await this.ppToken.mint(alice, { from: minter });
-    this.ppTokenId1 = res.logs[1].args.tokenId;
-    res = await this.ppToken.mint(alice, { from: minter });
-    this.ppTokenId2 = res.logs[1].args.tokenId;
+    let res = await this.ppController.mint(alice, { from: minter });
+    this.ppTokenId1 = _.find(res.logs, (l) => l.args.tokenId).args.tokenId;
+    res = await this.ppController.mint(alice, { from: minter });
+    this.ppTokenId2 = _.find(res.logs, (l) => l.args.tokenId).args.tokenId;
   });
 
   let res;

@@ -120,15 +120,15 @@ contract('PPToken and PPTokenController', accounts => {
       const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-      await token.setMinter(minter, { from: registryOwner });
+      await controller.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
-      res = await token.mint(alice, { from: minter });
-      const aliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await controller.mint(alice, { from: minter });
+      const aliceTokenId = res.logs[0].args.tokenId;
       const createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
 
       await assertRevert(
-        token.setDetails(
+          controller.setInitialDetails(
           123123,
           // tokenType
           2,
@@ -143,7 +143,7 @@ contract('PPToken and PPTokenController', accounts => {
       );
 
       // SET DETAILS
-      await token.setDetails(
+      await controller.setInitialDetails(
         aliceTokenId,
         // tokenType
         2,
@@ -164,7 +164,7 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(res.dataLink, 'buzz');
 
       // SET CONTOUR
-      await token.setContour(
+      await controller.setInitialContour(
         aliceTokenId,
         contour,
         // highestPoint
@@ -202,11 +202,11 @@ contract('PPToken and PPTokenController', accounts => {
       token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-      await token.setMinter(minter, { from: registryOwner });
+      await controller.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await controller.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.tokenId;
 
       data = token.contract.methods
         .setDetails(
@@ -336,16 +336,16 @@ contract('PPToken and PPTokenController', accounts => {
       token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-      await token.setMinter(minter, { from: registryOwner });
+      await controller.setMinter(minter, { from: registryOwner });
       await controller.setBurner(burner, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await controller.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.tokenId;
     });
 
     it('should remove data on burn', async function() {
-      await token.setDetails(
+      await controller.setInitialDetails(
         aliceTokenId,
         // tokenType
         2,
@@ -366,7 +366,7 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(res.dataLink, 'buzz');
 
       // SET CONTOUR
-      await token.setContour(
+      await controller.setInitialContour(
         aliceTokenId,
         contour,
         // highestPoint
@@ -566,6 +566,7 @@ contract('PPToken and PPTokenController', accounts => {
   describe('tokenURI', () => {
     let res;
     let token;
+    let controller;
     let mintableToken;
     let aliceTokenId;
     let bobTokenId;
@@ -577,16 +578,17 @@ contract('PPToken and PPTokenController', accounts => {
         from: registryOwner
       });
       token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
       mintableToken = await MockPPToken.new('Foo', 'BAR');
 
-      await token.setMinter(minter, { from: registryOwner });
+      await controller.setMinter(minter, { from: registryOwner });
 
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
-      res = await token.mint(bob, { from: minter });
-      bobTokenId = res.logs[0].args.privatePropertyId;
-      res = await token.mint(charlie, { from: minter });
-      charlieTokenId = res.logs[0].args.privatePropertyId;
+      res = await controller.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.tokenId;
+      res = await controller.mint(bob, { from: minter });
+      bobTokenId = res.logs[0].args.tokenId;
+      res = await controller.mint(charlie, { from: minter });
+      charlieTokenId = res.logs[0].args.tokenId;
 
       danTokenId = 9999999999;
       res = await mintableToken.hackMint(dan, danTokenId);
@@ -615,18 +617,20 @@ contract('PPToken and PPTokenController', accounts => {
   describe('extra data', () => {
     let res;
     let token;
+    let controller;
     let aliceTokenId;
 
     beforeEach(async function() {
       res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner
       });
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
       token = await PPToken.at(res.logs[7].args.token);
 
-      await token.setMinter(minter, { from: registryOwner });
+      await controller.setMinter(minter, { from: registryOwner });
 
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await controller.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.tokenId;
 
       await token.setController(bob, { from: registryOwner });
     });

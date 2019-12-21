@@ -7,11 +7,12 @@
  * [Basic Agreement](ipfs/QmaCiXUmSrP16Gz8Jdzq6AJESY1EAANmmwha15uR3c1bsS)).
  */
 
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 pragma solidity ^0.5.13;
 
 
-interface IPPToken {
-  event SetMinter(address indexed minter);
+contract IPPToken is IERC721 {
   event SetBaseURI(string baseURI);
   event SetDataLink(string indexed dataLink);
   event SetLegalAgreementIpfsHash(bytes32 legalAgreementIpfsHash);
@@ -29,12 +30,6 @@ interface IPPToken {
   event Mint(address indexed to, uint256 indexed privatePropertyId);
   event Burn(address indexed from, uint256 indexed privatePropertyId);
 
-  enum PropertyInitialSetupStage {
-    PENDING,
-    DETAILS,
-    DONE
-  }
-
   enum AreaSource {
     USER_INPUT,
     CONTRACT
@@ -48,13 +43,29 @@ interface IPPToken {
     PACKAGE
   }
 
-  // ERC20 METHOD
-  function transferFrom(address from, address to, uint256 tokenId) external;
-  function approve(address to, uint256 tokenId) external;
+  struct Property {
+    uint256 setupStage;
+
+    // (LAND_PLOT,BUILDING,ROOM) Type cannot be changed after token creation
+    TokenType tokenType;
+    // Geohash5z (x,y,z)
+    uint256[] contour;
+    // Meters above the sea
+    int256 highestPoint;
+
+    // USER_INPUT or CONTRACT
+    AreaSource areaSource;
+    // Calculated either by contract (for land plots and buildings) or by manual input
+    // in sq. meters (1 sq. meter == 1 eth)
+    uint256 area;
+
+    bytes32 ledgerIdentifier;
+    string humanAddress;
+    string dataLink;
+  }
 
   // PERMISSIONED METHODS
 
-  function setMinter(address _minter) external;
   function setDataLink(string calldata _dataLink) external;
   function setLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash) external;
   function setController(address payable _controller) external;
@@ -76,15 +87,15 @@ interface IPPToken {
   )
     external;
 
-  function mint(address _to) external;
+  function incrementSetupStage(uint256 _privatePropertyId) external;
+
+  function mint(address _to) external returns (uint256);
   function burn(uint256 _tokenId) external;
 
   // GETTERS
   function controller() external view returns (address payable);
-  function minter() external view returns (address);
 
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
-  function ownerOf(uint256 _tokenId) external view returns (address);
   function exists(uint256 _tokenId) external view returns (bool);
   function getType(uint256 _tokenId) external view returns (TokenType);
   function getContour(uint256 _tokenId) external view returns (uint256[] memory);
@@ -107,6 +118,6 @@ interface IPPToken {
       bytes32 ledgerIdentifier,
       string memory humanAddress,
       string memory dataLink,
-      PropertyInitialSetupStage setupStage
+      uint256 setupStage
     );
 }

@@ -14,6 +14,7 @@ const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
 PPLocker.numberFormat = 'String';
+PPTokenController.numberFormat = 'String';
 
 const { ether, assertRevert, zeroAddress } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -74,13 +75,14 @@ contract('PPLockers', accounts => {
       value: ether(10)
     });
     const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+    const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-    await token.setMinter(minter, { from: registryOwner });
+    await controller.setMinter(minter, { from: registryOwner });
 
-    res = await token.mint(alice, { from: minter });
-    const aliceTokenId = res.logs[0].args.privatePropertyId;
+    res = await controller.mint(alice, { from: minter });
+    const aliceTokenId = res.logs[0].args.tokenId;
 
-    await token.setDetails(
+    await controller.setInitialDetails(
       aliceTokenId,
       // tokenType
       2,
@@ -149,11 +151,11 @@ contract('PPLockers', accounts => {
       anotherToken = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       anotherController = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-      await token.setMinter(minter, { from: registryOwner });
-      await anotherToken.setMinter(minter, { from: registryOwner });
+      await controller.setMinter(minter, { from: registryOwner });
+      await anotherController.setMinter(minter, { from: registryOwner });
 
-      res = await token.mint(alice, { from: minter });
-      aliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await controller.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.tokenId;
 
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
       lockerAddress = res.logs[0].args.locker;
@@ -198,8 +200,8 @@ contract('PPLockers', accounts => {
       await controller.setFee(await locker.ETH_FEE_KEY(), ether(4), { from: registryOwner });
       await anotherController.setFee(await locker.ETH_FEE_KEY(), ether(42), { from: registryOwner });
 
-      res = await anotherToken.mint(alice, { from: minter });
-      const anotherAliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await anotherController.mint(alice, { from: minter });
+      const anotherAliceTokenId = res.logs[0].args.tokenId;
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
@@ -225,8 +227,8 @@ contract('PPLockers', accounts => {
       await controller.setFee(await locker.GALT_FEE_KEY(), ether(4), { from: registryOwner });
       await anotherController.setFee(await locker.GALT_FEE_KEY(), ether(42), { from: registryOwner });
 
-      res = await anotherToken.mint(alice, { from: minter });
-      const anotherAliceTokenId = res.logs[0].args.privatePropertyId;
+      res = await anotherController.mint(alice, { from: minter });
+      const anotherAliceTokenId = res.logs[0].args.tokenId;
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
