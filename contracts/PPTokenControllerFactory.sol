@@ -19,6 +19,8 @@ import "./interfaces/IPPToken.sol";
  * Builds Token and registers it in PrivatePropertyGlobalRegistry
  */
 contract PPTokenControllerFactory {
+  event NewPPTokenController(address indexed token, address controller);
+
   // USER INTERFACE
 
   function build(
@@ -36,6 +38,8 @@ contract PPTokenControllerFactory {
     );
 
     ppTokenController.transferOwnership(msg.sender);
+
+    emit NewPPTokenController(address(_tokenContract), address(ppTokenController));
 
     return ppTokenController;
   }
