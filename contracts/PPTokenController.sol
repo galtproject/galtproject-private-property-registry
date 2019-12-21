@@ -164,15 +164,13 @@ contract PPTokenController is IPPTokenController, Ownable {
     string calldata _humanAddress,
     string calldata _dataLink
   )
-  external
+    external
   {
-    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
-
     require(msg.sender == minter, "Only Minter allowed");
-
     // Will REVERT if there is no owner assigned to the token
     tokenContract.ownerOf(_privatePropertyId);
 
+    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
     require(setupStage == uint256(PropertyInitialSetupStage.PENDING), "Requires PENDING setup stage");
 
     tokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
@@ -185,11 +183,11 @@ contract PPTokenController is IPPTokenController, Ownable {
     uint256[] calldata _contour,
     int256 _highestPoint
   )
-  external
+    external
   {
-    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
-
     require(msg.sender == minter, "Only Minter allowed");
+
+    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
 
     require(setupStage == uint256(PropertyInitialSetupStage.DETAILS), "Requires DETAILS setup stage");
 
