@@ -126,7 +126,7 @@ contract('PPMarket', accounts => {
   describe('sale order submission', () => {
     describe('with ETH order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
-        assert.equal(await this.ppToken.tokenDataLink(), registryDataLink);
+        assert.equal(await this.ppToken.contractDataLink(), registryDataLink);
 
         assert.equal(await this.ppMarket.owner(), coreTeam);
         let res = await this.ppMarket.createSaleOrder(

@@ -20,9 +20,11 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   using SafeMath for uint256;
 
+  uint256 public constant VERSION = 2;
+
   uint256 public tokenIdCounter;
   address payable public controller;
-  string public tokenDataLink;
+  string public contractDataLink;
   string public baseURI;
 
   bytes32[] public legalAgreementIpfsHashList;
@@ -54,10 +56,10 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetBaseURI(baseURI);
   }
 
-  function setDataLink(string calldata _dataLink) external onlyOwner {
-    tokenDataLink = _dataLink;
+  function setContractDataLink(string calldata _dataLink) external onlyOwner {
+    contractDataLink = _dataLink;
 
-    emit SetDataLink(_dataLink);
+    emit SetContractDataLink(_dataLink);
   }
 
   function setLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash) external onlyOwner {
@@ -88,14 +90,14 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     return id;
   }
 
-  function incrementSetupStage(uint256 _privatePropertyId) external onlyController {
-    Property storage p = properties[_privatePropertyId];
+  function incrementSetupStage(uint256 _tokenId) external onlyController {
+    Property storage p = properties[_tokenId];
 
     p.setupStage = p.setupStage.add(1);
   }
 
   function setDetails(
-    uint256 _privatePropertyId,
+    uint256 _tokenId,
     TokenType _tokenType,
     AreaSource _areaSource,
     uint256 _area,
@@ -106,7 +108,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   external
   onlyController
   {
-    Property storage p = properties[_privatePropertyId];
+    Property storage p = properties[_tokenId];
 
     p.tokenType = _tokenType;
     p.areaSource = _areaSource;
@@ -115,33 +117,60 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     p.humanAddress = _humanAddress;
     p.dataLink = _dataLink;
 
-    emit SetDetails(msg.sender, _privatePropertyId);
+    emit SetDetails(msg.sender, _tokenId);
   }
 
   function setContour(
-    uint256 _privatePropertyId,
+    uint256 _tokenId,
     uint256[] calldata _contour,
     int256 _highestPoint
   )
   external
   onlyController
   {
-    Property storage p = properties[_privatePropertyId];
+    Property storage p = properties[_tokenId];
 
     p.contour = _contour;
     p.highestPoint = _highestPoint;
 
-    emit SetContour(msg.sender, _privatePropertyId);
+    emit SetContour(msg.sender, _tokenId);
   }
 
-  function burn(uint256 _tokenId) external onlyController {
-    address owner = ownerOf(_tokenId);
+  function setHumanAddress(uint256 _tokenId, string calldata _humanAddress) external onlyController {
+    properties[_tokenId].humanAddress = _humanAddress;
 
-    delete properties[_tokenId];
+    emit SetHumanAddress(_tokenId, _humanAddress);
+  }
 
-    _burn(owner, _tokenId);
+  function setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) external onlyController {
+    properties[_tokenId].area = _area;
+    properties[_tokenId].areaSource = _areaSource;
 
-    emit Burn(owner, _tokenId);
+    emit SetArea(_tokenId, _area, _areaSource);
+  }
+
+  function setLedgerIdentifier(uint256 _tokenId, bytes32 _ledgerIdentifier) external onlyController {
+    properties[_tokenId].ledgerIdentifier = _ledgerIdentifier;
+
+    emit SetLedgerIdentifier(_tokenId, _ledgerIdentifier);
+  }
+
+  function setDataLink(uint256 _tokenId, string calldata _dataLink) external onlyController {
+    properties[_tokenId].dataLink = _dataLink;
+
+    emit SetDataLink(_tokenId, _dataLink);
+  }
+
+  function setVertexRootHash(uint256 _tokenId, bytes32 _vertexRootHash) external onlyController {
+    properties[_tokenId].vertexRootHash = _vertexRootHash;
+
+    emit SetVertexRootHash(_tokenId, _vertexRootHash);
+  }
+
+  function setVertexStorageLink(uint256 _tokenId, string calldata _vertexStorageLink) external onlyController {
+    properties[_tokenId].vertexStorageLink = _vertexStorageLink;
+
+    emit SetVertexStorageLink(_tokenId, _vertexStorageLink);
   }
 
   function setExtraData(bytes32 _key, bytes32 _value) external onlyController {
@@ -154,6 +183,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     propertyExtraData[_tokenId][_key] = _value;
 
     emit SetPropertyExtraData(_tokenId, _key, _value);
+  }
+
+  function burn(uint256 _tokenId) external onlyController {
+    address owner = ownerOf(_tokenId);
+
+    delete properties[_tokenId];
+
+    _burn(owner, _tokenId);
+
+    emit Burn(owner, _tokenId);
   }
 
   // INTERNAL
@@ -228,7 +267,15 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     return properties[_tokenId].contour.length;
   }
 
-  function getDetails(uint256 _privatePropertyId)
+  function getVertexRootHash(uint256 _tokenId) external view returns (bytes32) {
+    return properties[_tokenId].vertexRootHash;
+  }
+
+  function getVertexStorageLink(uint256 _tokenId) external view returns (string memory) {
+    return properties[_tokenId].vertexStorageLink;
+  }
+
+  function getDetails(uint256 _tokenId)
     external
     view
     returns (
@@ -240,10 +287,12 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       bytes32 ledgerIdentifier,
       string memory humanAddress,
       string memory dataLink,
-      uint256 setupStage
+      uint256 setupStage,
+      bytes32 vertexRootHash,
+      string memory vertexStorageLink
     )
   {
-    Property storage p = properties[_privatePropertyId];
+    Property storage p = properties[_tokenId];
 
     return (
       p.tokenType,
@@ -254,7 +303,13 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       p.ledgerIdentifier,
       p.humanAddress,
       p.dataLink,
-      p.setupStage
+      p.setupStage,
+      p.vertexRootHash,
+      p.vertexStorageLink
     );
+  }
+
+  function getSetupStage(uint256 _tokenId) external view returns(uint256) {
+    return properties[_tokenId].setupStage;
   }
 }

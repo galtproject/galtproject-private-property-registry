@@ -67,7 +67,7 @@ contract PPTokenFactory is Ownable, ChargesFee {
     PPTokenController ppTokenController = ppTokenControllerFactory.build(globalRegistry, ppToken, _defaultBurnDuration);
 
     // setting up contracts
-    ppToken.setDataLink(_dataLink);
+    ppToken.setContractDataLink(_dataLink);
     ppToken.setLegalAgreementIpfsHash(_legalAgreementIpfsHash);
     ppToken.setController(address(ppTokenController));
     ppTokenController.setMinter(msg.sender);

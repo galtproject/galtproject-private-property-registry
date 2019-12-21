@@ -22,6 +22,8 @@ contract PPTokenController is IPPTokenController, Ownable {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
+  uint256 public constant VERSION = 3;
+
   bytes32 public constant PROPOSAL_GALT_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_GALT");
   bytes32 public constant PROPOSAL_ETH_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_ETH");
 
@@ -164,7 +166,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   )
   external
   {
-    ( , , , , , , , , uint256 setupStage) = tokenContract.getDetails(_privatePropertyId);
+    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
 
     require(msg.sender == minter, "Only Minter allowed");
 
@@ -185,7 +187,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   )
   external
   {
-    ( , , , , , , , , uint256 setupStage) = tokenContract.getDetails(_privatePropertyId);
+    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
 
     require(msg.sender == minter, "Only Minter allowed");
 
