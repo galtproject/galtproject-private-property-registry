@@ -24,7 +24,8 @@ const {
   evmIncreaseTime,
   assertErc20BalanceChanged,
   assertEthBalanceChanged,
-  numberToEvmWord
+  numberToEvmWord,
+  hex
 } = require('@galtproject/solidity-test-chest')(web3);
 
 const { utf8ToHex, hexToUtf8 } = web3.utils;
@@ -86,6 +87,52 @@ contract('PPToken and PPTokenController', accounts => {
 
     // ACL setup
     await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
+  });
+
+  it('should reject any write method from unknown with random data', async function() {
+    let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+      from: registryOwner
+    });
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+    const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+    res = await controller.mint(alice, { from: registryOwner });
+    const randomTokenId = res.logs[0].args.tokenId;
+
+    const methodsAbis = token.abi.filter(m => m.stateMutability && m.stateMutability.indexOf('payable') !== -1);
+
+    for (let index = 0; index < methodsAbis.length; index++) {
+      const method = methodsAbis[index];
+      if (!method.name) {
+        continue;
+      }
+      const inputs = method.inputs.map(input => {
+        if (input.name === '_tokenId') {
+          return randomTokenId;
+        }
+
+        console.log(method.name, 'method');
+
+        if (_.includes(input.type, '[]')) {
+          return [];
+        }
+        if (input.type === 'address') {
+          return unknown;
+        }
+        if (_.includes(input.type, 'int')) {
+          return '0';
+        }
+        if (input.type === 'string') {
+          return '';
+        }
+        if (input.type === 'bytes' || input.type === 'bytes32') {
+          return hex('');
+        }
+        return null;
+      });
+
+      await assertRevert(token[method.name](...inputs));
+    }
   });
 
   it('should allow an owner setting legal agreement ipfs hash', async function() {
