@@ -77,8 +77,6 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   // CONTROLLER INTERFACE
 
   function mint(address _to) external onlyController returns(uint256) {
-    require(msg.sender == controller, "Only controller allowed");
-
     uint256 id = nextTokenId();
 
     emit Mint(_to, id);
