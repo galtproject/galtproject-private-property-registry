@@ -55,12 +55,6 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   // key => value
   mapping(bytes32 => bytes32) public extraData;
 
-  modifier onlyMinter() {
-    require(msg.sender == minter, "Only minter allowed");
-
-    _;
-  }
-
   modifier onlyController() {
     require(msg.sender == controller, "Only controller allowed");
 
@@ -105,7 +99,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   //  MINTER INTERFACE
 
-  function mint(address _to) public onlyMinter {
+  function mint(address _to) external {
+    require(msg.sender == minter || msg.sender == controller, "Either controller or minter allowed");
+
     uint256 id = nextTokenId();
 
     emit Mint(_to, id);
