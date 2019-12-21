@@ -106,13 +106,13 @@ contract('PPToken and PPTokenController', accounts => {
       if (!method.name) {
         continue;
       }
+
+      console.log(method.name, 'method');
+
       const inputs = method.inputs.map(input => {
         if (input.name === '_tokenId') {
           return randomTokenId;
         }
-
-        console.log(method.name, 'method');
-
         if (_.includes(input.type, '[]')) {
           return [];
         }
