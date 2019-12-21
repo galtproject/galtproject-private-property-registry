@@ -7,9 +7,9 @@
  * [Basic Agreement](ipfs/QmaCiXUmSrP16Gz8Jdzq6AJESY1EAANmmwha15uR3c1bsS)).
  */
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-
 pragma solidity ^0.5.13;
+
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 
 contract IPPToken is IERC721 {

@@ -87,13 +87,13 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
     return id;
   }
-  
+
   function incrementSetupStage(uint256 _privatePropertyId) external onlyController {
     Property storage p = properties[_privatePropertyId];
 
     p.setupStage = p.setupStage.add(1);
   }
-  
+
   function setDetails(
     uint256 _privatePropertyId,
     TokenType _tokenType,
@@ -133,7 +133,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
     emit SetContour(msg.sender, _privatePropertyId);
   }
-  
+
   function burn(uint256 _tokenId) external onlyController {
     address owner = ownerOf(_tokenId);
 

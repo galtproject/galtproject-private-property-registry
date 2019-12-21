@@ -123,12 +123,16 @@ contract('PPToken and PPTokenController', accounts => {
       await controller.setMinter(minter, { from: registryOwner });
       await controller.setGeoDataManager(geoDataManager, { from: registryOwner });
 
+      await assertRevert(controller.mint(alice, { from: alice }), 'Only minter allowed');
+      await assertRevert(token.mint(alice, { from: alice }), 'Only controller allowed');
+      await assertRevert(token.mint(alice, { from: minter }), 'Only controller allowed');
+
       res = await controller.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.tokenId;
       const createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
 
       await assertRevert(
-          controller.setInitialDetails(
+        controller.setInitialDetails(
           123123,
           // tokenType
           2,
@@ -140,6 +144,36 @@ contract('PPToken and PPTokenController', accounts => {
           { from: minter }
         ),
         'ERC721: owner query for nonexistent token'
+      );
+
+      await assertRevert(
+        token.setDetails(
+          123123,
+          // tokenType
+          2,
+          1,
+          123,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz',
+          { from: minter }
+        ),
+        'Only controller allowed'
+      );
+
+      await assertRevert(
+        token.setDetails(
+          123123,
+          // tokenType
+          2,
+          1,
+          123,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz',
+          { from: alice }
+        ),
+        'Only controller allowed'
       );
 
       // SET DETAILS
@@ -162,6 +196,14 @@ contract('PPToken and PPTokenController', accounts => {
       assert.equal(hexToUtf8(res.ledgerIdentifier), 'foo');
       assert.equal(res.humanAddress, 'bar');
       assert.equal(res.dataLink, 'buzz');
+
+      await assertRevert(token.incrementSetupStage(aliceTokenId, { from: alice }), 'Only controller allowed');
+
+      await assertRevert(token.incrementSetupStage(aliceTokenId, { from: minter }), 'Only controller allowed');
+
+      await assertRevert(token.setContour(aliceTokenId, contour, -42, { from: alice }), 'Only controller allowed');
+
+      await assertRevert(token.setContour(aliceTokenId, contour, -42, { from: minter }), 'Only controller allowed');
 
       // SET CONTOUR
       await controller.setInitialContour(

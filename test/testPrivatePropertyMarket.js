@@ -118,9 +118,9 @@ contract('PPMarket', accounts => {
 
   beforeEach(async function() {
     let res = await this.ppController.mint(alice, { from: minter });
-    this.ppTokenId1 = _.find(res.logs, (l) => l.args.tokenId).args.tokenId;
+    this.ppTokenId1 = _.find(res.logs, l => l.args.tokenId).args.tokenId;
     res = await this.ppController.mint(alice, { from: minter });
-    this.ppTokenId2 = _.find(res.logs, (l) => l.args.tokenId).args.tokenId;
+    this.ppTokenId2 = _.find(res.logs, l => l.args.tokenId).args.tokenId;
   });
 
   describe('sale order submission', () => {
