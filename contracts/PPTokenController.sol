@@ -10,7 +10,6 @@
 pragma solidity ^0.5.13;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
@@ -22,6 +21,8 @@ import "./interfaces/IPPGlobalRegistry.sol";
 contract PPTokenController is IPPTokenController, Ownable {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
+
+  uint256 public constant VERSION = 3;
 
   bytes32 public constant PROPOSAL_GALT_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_GALT");
   bytes32 public constant PROPOSAL_ETH_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_ETH");
@@ -45,9 +46,10 @@ contract PPTokenController is IPPTokenController, Ownable {
   }
 
   IPPGlobalRegistry public globalRegistry;
-  IERC721 public tokenContract;
+  IPPToken public tokenContract;
   address public geoDataManager;
   address public feeManager;
+  address public minter;
   address public burner;
   uint256 public defaultBurnTimeoutDuration;
   uint256 internal idCounter;
@@ -60,7 +62,13 @@ contract PPTokenController is IPPTokenController, Ownable {
   // key => fee
   mapping(bytes32 => uint256) public fees;
 
-  constructor(IPPGlobalRegistry _globalRegistry, IERC721 _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
+  modifier onlyMinter() {
+    require(msg.sender == minter, "Only minter allowed");
+
+    _;
+  }
+
+  constructor(IPPGlobalRegistry _globalRegistry, IPPToken _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
 
     defaultBurnTimeoutDuration = _defaultBurnTimeoutDuration;
@@ -83,6 +91,12 @@ contract PPTokenController is IPPTokenController, Ownable {
     feeManager = _feeManager;
 
     emit SetFeeManager(_feeManager);
+  }
+
+  function setMinter(address _minter) external onlyOwner {
+    minter = _minter;
+
+    emit SetMinter(_minter);
   }
 
   function setBurner(address _burner) external onlyOwner {
@@ -134,6 +148,55 @@ contract PPTokenController is IPPTokenController, Ownable {
     burnTimeoutAt[_tokenId] = timeoutAt;
 
     emit InitiateTokenBurn(_tokenId, timeoutAt);
+  }
+
+  // MINTER INTERFACE
+  function mint(address _to) external onlyMinter {
+    uint256 _tokenId = tokenContract.mint(_to);
+
+    emit Mint(_to, _tokenId);
+  }
+
+  // CONTROLLER INTERFACE
+
+  function setInitialDetails(
+    uint256 _privatePropertyId,
+    IPPToken.TokenType _tokenType,
+    IPPToken.AreaSource _areaSource,
+    uint256 _area,
+    bytes32 _ledgerIdentifier,
+    string calldata _humanAddress,
+    string calldata _dataLink
+  )
+    external
+    onlyMinter
+  {
+    // Will REVERT if there is no owner assigned to the token
+    tokenContract.ownerOf(_privatePropertyId);
+
+    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
+    require(setupStage == uint256(PropertyInitialSetupStage.PENDING), "Requires PENDING setup stage");
+
+    tokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
+
+    tokenContract.incrementSetupStage(_privatePropertyId);
+  }
+
+  function setInitialContour(
+    uint256 _privatePropertyId,
+    uint256[] calldata _contour,
+    int256 _highestPoint
+  )
+    external
+    onlyMinter
+  {
+    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
+
+    require(setupStage == uint256(PropertyInitialSetupStage.DETAILS), "Requires DETAILS setup stage");
+
+    tokenContract.setContour(_privatePropertyId, _contour, _highestPoint);
+
+    tokenContract.incrementSetupStage(_privatePropertyId);
   }
 
   // TOKEN OWNER INTERFACE
@@ -277,7 +340,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     require(block.timestamp > burnTimeoutAt[_tokenId], "Timeout has not passed yet");
     require(tokenContract.ownerOf(_tokenId) != address(0), "Token already burned");
 
-    IPPToken(address(tokenContract)).burn(_tokenId);
+    tokenContract.burn(_tokenId);
 
     emit BurnTokenByTimeout(_tokenId);
   }

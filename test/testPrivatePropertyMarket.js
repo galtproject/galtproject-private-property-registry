@@ -12,6 +12,7 @@ const _ = require('lodash');
 PPToken.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
 PPMarket.numberFormat = 'String';
+PPTokenController.numberFormat = 'String';
 
 const { web3 } = PPMarket;
 const { utf8ToHex } = web3.utils;
@@ -108,7 +109,7 @@ contract('PPMarket', accounts => {
     this.ppController = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
     this.ppMarket = await PPMarket.new(this.ppgr.address, ethFee, galtFee);
-    this.ppToken.setMinter(minter);
+    this.ppController.setMinter(minter);
 
     await this.galtToken.mint(alice, ether(10000000));
     await this.galtToken.mint(bob, ether(10000000));
@@ -116,16 +117,16 @@ contract('PPMarket', accounts => {
   });
 
   beforeEach(async function() {
-    let res = await this.ppToken.mint(alice, { from: minter });
-    this.ppTokenId1 = res.logs[1].args.tokenId;
-    res = await this.ppToken.mint(alice, { from: minter });
-    this.ppTokenId2 = res.logs[1].args.tokenId;
+    let res = await this.ppController.mint(alice, { from: minter });
+    this.ppTokenId1 = _.find(res.logs, l => l.args.tokenId).args.tokenId;
+    res = await this.ppController.mint(alice, { from: minter });
+    this.ppTokenId2 = _.find(res.logs, l => l.args.tokenId).args.tokenId;
   });
 
   describe('sale order submission', () => {
     describe('with ETH order currency', () => {
       it('should create a new sale order with ETH payment method', async function() {
-        assert.equal(await this.ppToken.tokenDataLink(), registryDataLink);
+        assert.equal(await this.ppToken.contractDataLink(), registryDataLink);
 
         assert.equal(await this.ppMarket.owner(), coreTeam);
         let res = await this.ppMarket.createSaleOrder(

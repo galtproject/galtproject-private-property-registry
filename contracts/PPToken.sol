@@ -17,31 +17,11 @@ import "./interfaces/IPPToken.sol";
 
 contract PPToken is IPPToken, ERC721Full, Ownable {
 
-  struct Property {
-    PropertyInitialSetupStage setupStage;
-
-    // (LAND_PLOT,BUILDING,ROOM) Type cannot be changed after token creation
-    TokenType tokenType;
-    // Geohash5z (x,y,z)
-    uint256[] contour;
-    // Meters above the sea
-    int256 highestPoint;
-
-    // USER_INPUT or CONTRACT
-    AreaSource areaSource;
-    // Calculated either by contract (for land plots and buildings) or by manual input
-    // in sq. meters (1 sq. meter == 1 eth)
-    uint256 area;
-
-    bytes32 ledgerIdentifier;
-    string humanAddress;
-    string dataLink;
-  }
+  uint256 public constant VERSION = 2;
 
   uint256 public tokenIdCounter;
-  address public minter;
   address payable public controller;
-  string public tokenDataLink;
+  string public contractDataLink;
   string public baseURI;
 
   bytes32[] public legalAgreementIpfsHashList;
@@ -73,10 +53,10 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetBaseURI(baseURI);
   }
 
-  function setDataLink(string calldata _dataLink) external onlyOwner {
-    tokenDataLink = _dataLink;
+  function setContractDataLink(string calldata _dataLink) external onlyOwner {
+    contractDataLink = _dataLink;
 
-    emit SetDataLink(_dataLink);
+    emit SetContractDataLink(_dataLink);
   }
 
   function setLegalAgreementIpfsHash(bytes32 _legalAgreementIpfsHash) external onlyOwner {
@@ -85,23 +65,15 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetLegalAgreementIpfsHash(_legalAgreementIpfsHash);
   }
 
-  function setMinter(address _minter) external onlyOwner {
-    minter = _minter;
-
-    emit SetMinter(_minter);
-  }
-
   function setController(address payable _controller) external onlyOwner {
     controller = _controller;
 
     emit SetController(_controller);
   }
 
-  //  MINTER INTERFACE
+  // CONTROLLER INTERFACE
 
-  function mint(address _to) external {
-    require(msg.sender == minter || msg.sender == controller, "Either controller or minter allowed");
-
+  function mint(address _to) external onlyController returns(uint256) {
     uint256 id = nextTokenId();
 
     emit Mint(_to, id);
@@ -109,12 +81,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     _mint(_to, id);
 
     propertyCreatedAt[id] = block.timestamp;
+
+    return id;
   }
 
-  // CONTROLLER INTERFACE
+  function incrementSetupStage(uint256 _tokenId) external onlyController {
+    properties[_tokenId].setupStage += 1;
+  }
 
   function setDetails(
-    uint256 _privatePropertyId,
+    uint256 _tokenId,
     TokenType _tokenType,
     AreaSource _areaSource,
     uint256 _area,
@@ -123,21 +99,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     string calldata _dataLink
   )
     external
+    onlyController
   {
-    Property storage p = properties[_privatePropertyId];
-
-    if (msg.sender == minter) {
-      // Will REVERT if there is no owner assigned to the token
-      ownerOf(_privatePropertyId);
-
-      require(p.setupStage == PropertyInitialSetupStage.PENDING, "Requires PENDING setup stage");
-    } else {
-      require(msg.sender == controller, "Only Controller allowed");
-    }
-
-    if (p.setupStage == PropertyInitialSetupStage.PENDING) {
-      p.setupStage = PropertyInitialSetupStage.DETAILS;
-    }
+    Property storage p = properties[_tokenId];
 
     p.tokenType = _tokenType;
     p.areaSource = _areaSource;
@@ -146,44 +110,60 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     p.humanAddress = _humanAddress;
     p.dataLink = _dataLink;
 
-    emit SetDetails(msg.sender, _privatePropertyId);
+    emit SetDetails(msg.sender, _tokenId);
   }
 
   function setContour(
-    uint256 _privatePropertyId,
+    uint256 _tokenId,
     uint256[] calldata _contour,
     int256 _highestPoint
   )
     external
+    onlyController
   {
-    Property storage p = properties[_privatePropertyId];
-
-    require(p.setupStage != PropertyInitialSetupStage.PENDING, "PENDING setup stage not allowed");
-
-    if (msg.sender == minter) {
-      require(p.setupStage == PropertyInitialSetupStage.DETAILS, "Requires DETAILS setup stage");
-    } else {
-      require(msg.sender == controller, "Only Controller allowed");
-    }
-
-    if (p.setupStage == PropertyInitialSetupStage.DETAILS) {
-      p.setupStage = PropertyInitialSetupStage.DONE;
-    }
+    Property storage p = properties[_tokenId];
 
     p.contour = _contour;
     p.highestPoint = _highestPoint;
 
-    emit SetContour(msg.sender, _privatePropertyId);
+    emit SetContour(msg.sender, _tokenId);
   }
 
-  function burn(uint256 _tokenId) external onlyController {
-    address owner = ownerOf(_tokenId);
+  function setHumanAddress(uint256 _tokenId, string calldata _humanAddress) external onlyController {
+    properties[_tokenId].humanAddress = _humanAddress;
 
-    delete properties[_tokenId];
+    emit SetHumanAddress(_tokenId, _humanAddress);
+  }
 
-    _burn(owner, _tokenId);
+  function setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) external onlyController {
+    properties[_tokenId].area = _area;
+    properties[_tokenId].areaSource = _areaSource;
 
-    emit Burn(owner, _tokenId);
+    emit SetArea(_tokenId, _area, _areaSource);
+  }
+
+  function setLedgerIdentifier(uint256 _tokenId, bytes32 _ledgerIdentifier) external onlyController {
+    properties[_tokenId].ledgerIdentifier = _ledgerIdentifier;
+
+    emit SetLedgerIdentifier(_tokenId, _ledgerIdentifier);
+  }
+
+  function setDataLink(uint256 _tokenId, string calldata _dataLink) external onlyController {
+    properties[_tokenId].dataLink = _dataLink;
+
+    emit SetDataLink(_tokenId, _dataLink);
+  }
+
+  function setVertexRootHash(uint256 _tokenId, bytes32 _vertexRootHash) external onlyController {
+    properties[_tokenId].vertexRootHash = _vertexRootHash;
+
+    emit SetVertexRootHash(_tokenId, _vertexRootHash);
+  }
+
+  function setVertexStorageLink(uint256 _tokenId, string calldata _vertexStorageLink) external onlyController {
+    properties[_tokenId].vertexStorageLink = _vertexStorageLink;
+
+    emit SetVertexStorageLink(_tokenId, _vertexStorageLink);
   }
 
   function setExtraData(bytes32 _key, bytes32 _value) external onlyController {
@@ -196,6 +176,16 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     propertyExtraData[_tokenId][_key] = _value;
 
     emit SetPropertyExtraData(_tokenId, _key, _value);
+  }
+
+  function burn(uint256 _tokenId) external onlyController {
+    address owner = ownerOf(_tokenId);
+
+    delete properties[_tokenId];
+
+    _burn(owner, _tokenId);
+
+    emit Burn(owner, _tokenId);
   }
 
   // INTERNAL
@@ -270,7 +260,19 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     return properties[_tokenId].contour.length;
   }
 
-  function getDetails(uint256 _privatePropertyId)
+  function getVertexRootHash(uint256 _tokenId) external view returns (bytes32) {
+    return properties[_tokenId].vertexRootHash;
+  }
+
+  function getVertexStorageLink(uint256 _tokenId) external view returns (string memory) {
+    return properties[_tokenId].vertexStorageLink;
+  }
+
+  function getSetupStage(uint256 _tokenId) external view returns(uint256) {
+    return properties[_tokenId].setupStage;
+  }
+
+  function getDetails(uint256 _tokenId)
     external
     view
     returns (
@@ -282,10 +284,12 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       bytes32 ledgerIdentifier,
       string memory humanAddress,
       string memory dataLink,
-      PropertyInitialSetupStage setupStage
+      uint256 setupStage,
+      bytes32 vertexRootHash,
+      string memory vertexStorageLink
     )
   {
-    Property storage p = properties[_privatePropertyId];
+    Property storage p = properties[_tokenId];
 
     return (
       p.tokenType,
@@ -296,7 +300,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       p.ledgerIdentifier,
       p.humanAddress,
       p.dataLink,
-      p.setupStage
+      p.setupStage,
+      p.vertexRootHash,
+      p.vertexStorageLink
     );
   }
 }

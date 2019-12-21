@@ -11,6 +11,7 @@ pragma solidity ^0.5.13;
 
 
 interface IPPTokenController {
+  event Mint(address indexed to, uint256 indexed tokenId);
   event SetGeoDataManager(address indexed geoDataManager);
   event SetFeeManager(address indexed geoDataManager);
   event NewProposal(
@@ -32,7 +33,8 @@ interface IPPTokenController {
     uint256 indexed proposalId,
     uint256 indexed tokenId
   );
-  event SetBurner(address burner);
+  event SetMinter(address indexed minter);
+  event SetBurner(address indexed burner);
   event SetBurnTimeout(uint256 indexed tokenId, uint256 timeout);
   event InitiateTokenBurn(uint256 indexed tokenId, uint256 timeoutAt);
   event BurnTokenByTimeout(uint256 indexed tokenId);
@@ -40,6 +42,12 @@ interface IPPTokenController {
   event SetFee(bytes32 indexed key, uint256 value);
   event WithdrawEth(address indexed to, uint256 amount);
   event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
+
+  enum PropertyInitialSetupStage {
+    PENDING,
+    DETAILS,
+    DONE
+  }
 
   function fees(bytes32) external view returns (uint256);
   function setBurner(address _burner) external;
