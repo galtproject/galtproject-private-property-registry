@@ -47,9 +47,11 @@ contract ChargesFee is Ownable {
     galtFee = _galtFee;
   }
 
+  // ABSTRACT
+
   function _galtToken() internal view returns (IERC20);
 
-  // Setters
+  // SETTERS
 
   function setFeeManager(address _addr) external onlyOwner {
     feeManager = _addr;
@@ -75,7 +77,7 @@ contract ChargesFee is Ownable {
     emit SetGaltFee(_galtFee);
   }
 
-  // Withdrawers
+  // WITHDRAWERS
 
   function withdrawErc20(address _tokenAddress, address _to) external onlyFeeCollector {
     uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));

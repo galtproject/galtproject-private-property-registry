@@ -26,6 +26,8 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
+  uint256 public constant VERSION = 2;
+
   bytes32 public constant GALT_FEE_KEY = bytes32("MARKET_GALT");
   bytes32 public constant ETH_FEE_KEY = bytes32("MARKET_ETH");
 
@@ -131,6 +133,8 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     uint256 len = _propertyTokenIds.length;
     uint256 tokenId;
 
+    require(len > 0, "There should be at least one token ID specified");
+
     for (uint256 i = 0; i < len; i++) {
       tokenId = _propertyTokenIds[i];
       require(IPPToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
@@ -177,5 +181,16 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
       saleOrderDetails[_rId].propertyToken,
       saleOrderDetails[_rId].dataLink
     );
+  }
+
+  function getSaleOrderAsk(uint256 _rId) external view returns (uint256) {
+    return saleOrders[_rId].ask;
+  }
+
+  function requireValidEthOrder(uint256 _rId) external view {
+    SaleOrder storage order = saleOrders[_rId];
+
+    require(order.status == SaleOrderStatus.ACTIVE, "Order isn't active");
+    require(order.escrowCurrency == Marketable.EscrowCurrency.ETH, "Invalid currency");
   }
 }
