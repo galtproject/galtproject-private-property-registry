@@ -164,7 +164,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     string calldata _humanAddress,
     string calldata _dataLink
   )
-  external
+    external
   {
     uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
 
@@ -185,7 +185,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     uint256[] calldata _contour,
     int256 _highestPoint
   )
-  external
+    external
   {
     uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
 

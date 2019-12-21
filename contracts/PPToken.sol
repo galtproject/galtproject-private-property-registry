@@ -12,13 +12,10 @@ pragma solidity ^0.5.13;
 import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/drafts/Strings.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IPPToken.sol";
 
 
 contract PPToken is IPPToken, ERC721Full, Ownable {
-
-  using SafeMath for uint256;
 
   uint256 public constant VERSION = 2;
 
@@ -30,7 +27,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   bytes32[] public legalAgreementIpfsHashList;
 
   // tokenId => details
-  mapping(uint256 => Property) public properties;
+  mapping(uint256 => Property) internal properties;
   // tokenId => timestamp
   mapping(uint256 => uint256) public propertyCreatedAt;
   // tokenId => (key => value)
@@ -89,9 +86,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
   }
 
   function incrementSetupStage(uint256 _tokenId) external onlyController {
-    Property storage p = properties[_tokenId];
-
-    p.setupStage = p.setupStage.add(1);
+    properties[_tokenId].setupStage += 1;
   }
 
   function setDetails(
@@ -103,8 +98,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     string calldata _humanAddress,
     string calldata _dataLink
   )
-  external
-  onlyController
+    external
+    onlyController
   {
     Property storage p = properties[_tokenId];
 
@@ -123,8 +118,8 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     uint256[] calldata _contour,
     int256 _highestPoint
   )
-  external
-  onlyController
+    external
+    onlyController
   {
     Property storage p = properties[_tokenId];
 
@@ -273,6 +268,10 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     return properties[_tokenId].vertexStorageLink;
   }
 
+  function getSetupStage(uint256 _tokenId) external view returns(uint256) {
+    return properties[_tokenId].setupStage;
+  }
+
   function getDetails(uint256 _tokenId)
     external
     view
@@ -305,9 +304,5 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
       p.vertexRootHash,
       p.vertexStorageLink
     );
-  }
-
-  function getSetupStage(uint256 _tokenId) external view returns(uint256) {
-    return properties[_tokenId].setupStage;
   }
 }
