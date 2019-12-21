@@ -74,7 +74,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   // CONTROLLER INTERFACE
 
-  function mint(address _to) external returns(uint256) {
+  function mint(address _to) external onlyController returns(uint256) {
     require(msg.sender == controller, "Only controller allowed");
 
     uint256 id = nextTokenId();
@@ -88,7 +88,7 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     return id;
   }
   
-  function incrementSetupStage(uint256 _privatePropertyId) external {
+  function incrementSetupStage(uint256 _privatePropertyId) external onlyController {
     Property storage p = properties[_privatePropertyId];
 
     p.setupStage = p.setupStage.add(1);
@@ -104,10 +104,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     string calldata _dataLink
   )
   external
+  onlyController
   {
     Property storage p = properties[_privatePropertyId];
-
-    require(msg.sender == controller, "Only Controller allowed");
 
     p.tokenType = _tokenType;
     p.areaSource = _areaSource;
@@ -125,10 +124,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     int256 _highestPoint
   )
   external
+  onlyController
   {
     Property storage p = properties[_privatePropertyId];
-
-    require(msg.sender == controller, "Only Controller allowed");
 
     p.contour = _contour;
     p.highestPoint = _highestPoint;
