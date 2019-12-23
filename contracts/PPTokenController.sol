@@ -49,6 +49,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   IPPToken public tokenContract;
   address public geoDataManager;
   address public feeManager;
+  address public feeCollector;
   address public minter;
   address public burner;
   uint256 public defaultBurnTimeoutDuration;
@@ -93,6 +94,12 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit SetFeeManager(_feeManager);
   }
 
+  function setFeeCollector(address _feeCollector) external onlyOwner {
+    feeCollector = _feeCollector;
+
+    emit SetFeeCollector(_feeCollector);
+  }
+
   function setMinter(address _minter) external onlyOwner {
     minter = _minter;
 
@@ -106,7 +113,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   }
 
   function withdrawErc20(address _tokenAddress, address _to) external {
-    require(msg.sender == feeManager, "Missing permissions");
+    require(msg.sender == feeCollector, "Missing permissions");
 
     uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
 
@@ -116,7 +123,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   }
 
   function withdrawEth(address payable _to) external {
-    require(msg.sender == feeManager, "Missing permissions");
+    require(msg.sender == feeCollector, "Missing permissions");
 
     uint256 balance = address(this).balance;
 

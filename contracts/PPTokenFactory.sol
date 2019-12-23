@@ -80,6 +80,7 @@ contract PPTokenFactory is Ownable, ChargesFee {
     }
 
     ppTokenController.setFeeManager(msg.sender);
+    ppTokenController.setFeeCollector(msg.sender);
 
     // transferring ownership
     ppTokenController.transferOwnership(msg.sender);
