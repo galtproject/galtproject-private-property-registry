@@ -714,7 +714,7 @@ contract('PPToken and PPTokenController', accounts => {
         from: registryOwner
       });
       controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
-      token = await PPToken.at(res.logs[7].args.token);
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
 
       await controller.setMinter(minter, { from: registryOwner });
 
