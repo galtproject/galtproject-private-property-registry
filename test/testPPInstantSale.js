@@ -110,6 +110,7 @@ contract('PPInstantSale', accounts => {
 
     this.ppController.setMinter(minter);
     this.ppController.setFeeManager(feeManager);
+    this.ppController.setFeeCollector(feeManager);
     this.ppController.setFee(bytes32('INSTANT_SALE_SHARE_ETH'), ether(4), { from: feeManager });
 
     await this.galtToken.mint(alice, ether(10000000));
