@@ -43,6 +43,14 @@ Also you can use our [Galt Project dApp](https://app.galtproject.io/) on mainnet
 
 :memo:**Get started contributing with a good first [issue](https://github.com/galtproject/galtproject-core/issues)**.
 
+# Contracts overview
+This repository **@galtproject-core** contains main project contracts:
+-**PPACL.sol**  - access control list. It is used as a single registry for roles management;
+-**PPGlobalRegistry.sol** - smart contracts registry.
+-**PPToken.sol** - ERC721 Token contract or Property Tokens. Each Token contains geospatial and other linked data(address, floor, apartment or room number, photo and video, etc.) and represents a particular land plot, whole building, room, or premise;
+-**PPTokenController.sol** -  After the token has been transferred to the Owner, a change in its geographical coordinates and data, as well as the destruction of the token, can only occur through the Token modification contract(Controller). For this, the Owner of the token or the Owner of the contract should create a proposal for changing the data. Proposal must be approved by the other party;
+-**PPMarket.sol** - contract for placing sales orders for Property Tokens.
+
 ## Usage
 
 * `make cleanup` - remove solidity build artifacts
