@@ -48,7 +48,7 @@ This repository **@galtproject-core** contains main project contracts:
 
 - **PPACL.sol**  - access control list. It is used as a single registry for roles management;
 - **PPGlobalRegistry.sol** - smart contracts registry.
-- **PPToken.sol** - Property Token (ERC721 Token contract). Each Token contains geospatial and other linked data(address, floor, apartment or room number, photo and video, etc.) and represents a particular land plot, whole building, or room in the building;
+- **PPToken.sol** - Property Token (ERC721 Token contract). Each Token contains geographic coordinates and other linked data(address, floor, apartment or room number, photo and video, etc.). and represents a particular land plot, whole building, or room in the building;
 - **PPTokenController.sol** -  After the token has been transferred to the Token Owner, a change in its geographical coordinates and data, as well as the destruction of the token, can only occur through the Token modification contract(Controller). For this, the Owner of the token or the Owner of the Private Property Registry should create a proposal for changing the data. Proposal must be approved by the other party;
 - **PPMarket.sol** - contract for placing sales orders for Property Tokens.
 
