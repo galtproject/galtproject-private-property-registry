@@ -4,9 +4,6 @@
 <div align="center">
 </div>
 
-
-
-
 <div align="center">
 <a href="https://github.com/galtproject/galtproject-private-property-registry/actions" targe="_blank"><img alt="pipeline status" src="https://github.com/galtproject/galtproject-private-property-registry/workflows/CI/badge.svg" /></a>
 <img src="https://img.shields.io/github/issues-raw/galtproject/galtproject-private-property-registry.svg?color=green&style=flat-square" alt="Opened issues"/>
@@ -25,6 +22,8 @@
 <br/>
 
 **Galt Project is an international decentralized land and real estate property registry governed by DAO (Decentralized autonomous organization) and self-governance protocol for communities of homeowners built on top of Ethereum blockchain.**
+
+**@@galtproject-private-property-registry contains smartc contracts for Private property registries. Private property registry is ERC721 Ownable Smart contract on Ethereum. Anyone can create a private registry using the smart contract Factory by paying a fee in ETH or GALT and become its owner. The private registry Owner has the ability to create tokens with geographic coordinates and other linked data(address, floor, apartment or room number, photo and video, etc.). Tokens can be created for commercial purposes, as digital objects representing the right of ownership, lease rights, leasing agreements, shares in co-op, membership rights, etc. As well as for the self-government of property owners.**
 
 :page_with_curl: **For more information read the [Whitepaper](https://github.com/galtproject/galtproject-docs/blob/master/en/Whitepaper.md)**
 
