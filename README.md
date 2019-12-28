@@ -23,20 +23,21 @@
 
 **Galt Project is an international decentralized land and real estate property registry governed by DAO (Decentralized autonomous organization) and self-governance protocol for communities of homeowners built on top of Ethereum blockchain.**
 
-**@galtproject-private-property-registry contains smartc contracts for Private property registries. Private property registry is ERC721 Ownable Smart contract on Ethereum. Anyone can create a private registry using the smart contract Factory by paying a fee in ETH or GALT and become its owner. The private registry Owner has the ability to create tokens with geographic coordinates and other linked data(address, floor, apartment or room number, photo and video, etc.). Tokens can be created for commercial purposes, as digital objects representing the right of ownership, lease rights, leasing agreements, shares in co-op, membership rights, etc. As well as for the self-government of property owners.**
+**@galtproject-private-property-registry repo contains smart contracts for Private Property Registries in Galt Project. Private property registry is ERC721 Ownable Smart contract on Ethereum. Anyone can create a private registry using the smart contract Factory by paying a fee in ETH or GALT and become its owner. The private registry Owner has the ability to create tokens with geographic coordinates and other linked data(address, floor, apartment or room number, photo and video, etc.). Tokens can be created for commercial purposes, as digital objects representing the right of ownership, lease rights, leasing agreements, shares in co-op, membership rights, etc. As well as for the self-government of property owners.**
 
 :page_with_curl: **For more information read the [Whitepaper](https://github.com/galtproject/galtproject-docs/blob/master/en/Whitepaper.md)**
 
-:construction: **@galtproject-private-property-registry stage: Ethereum Mainnet**
+:construction: **@galtproject-private-property-registry stage: :tada:Ethereum Mainnet:tada:**
 
-At the moment, **@@galtproject-private-property-registry** contracts are deployed on the Ethereum mainnet.
+At the moment, **@@galtproject-private-property-registry** contracts are deployed on the Ethereum mainnet. Nonetheless
+it is still experimental software that has not yet been publicly audited.
 
 :bomb: **Security review status: Internal audit**
 
 Unfortunately, we do not currently have sufficient resources for a full audit of the smart contracts. 
 
 Our team believes that the Galt Project will enable people to transact land and real estate without borders and third parties. As well as creating self-governing communities without corruption and with transparent governance processes. 
-You can contribute to this by checking the code and creating an issue, or by making a small donation to the address of the team **0x98064493535B22F6EbDf475341F0A6DaaBb7b538**.
+You can contribute to this by checking the code and creating an issue or PR, or by making a small donation to the address of the team **0x98064493535B22F6EbDf475341F0A6DaaBb7b538**.
 
 Also you can use our [Galt Project dApp](https://app.galtproject.io/) on mainnet with Private Property Registries functionality to support Galt Project!
 
