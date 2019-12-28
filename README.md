@@ -1,6 +1,6 @@
 # Galt Project Private Propety Registry
 
-<a href="https://github.com/galtproject/galtproject-private-property-registry/actions"><img alt="pipeline status" src="https://github.com/galtproject/galtproject-private-property-registry/workflows/CI/badge.svg" /></a>
+<a href="https://github.com/galtproject/galtproject-private-property-registry/actions" targe="_blank"><img alt="pipeline status" src="https://github.com/galtproject/galtproject-private-property-registry/workflows/CI/badge.svg" /></a>
 
 ## Usage
 
