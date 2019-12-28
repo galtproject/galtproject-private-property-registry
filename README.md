@@ -46,7 +46,7 @@ Also you can use our [Galt Project dApp](https://app.galtproject.io/) on mainnet
 :memo:**Get started contributing with a good first [issue](https://github.com/galtproject/galtproject-core/issues)**.
 
 # Contracts overview
-This repository **@galtproject-core[@galtproject-core](https://github.com/galtproject/galtproject-core)** contains main project contracts:
+This repository [@galtproject-core](https://github.com/galtproject/galtproject-core)** contains main project contracts:
 
 - **PPACL.sol**  - access control list. It is used as a single registry for roles management;
 - **PPGlobalRegistry.sol** - smart contracts registry.
