@@ -1,4 +1,4 @@
-<p align="center"> <img src="https://github.com/galtproject/galtproject-docs/blob/master/images/logo-black-1.png" alt="logo-black-360" width="200"/></p>
+<p align="center"> <img src="https://github.com/galtproject/galtproject-docs/blob/master/whitepaper/images/logo-black-1.png" alt="logo-black-360" width="200"/></p>
 
 <h3 align="center">Galt•Project Private Propety Registry Contracts (@galtproject-private-property-registry)</h3>
 <div align="center">
@@ -25,7 +25,7 @@
 
 [@galtproject-private-property-registry](https://github.com/galtproject/galtproject-private-property-registry) repo contains smart contracts for Private Property Registries in Galt Project. Private property registry is ERC721 Ownable Smart contract on Ethereum. Anyone can create a private registry using the smart contract Factory by paying a fee in ETH or GALT and become its owner. The private registry Owner has the ability to create tokens with geographic coordinates and other linked data(address, floor, apartment or room number, photo and video, etc.). Tokens can be created for commercial purposes, as digital objects representing the right of ownership, lease rights, leasing agreements, shares in co-op, membership rights, etc. As well as for the self-government of property owners.
 
-:page_with_curl: **For more information read the [Whitepaper](https://github.com/galtproject/galtproject-docs/blob/master/en/Whitepaper.md)**
+:page_with_curl: **For more information read the [Whitepaper](https://github.com/galtproject/galtproject-docs/blob/master/whitepaper/en/Whitepaper.md)**
 
 :construction: **[@galtproject-private-property-registry](https://github.com/galtproject/galtproject-private-property-registry) stage: :tada:Ethereum Mainnet:tada:**
 
