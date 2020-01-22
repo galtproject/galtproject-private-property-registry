@@ -9,15 +9,15 @@
 
 pragma solidity ^0.5.13;
 
-import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./IPPToken.sol";
+import "./IPPRA.sol";
 
 
 interface IPPLocker {
   function deposit(IPPToken _tokenContract, uint256 _tokenId) external payable;
   function withdraw() external;
-  function approveMint(IRA _tra) external;
-  function burn(IRA _tra) external;
+  function approveMint(IPPRA _tra) external;
+  function burn(IPPRA _tra) external;
   function isMinted(address _tra) external view returns (bool);
   function getTras() external view returns (address[] memory);
   function getTrasCount() external view returns (uint256);

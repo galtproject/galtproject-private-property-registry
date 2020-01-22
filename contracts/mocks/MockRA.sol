@@ -9,12 +9,25 @@
 
 pragma solidity ^0.5.13;
 
+import "../interfaces/IPPRA.sol";
 
-contract MockRA {
-  function balanceOf(address _address) external pure returns (uint256) {
+
+contract MockRA is IPPRA {
+  // registry => (tokenId => isMinted)
+  mapping(address => mapping(uint256 => bool)) public reputationMinted;
+
+  function setMinted(address _tokenContract, uint256 _tokenId, bool _flag) external {
+    reputationMinted[_tokenContract][_tokenId] = _flag;
+  }
+
+  function balanceOf(address _address) external view returns (uint256) {
     // disables compilation warning ᕦ(ツ)ᕤ
     assert(_address == _address);
     return 0;
+  }
+
+  function totalSupply() external view returns (uint256) {
+    return 42;
   }
 
   function ping() external pure returns (bytes32) {

@@ -11,12 +11,12 @@ pragma solidity ^0.5.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
-import "@galtproject/core/contracts/reputation/interfaces/IRA.sol";
 import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPLocker.sol";
 import "./interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
+import "./interfaces/IPPRA.sol";
 
 
 contract PPLocker is IPPLocker {
@@ -111,7 +111,7 @@ contract PPLocker is IPPLocker {
     emit Withdrawal(reputation);
   }
 
-  function approveMint(IRA _tra) external onlyOwner {
+  function approveMint(IPPRA _tra) external onlyOwner {
     require(!traSet.has(address(_tra)), "Already minted to this RA");
     require(_tra.ping() == bytes32("pong"), "Handshake failed");
 
@@ -120,9 +120,9 @@ contract PPLocker is IPPLocker {
     emit ReputationMint(address(_tra));
   }
 
-  function burn(IRA _tra) external onlyOwner {
+  function burn(IPPRA _tra) external onlyOwner {
     require(traSet.has(address(_tra)), "Not minted to the RA");
-    require(_tra.balanceOf(msg.sender) == 0, "Reputation not completely burned");
+    require(_tra.reputationMinted(address(tokenContract), tokenId) == false, "Reputation not completely burned");
 
     traSet.remove(address(_tra));
 
