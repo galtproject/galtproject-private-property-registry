@@ -120,6 +120,10 @@ contract('PPLockers', accounts => {
 
     assert.sameMembers(await locker.getTras(), [ra.address]);
 
+    await ra.setMinted(token.address, aliceTokenId, true);
+    await assertRevert(locker.burn(ra.address, { from: alice }), 'Reputation not completely burned');
+    await ra.setMinted(token.address, aliceTokenId, false);
+
     // burn reputation and withdraw token back
     await locker.burn(ra.address, { from: alice });
     await locker.withdraw({ from: alice });

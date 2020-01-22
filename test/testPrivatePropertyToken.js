@@ -107,7 +107,7 @@ contract('PPToken and PPTokenController', accounts => {
         continue;
       }
 
-      console.log(method.name, 'method');
+      // console.log(method.name, 'method');
 
       const inputs = method.inputs.map(input => {
         if (input.name === '_tokenId') {
