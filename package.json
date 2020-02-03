@@ -8,9 +8,11 @@
   "devDependencies": {
     "@galtproject/eslint-config-galt": "^1.1.0",
     "@galtproject/core": "git+ssh://git@github.com/galtproject/galtproject-core.git#abdde6d",
+    "@galtproject/geodesic": "git+ssh://git@github.com/galtproject/galtproject-geodesic.git#739a42a",
     "@galtproject/libs": "git+ssh://git@github.com/galtproject/galtproject-libs.git#c99391e",
+    "@galtproject/math": "git+ssh://git@github.com/galtproject/galtproject-math.git#e235c33",
     "@galtproject/solidity-test-chest": "https://github.com/galtproject/solidity-test-chest",
-    "@galtproject/utils": "git+ssh://git@github.com/galtproject/galtproject-utils-js.git#fb52908",
+    "@galtproject/utils": "git+ssh://git@github.com/galtproject/galtproject-utils-js.git#be10174",
     "cli-table": "^0.3.1",
     "ethlint": "1.2.5",
     "ganache-core": "2.8.0",
