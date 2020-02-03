@@ -1,14 +1,18 @@
-const PPMarket = artifacts.require('./PPMarket.sol');
-const PPToken = artifacts.require('./PPToken.sol');
-const PPTokenController = artifacts.require('./PPTokenController.sol');
-const PPTokenFactory = artifacts.require('./PPTokenFactory.sol');
-const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
-const PPGlobalRegistry = artifacts.require('./PPGlobalRegistry.sol');
-const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
-const PPACL = artifacts.require('PPACL.sol');
-const PPInstantSale = artifacts.require('PPInstantSale.sol');
-const PPInstantSaleFactory = artifacts.require('PPInstantSaleFactory.sol');
-const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const { accounts, defaultSender, contract, web3 } = require('@openzeppelin/test-environment');
+const { assert } = require('chai');
+
+const PPMarket = contract.fromArtifact('PPMarket');
+const PPToken = contract.fromArtifact('PPToken');
+const PPTokenController = contract.fromArtifact('PPTokenController');
+const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
+const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
+const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
+const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const PPACL = contract.fromArtifact('PPACL');
+const PPInstantSale = contract.fromArtifact('PPInstantSale');
+const PPInstantSaleFactory = contract.fromArtifact('PPInstantSaleFactory');
+// 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
+const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
@@ -17,7 +21,6 @@ PPMarket.numberFormat = 'String';
 PPInstantSale.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
 
-const { web3 } = PPMarket;
 const { utf8ToHex } = web3.utils;
 const bytes32 = utf8ToHex;
 
@@ -66,8 +69,9 @@ Object.freeze(Currency);
 
 const ONE_HOUR = 60 * 60;
 
-contract('PPInstantSale', accounts => {
-  const [coreTeam, minter, alice, bob, charlie, dan, eve, feeManager] = accounts;
+describe('PPInstantSale', () => {
+  const [minter, alice, bob, charlie, dan, eve, feeManager] = accounts;
+  const coreTeam = defaultSender;
 
   const registryDataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3j1';
   const dataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qoed3jq';

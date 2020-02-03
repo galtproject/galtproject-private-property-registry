@@ -1,4 +1,7 @@
-const PPContourVerificationPublicLib = artifacts.require('PPContourVerificationPublicLib.sol');
+const { contract } = require('@openzeppelin/test-environment');
+const { assert } = require('chai');
+
+const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificationPublicLib');
 const contractPoint = require('@galtproject/utils').contractPoint;
 
 PPContourVerificationPublicLib.numberFormat = 'String';
@@ -8,7 +11,7 @@ const INCLUSION_TYPE = {
   B_INSIDE_A: 1
 };
 
-contract('PPContourVerificationLib', () => {
+describe('PPContourVerificationLib', () => {
   // Contour #1
   // 40.594870, -73.949618 dr5qvnpd300r
   // 40.594843, -73.949866 dr5qvnp655pq
