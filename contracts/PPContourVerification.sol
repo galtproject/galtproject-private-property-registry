@@ -22,6 +22,10 @@ contract PPContourVerification {
   PPContourVerificationPublicLib public lib;
   PPTokenController public controller;
 
+  constructor(PPTokenController _controller) public {
+    controller = _controller;
+  }
+
   function reportIntersection(
     uint256 _validTokenId,
     uint256 _invalidTokenId,

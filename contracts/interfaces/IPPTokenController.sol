@@ -13,6 +13,7 @@ pragma solidity ^0.5.13;
 interface IPPTokenController {
   event Mint(address indexed to, uint256 indexed tokenId);
   event SetGeoDataManager(address indexed geoDataManager);
+  event SetContourVerificationManager(address indexed contourVerificationManager);
   event SetFeeManager(address indexed feeManager);
   event SetFeeCollector(address indexed feeCollector);
   event NewProposal(
@@ -50,6 +51,7 @@ interface IPPTokenController {
     DONE
   }
 
+  function contourVerificationManager() external view returns (address);
   function fees(bytes32) external view returns (uint256);
   function setBurner(address _burner) external;
   function setGeoDataManager(address _geoDataManager) external;
