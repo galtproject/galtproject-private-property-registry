@@ -1,22 +1,25 @@
-const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
-const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
-const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
-const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
-const PPACL = artifacts.require('PPACL.sol');
-const PPToken = artifacts.require('PPToken.sol');
-const PPTokenController = artifacts.require('PPTokenController.sol');
-const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
-const MockPPToken = artifacts.require('MockPPToken.sol');
-const PPLockerRegistry = artifacts.require('PPLockerRegistry.sol');
-const PPLockerFactory = artifacts.require('PPLockerFactory.sol');
-const PPLocker = artifacts.require('PPLocker.sol');
+const { accounts, defaultSender, contract, web3 } = require('@openzeppelin/test-environment');
+const { assert } = require('chai');
+
+const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
+const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
+const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
+const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const PPACL = contract.fromArtifact('PPACL');
+const PPToken = contract.fromArtifact('PPToken');
+const PPTokenController = contract.fromArtifact('PPTokenController');
+// 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
+const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
+const MockPPToken = contract.fromArtifact('MockPPToken');
+const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
+const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
+const PPLocker = contract.fromArtifact('PPLocker');
 const galt = require('@galtproject/utils');
 const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
-
-const { web3 } = PPToken;
+MintableErc20Token.numberFormat = 'String';
 
 const {
   ether,
@@ -44,9 +47,8 @@ const ProposalStatus = {
   CANCELLED: 5
 };
 
-contract('PPToken and PPTokenController', accounts => {
+describe('PPToken and PPTokenController', () => {
   const [
-    unknown,
     systemOwner,
     registryOwner,
     minter,
@@ -58,6 +60,7 @@ contract('PPToken and PPTokenController', accounts => {
     charlie,
     dan
   ] = accounts;
+  const unknown = defaultSender;
 
   const galtFee = ether(20);
 

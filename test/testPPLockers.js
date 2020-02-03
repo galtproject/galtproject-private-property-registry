@@ -1,15 +1,19 @@
-const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
-const PPTokenController = artifacts.require('PPTokenController.sol');
-const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
-const PPToken = artifacts.require('PPToken.sol');
-const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
-const PPLockerFactory = artifacts.require('PPLockerFactory.sol');
-const PPLockerRegistry = artifacts.require('PPLockerRegistry.sol');
-const PPLocker = artifacts.require('PPLocker.sol');
-const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
-const PPACL = artifacts.require('PPACL.sol');
-const MockRA = artifacts.require('MockRA.sol');
-const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const { accounts, defaultSender, contract, web3 } = require('@openzeppelin/test-environment');
+const { assert } = require('chai');
+
+const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
+const PPTokenController = contract.fromArtifact('PPTokenController');
+const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
+const PPToken = contract.fromArtifact('PPToken');
+const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
+const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
+const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
+const PPLocker = contract.fromArtifact('PPLocker');
+const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const PPACL = contract.fromArtifact('PPACL');
+const MockRA = contract.fromArtifact('MockRA');
+// 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
+const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
@@ -23,8 +27,9 @@ const bytes32 = utf8ToHex;
 
 const ONE_HOUR = 60 * 60;
 
-contract('PPLockers', accounts => {
-  const [owner, alice, registryOwner, minter, lockerFeeManager] = accounts;
+describe('PPLockers', () => {
+  const [alice, registryOwner, minter, lockerFeeManager] = accounts;
+  const owner = defaultSender;
 
   const ethFee = ether(10);
   const galtFee = ether(20);
