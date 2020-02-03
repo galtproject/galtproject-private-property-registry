@@ -47,6 +47,7 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   IPPGlobalRegistry public globalRegistry;
   IPPToken public tokenContract;
+  address public contourVerificationManager;
   address public geoDataManager;
   address public feeManager;
   address public feeCollector;
@@ -81,6 +82,12 @@ contract PPTokenController is IPPTokenController, Ownable {
   }
 
   // CONTRACT OWNER INTERFACE
+
+  function setContourVerificationManager(address _contourVerificationManager) external onlyOwner {
+    contourVerificationManager = _contourVerificationManager;
+
+    emit SetContourVerificationManager(_contourVerificationManager);
+  }
 
   function setGeoDataManager(address _geoDataManager) external onlyOwner {
     geoDataManager = _geoDataManager;
