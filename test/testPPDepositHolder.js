@@ -107,7 +107,10 @@ describe('PPDepositHolder', () => {
       await this.registryX.transferFrom(charlie, alice, this.token3, { from: charlie });
 
       // claim back
-      await assertRevert(hodler.withdraw(this.registryX.address, this.token3, { from: charlie }), 'Not the token owner');
+      await assertRevert(
+        hodler.withdraw(this.registryX.address, this.token3, { from: charlie }),
+        'Not the token owner'
+      );
       await hodler.withdraw(this.registryX.address, this.token3, { from: alice });
 
       assert(await this.galtToken.balanceOf(charlie), 1084);
