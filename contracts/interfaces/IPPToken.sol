@@ -102,6 +102,8 @@ interface IPPToken {
   function setDataLink(uint256 _tokenId, string calldata _dataLink) external;
   function setVertexRootHash(uint256 _tokenId, bytes32 _vertexRootHash) external;
   function setVertexStorageLink(uint256 _tokenId, string calldata _vertexStorageLink) external;
+  function setExtraData(bytes32 _key, bytes32 _value) external;
+  function setPropertyExtraData(uint256 _tokenId, bytes32 _key, bytes32 _value) external;
 
   function incrementSetupStage(uint256 _tokenId) external;
 
@@ -111,7 +113,8 @@ interface IPPToken {
 
   // GETTERS
   function controller() external view returns (address payable);
-
+  function extraData(bytes32 _key) external view returns (bytes32);
+  function propertyExtraData(uint256 _tokenId, bytes32 _key) external view returns (bytes32);
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
   function ownerOf(uint256 _tokenId) external view returns (address);
   function exists(uint256 _tokenId) external view returns (bool);

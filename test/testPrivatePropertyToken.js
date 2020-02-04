@@ -28,6 +28,7 @@ const {
   assertErc20BalanceChanged,
   assertEthBalanceChanged,
   numberToEvmWord,
+  getEventArg,
   hex
 } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -798,6 +799,102 @@ describe('PPToken and PPTokenController', () => {
       assertErc20BalanceChanged(bobBalanceBefore, bobBalanceAfter, ether(42));
 
       assert.equal(await this.galtToken.balanceOf(controller.address), ether(0));
+    });
+  });
+
+  describe('update timestamps', () => {
+    it('should set initial updatedAt timestamps when minting a token', async function() {
+      // CREATE REGISTRIES
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: alice
+      });
+      const registryX = await PPToken.at(getEventArg(res, 'Build', 'controller'));
+      const controllerX = await PPTokenController.at(getEventArg(res, 'Build', 'controller'));
+
+      await controllerX.setMinter(minter, { from: alice });
+      await controllerX.setGeoDataManager(geoDataManager, { from: alice });
+
+      res = await controllerX.mint(charlie, { from: minter });
+      const token1 = getEventArg(res, 'Mint', 'tokenId');
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), 0);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), 0);
+
+      // setInitialDetails
+      await evmIncreaseTime(10);
+      res = await controllerX.setInitialDetails(
+        token1,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        { from: minter }
+      );
+      let detailsUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), 0);
+
+      // setInitialContour
+      await evmIncreaseTime(10);
+      res = await controllerX.setInitialContour(
+        token1,
+        contour,
+        // highestPoint
+        -42,
+        { from: minter }
+      );
+      let contourUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
+
+      // proposal for details update
+      await evmIncreaseTime(10);
+      let data = registryX.contract.methods
+        .setDetails(
+          token1,
+          // tokenType
+          2,
+          1,
+          456,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz'
+        )
+        .encodeABI();
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      let proposalId = getEventArg(res, 'NewProposal', 'tokenId');
+
+      res = await controllerX.approve(proposalId, { from: geoDataManager });
+      detailsUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
+
+      // proposal for contour update
+      await evmIncreaseTime(10);
+      data = registryX.contract.methods
+        .setContour(
+          token1,
+          contour,
+          // highestPoint
+          42
+        )
+        .encodeABI();
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+
+      res = await controllerX.approve(proposalId, { from: geoDataManager });
+      contourUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
     });
   });
 });

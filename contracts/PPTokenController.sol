@@ -26,6 +26,13 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   bytes32 public constant PROPOSAL_GALT_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_GALT");
   bytes32 public constant PROPOSAL_ETH_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_ETH");
+  bytes32 public constant DETAILS_UPDATED_EXTRA_KEY = bytes32("DETAILS_UPDATED_AT");
+  bytes32 public constant CONTOUR_UPDATED_EXTRA_KEY = bytes32("CONTOUR_UPDATED_AT");
+
+  // setDetails(uint256,uint8,uint8,uint256,bytes32,string,string)
+  bytes32 internal constant TOKEN_SET_DETAILS_SIGNATURE = 0x18212fc600000000000000000000000000000000000000000000000000000000;
+  // setContour(uint256,uint256[],int256)
+  bytes32 internal constant TOKEN_SET_CONTOUR_SIGNATURE = 0x89e8915f00000000000000000000000000000000000000000000000000000000;
 
   enum ProposalStatus {
     NULL,
@@ -208,6 +215,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     tokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
 
     tokenContract.incrementSetupStage(_privatePropertyId);
+
+    _updateDetailsUpdatedAt(_privatePropertyId);
   }
 
   function setInitialContour(
@@ -225,6 +234,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     tokenContract.setContour(_privatePropertyId, _contour, _highestPoint);
 
     tokenContract.incrementSetupStage(_privatePropertyId);
+
+    _updateContourUpdatedAt(_privatePropertyId);
   }
 
   // TOKEN OWNER INTERFACE
@@ -349,6 +360,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     require(p.geoDataManagerApproved == true, "GeoDataManager approval required");
     require(p.status == ProposalStatus.APPROVED, "Expect APPROVED status");
 
+    _preExecuteHook(p.data);
+
     p.status = ProposalStatus.EXECUTED;
 
     (bool ok,) = address(tokenContract)
@@ -360,6 +373,17 @@ contract PPTokenController is IPPTokenController, Ownable {
       p.status = ProposalStatus.APPROVED;
     } else {
       emit ProposalExecuted(_proposalId);
+    }
+  }
+
+  function _preExecuteHook(bytes memory data) internal {
+    bytes32 signature = fetchSignature(data);
+    uint256 tokenId = fetchTokenId(data);
+
+    if (signature == TOKEN_SET_DETAILS_SIGNATURE) {
+      _updateDetailsUpdatedAt(tokenId);
+    } else if (signature == TOKEN_SET_CONTOUR_SIGNATURE) {
+      _updateContourUpdatedAt(tokenId);
     }
   }
 
@@ -382,6 +406,12 @@ contract PPTokenController is IPPTokenController, Ownable {
     require(tokenId > 0, "Failed fetching tokenId from encoded data");
   }
 
+  function fetchSignature(bytes memory _data) public pure returns (bytes32 signature) {
+    assembly {
+      signature := and(mload(add(_data, 0x20)), 0xffffffff00000000000000000000000000000000000000000000000000000000)
+    }
+  }
+
   // INTERNAL
 
   function _nextId() internal returns (uint256) {
@@ -399,5 +429,31 @@ contract PPTokenController is IPPTokenController, Ownable {
     } else {
       require(msg.value == fees[PROPOSAL_ETH_FEE_KEY], "Invalid fee");
     }
+  }
+
+  function _updateDetailsUpdatedAt(uint256 _tokenId) internal {
+    bytes32 value = bytes32(now);
+
+    tokenContract.setPropertyExtraData(_tokenId, DETAILS_UPDATED_EXTRA_KEY, value);
+
+    emit UpdateDetailsUpdatedAt(_tokenId, now);
+  }
+
+  function _updateContourUpdatedAt(uint256 _tokenId) internal {
+    bytes32 value = bytes32(now);
+
+    tokenContract.setPropertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY, value);
+
+    emit UpdateDetailsUpdatedAt(_tokenId, now);
+  }
+
+  // GETTERS
+
+  function getDetailsUpdatedAt(uint256 _tokenId) public view returns (uint256) {
+    return uint256(tokenContract.propertyExtraData(_tokenId, DETAILS_UPDATED_EXTRA_KEY));
+  }
+
+  function getContourUpdatedAt(uint256 _tokenId) public view returns (uint256) {
+    return uint256(tokenContract.propertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY));
   }
 }
