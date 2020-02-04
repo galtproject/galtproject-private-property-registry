@@ -14,21 +14,13 @@ const PPToken = contract.fromArtifact('PPToken');
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 
 const {
+  now,
   ether,
   assertRevert,
   getEventArg,
   assertErc20BalanceChanged,
   evmIncreaseTime
 } = require('@galtproject/solidity-test-chest')(web3);
-
-/**
- * Returns the latest block timestamp
- * @returns number
- */
-async function now() {
-  const latestBlock = await web3.eth.getBlock('latest');
-  return parseInt(latestBlock.timestamp, 10);
-}
 
 PPDepositHolder.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
