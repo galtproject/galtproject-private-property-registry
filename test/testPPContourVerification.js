@@ -73,9 +73,9 @@ describe('PPContourVerification', () => {
     await this.controllerX.setMinter(minter, { from: alice });
     await this.controllerX.setFee(bytes32('LOCKER_ETH'), ether(0.1), { from: alice });
 
-    res = await this.controllerX.mint(alice, { from: minter });
+    await this.controllerX.mint(alice, { from: minter });
     await this.controllerX.mint(bob, { from: minter });
-    await this.controllerX.mint(charlie, { from: minter });
+    res = await this.controllerX.mint(charlie, { from: minter });
     token3 = getEventArg(res, 'Mint', 'tokenId');
 
     // SETUP CONTOUR VERIFICATION MANAGER
