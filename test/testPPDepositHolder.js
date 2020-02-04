@@ -93,6 +93,26 @@ describe('PPDepositHolder', () => {
       assert(await this.galtToken.balanceOf(charlie), 1042);
     });
 
+    it('should allow withdraing a deposit to a new token owner', async function() {
+      await this.galtToken.approve(hodler.address, ether(42), { from: charlie });
+      await hodler.deposit(this.registryX.address, this.token3, ether(42), { from: charlie });
+
+      assert.equal(await hodler.balanceOf(this.registryX.address, this.token3), ether(42));
+
+      await this.galtToken.approve(hodler.address, ether(42), { from: bob });
+      await hodler.deposit(this.registryX.address, this.token3, ether(42), { from: bob });
+
+      assert.equal(await hodler.balanceOf(this.registryX.address, this.token3), ether(84));
+
+      await this.registryX.transferFrom(charlie, alice, this.token3, { from: charlie });
+
+      // claim back
+      await assertRevert(hodler.withdraw(this.registryX.address, this.token3, { from: charlie }), 'Not the token owner');
+      await hodler.withdraw(this.registryX.address, this.token3, { from: alice });
+
+      assert(await this.galtToken.balanceOf(charlie), 1084);
+    });
+
     it('should deny depositing for non-existing tokenContracts', async function() {
       await this.galtToken.approve(hodler.address, ether(42), { from: bob });
       await assertRevert(hodler.deposit(alice, 0, ether(42), { from: bob }), 'Token address is invalid');
