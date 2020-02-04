@@ -13,17 +13,72 @@ import "@galtproject/geodesic/contracts/utils/GeohashUtils.sol";
 import "@galtproject/geodesic/contracts/utils/SegmentUtils.sol";
 import "@galtproject/geodesic/contracts/utils/LandUtils.sol";
 import "@galtproject/geodesic/contracts/utils/PolygonUtils.sol";
+// TODO: use interface
 import "./PPTokenController.sol";
 import "./PPToken.sol";
 import "./libs/PPContourVerificationPublicLib.sol";
+// TODO: use interface
+import "./PPDepositHolder.sol";
 
 
-contract PPContourVerification {
+contract PPContourVerification is Ownable {
+  event EnableVerification(uint256 minimalDeposit, uint256 activeFrom);
+  event DisableVerification();
+  event ReportNoDeposit(address indexed reporter, uint256 token);
+
+  bytes32 public constant PPGR_DEPOSIT_HOLDER_KEY = bytes32("deposit_holder");
+
   PPContourVerificationPublicLib public lib;
   PPTokenController public controller;
+  // 0 if disabled
+  uint256 public activeFrom;
+  // 0 if disabled, in GALT
+  uint256 public minimalDeposit;
+  uint256 public minimalTimeout;
 
-  constructor(PPTokenController _controller) public {
+  constructor(PPTokenController _controller, uint256 _minimalTimeout) public {
     controller = _controller;
+    minimalTimeout = _minimalTimeout;
+  }
+
+  // OWNER INTERFACE
+
+  function enableVerification(uint256 _minimalDeposit, uint256 _timeout) external onlyOwner {
+    require(activeFrom == 0, "Verification is already enabled");
+    require(_timeout >= minimalTimeout, "Timeout is not big enough");
+
+    uint256 _activeFrom = now + _timeout;
+
+    minimalDeposit = _minimalDeposit;
+    activeFrom = _activeFrom;
+
+    emit EnableVerification(_minimalDeposit, _activeFrom);
+  }
+
+  function disableVerification() external onlyOwner {
+    require(minimalDeposit != 0 && activeFrom != 0, "Verification is already disabled");
+
+    minimalDeposit = 0;
+    activeFrom = 0;
+
+    emit DisableVerification();
+  }
+
+  // PUBLIC INTERFACE
+
+  function reportNoDeposit(uint256 _tokenId) external {
+    require(now >= activeFrom, "Verification is disabled");
+    require(_tokenContract().exists(_tokenId), "Token doesn't exist");
+
+    PPDepositHolder depositHolder = _depositHolder();
+    bool isSufficient = depositHolder.isInsufficient(address(_tokenContract()), _tokenId, minimalDeposit);
+
+    require(isSufficient == false, "The deposit is sufficient");
+
+    depositHolder.payout(address(_tokenContract()), _tokenId, msg.sender);
+    controller.reportCVMisbehaviour(_tokenId);
+
+    emit ReportNoDeposit(msg.sender, _tokenId);
   }
 
   function reportIntersection(
@@ -90,5 +145,15 @@ contract PPContourVerification {
       ) == false,
       "foo"
     );
+  }
+
+  // INTERNAL
+
+  function _tokenContract() internal returns (IPPToken) {
+    return controller.tokenContract();
+  }
+
+  function _depositHolder() internal view returns(PPDepositHolder) {
+    return PPDepositHolder(controller.globalRegistry().getContract(PPGR_DEPOSIT_HOLDER_KEY));
   }
 }

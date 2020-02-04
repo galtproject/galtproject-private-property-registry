@@ -93,6 +93,14 @@ contract PPDepositHolder {
     emit Payout(_tokenContract, _tokenId, balance, _to);
   }
 
+  function isInsufficient(address _tokenContract, uint256 _tokenId, uint256 _minimalDeposit)
+    external
+    view
+    returns (bool)
+  {
+    return (deposits[_tokenContract][_tokenId] >= _minimalDeposit);
+  }
+
   function balanceOf(address _tokenContract, uint256 _tokenId) external view returns (uint256) {
     return deposits[_tokenContract][_tokenId];
   }

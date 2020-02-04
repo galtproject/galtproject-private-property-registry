@@ -70,6 +70,12 @@ contract PPTokenController is IPPTokenController, Ownable {
     _;
   }
 
+  modifier onlyContourVerifier() {
+    require(msg.sender == contourVerificationManager, "Only contourVerifier allowed");
+
+    _;
+  }
+
   constructor(IPPGlobalRegistry _globalRegistry, IPPToken _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
 
@@ -169,6 +175,14 @@ contract PPTokenController is IPPTokenController, Ownable {
     uint256 _tokenId = tokenContract.mint(_to);
 
     emit Mint(_to, _tokenId);
+  }
+
+  // CONTOUR VERIFICATION INTERFACE
+
+  function reportCVMisbehaviour(uint256 _tokenId) external onlyContourVerifier {
+    tokenContract.burn(_tokenId);
+
+    emit ReportCVMisbehaviour(_tokenId);
   }
 
   // CONTROLLER INTERFACE

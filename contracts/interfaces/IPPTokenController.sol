@@ -16,6 +16,7 @@ interface IPPTokenController {
   event SetContourVerificationManager(address indexed contourVerificationManager);
   event SetFeeManager(address indexed feeManager);
   event SetFeeCollector(address indexed feeCollector);
+  event ReportCVMisbehaviour(uint256 tokenId);
   event NewProposal(
     uint256 indexed proposalId,
     uint256 indexed tokenId,
