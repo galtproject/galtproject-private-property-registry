@@ -45,6 +45,8 @@ interface IPPTokenController {
   event SetFee(bytes32 indexed key, uint256 value);
   event WithdrawEth(address indexed to, uint256 amount);
   event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
+  event UpdateContourUpdatedAt(uint256 indexed tokenId, uint256 timestamp);
+  event UpdateDetailsUpdatedAt(uint256 indexed tokenId, uint256 timestamp);
 
   enum PropertyInitialSetupStage {
     PENDING,
