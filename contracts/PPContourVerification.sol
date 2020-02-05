@@ -175,7 +175,9 @@ contract PPContourVerification is Ownable {
       tokenContract.getType(_validToken) == tokenContract.getType(_invalidToken),
       "Tokens type mismatch"
     );
-    // TODO: ignoreUniqueness == false
+
+    require(controller.getDoNotClaimUniquenessFlag(_validToken) == false, "Valid token doesn't claim uniqueness");
+    require(controller.getDoNotClaimUniquenessFlag(_invalidToken) == false, "Invalid token doesn't claim uniqueness");
 
     uint256 validLatestTimestamp = controller.getContourUpdatedAt(_validToken);
     if (validLatestTimestamp == 0) {

@@ -20,6 +20,7 @@ const {
   ether,
   assertRevert,
   getEventArg,
+  numberToEvmWord,
   assertErc20BalanceChanged,
   evmIncreaseTime
 } = require('@galtproject/solidity-test-chest')(web3);
@@ -58,7 +59,7 @@ const TokenType = {
 };
 
 describe('PPContourVerification', () => {
-  const [alice, bob, charlie, dan, minter] = accounts;
+  const [alice, bob, charlie, dan, minter, geoDataManager] = accounts;
   let hodler;
   let token3;
   let controllerX;
@@ -103,7 +104,7 @@ describe('PPContourVerification', () => {
     await galtToken.approve(hodler.address, ether(42), { from: alice });
     await hodler.deposit(await controllerX.tokenContract(), localTokenId, ether(42), { from: alice });
 
-    return localTokenId;
+    return parseInt(localTokenId, 10);
   }
 
   before(async function() {
@@ -141,6 +142,7 @@ describe('PPContourVerification', () => {
     controllerX = await PPTokenController.at(getEventArg(res, 'Build', 'controller'));
 
     await controllerX.setMinter(minter, { from: alice });
+    await controllerX.setGeoDataManager(geoDataManager, { from: alice });
     await controllerX.setFee(bytes32('LOCKER_ETH'), ether(0.1), { from: alice });
   });
 
@@ -348,6 +350,64 @@ describe('PPContourVerification', () => {
             { from: dan }
           ),
           'Verification is disabled'
+        );
+      });
+
+      it("should deny reporting when a valid token doesn't claim a contour uniqueness", async function() {
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        // set do not claim uniqueness flag to true
+        const data = registryX.contract.methods
+          .setPropertyExtraData(validToken, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+          .encodeABI();
+        const res = await controllerX.propose(data, 'foo', { from: charlie });
+        const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+        await controllerX.approve(proposalId, { from: geoDataManager });
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            invalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            0,
+            cPoint('dr5qvnpd0eqs'),
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          "Valid token doesn't claim uniqueness"
+        );
+      });
+
+      it("should deny reporting when an invalid token doesn't claim a contour uniqueness", async function() {
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        // set do not claim uniqueness flag to true
+        const data = registryX.contract.methods
+          .setPropertyExtraData(invalidToken, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+          .encodeABI();
+        const res = await controllerX.propose(data, 'foo', { from: charlie });
+        const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+        await controllerX.approve(proposalId, { from: geoDataManager });
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            invalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            0,
+            cPoint('dr5qvnpd0eqs'),
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          "Invalid token doesn't claim uniqueness"
         );
       });
     });
