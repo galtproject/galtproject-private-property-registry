@@ -23,7 +23,7 @@ contract PPContourVerificationPublicLib {
     uint256 _bSegmentFirstPointIndex,
     uint256 _bSegmentFirstPoint,
     uint256 _bSegmentSecondPoint,
-    bool _matchCollinear
+    bool _excludeCollinear
   )
     public
     view
@@ -38,7 +38,7 @@ contract PPContourVerificationPublicLib {
       _bSegmentFirstPointIndex,
       _bSegmentFirstPoint,
       _bSegmentSecondPoint,
-      _matchCollinear
+      _excludeCollinear
     );
   }
 

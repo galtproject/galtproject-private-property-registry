@@ -25,6 +25,7 @@ contract PPContourVerification is Ownable {
   event EnableVerification(uint256 minimalDeposit, uint256 activeFrom);
   event DisableVerification();
   event ReportNoDeposit(address indexed reporter, uint256 token);
+  event ReportIntersection(address indexed reporter, uint256 indexed validTokenId, uint256 indexed invalidTokenId);
 
   bytes32 public constant PPGR_DEPOSIT_HOLDER_KEY = bytes32("deposit_holder");
 
@@ -36,8 +37,15 @@ contract PPContourVerification is Ownable {
   uint256 public minimalDeposit;
   uint256 public minimalTimeout;
 
-  constructor(PPTokenController _controller, uint256 _minimalTimeout) public {
+  modifier onlyActiveVerification() {
+    require(activeFrom != 0 && now >= activeFrom, "Verification is disabled");
+
+    _;
+  }
+
+  constructor(PPTokenController _controller, PPContourVerificationPublicLib _lib, uint256 _minimalTimeout) public {
     controller = _controller;
+    lib = _lib;
     minimalTimeout = _minimalTimeout;
   }
 
@@ -66,8 +74,7 @@ contract PPContourVerification is Ownable {
 
   // PUBLIC INTERFACE
 
-  function reportNoDeposit(uint256 _tokenId) external {
-    require(now >= activeFrom, "Verification is disabled");
+  function reportNoDeposit(uint256 _tokenId) external onlyActiveVerification {
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
 
     PPDepositHolder depositHolder = _depositHolder();
@@ -92,8 +99,12 @@ contract PPContourVerification is Ownable {
     uint256 _invalidContourSegmentSecondPoint
   )
     external
+    onlyActiveVerification
   {
     IPPToken tokenContract = controller.tokenContract();
+
+    _ensureInvalidity(_validTokenId, _invalidTokenId);
+
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
 
@@ -107,19 +118,15 @@ contract PPContourVerification is Ownable {
         _invalidContourSegmentFirstPointIndex,
         _invalidContourSegmentFirstPoint,
         _invalidContourSegmentSecondPoint,
-        true
-      ) == false,
-      "foo"
+        false
+      ) == true,
+      "Tokens don't intersect"
     );
-    //    bool tokenIntersects = lib.contourHasSegment(_invalidContourSegmentFirstPoint);
 
-    // TODO: fetch _validToken controller->token->(createdAt, contourUpdatedAt, contour, height, type, ignoreUniqueness)
-    // TODO: fetch _invalidToken controller->token->(createdAt, contourUpdatedAt, contour, height, type, ignoreUniqueness)
-    // TODO: ignoreUniqueness == false
-    // TODO: ensure intersection valid
-    // TODO: ensure _validToken is older than _invalidToken using max(createdAt, contourUpdatedAt)
-    // TODO: burn invalid token controller->token->burn();
-    // TODO: fetch deposit and transfer it to the reporter
+    _depositHolder().payout(address(_tokenContract()), _invalidTokenId, msg.sender);
+    controller.reportCVMisbehaviour(_invalidTokenId);
+
+    emit ReportIntersection(msg.sender, _validTokenId, _invalidTokenId);
   }
 
   function reportInclusion(
@@ -130,6 +137,7 @@ contract PPContourVerification is Ownable {
     uint256 _includingPoint
   )
     external
+    onlyActiveVerification
   {
     IPPToken tokenContract = controller.tokenContract();
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
@@ -155,5 +163,37 @@ contract PPContourVerification is Ownable {
 
   function _depositHolder() internal view returns(PPDepositHolder) {
     return PPDepositHolder(controller.globalRegistry().getContract(PPGR_DEPOSIT_HOLDER_KEY));
+  }
+
+  function _ensureInvalidity(uint256 _validToken, uint256 _invalidToken) internal {
+    IPPToken tokenContract = controller.tokenContract();
+
+    require(tokenContract.exists(_validToken) == true, "Valid token doesn't exist");
+    require(tokenContract.exists(_invalidToken) == true, "Invalid token doesn't exist");
+
+    require(
+      tokenContract.getType(_validToken) == tokenContract.getType(_invalidToken),
+      "Tokens type mismatch"
+    );
+    // TODO: ignoreUniqueness == false
+
+    uint256 validLatestTimestamp = controller.getContourUpdatedAt(_validToken);
+    if (validLatestTimestamp == 0) {
+      validLatestTimestamp = tokenContract.propertyCreatedAt(_validToken);
+    }
+    assert(validLatestTimestamp > 0);
+
+    uint256 invalidLatestTimestamp = controller.getContourUpdatedAt(_invalidToken);
+    if (invalidLatestTimestamp == 0) {
+      invalidLatestTimestamp = tokenContract.propertyCreatedAt(_invalidToken);
+    }
+    assert(invalidLatestTimestamp > 0);
+
+    // Matching timestamps
+    require(
+      invalidLatestTimestamp >= validLatestTimestamp,
+      // solium-disable-next-line error-reason
+      "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied"
+    );
   }
 }

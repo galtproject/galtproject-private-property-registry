@@ -49,7 +49,6 @@ library PPContourVerificationLib {
       return false;
     }
 
-    // Existing Token
     require(
       contourHasSegment(
         _aSegmentFirstPointIndex,
