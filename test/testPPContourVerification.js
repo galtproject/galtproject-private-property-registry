@@ -43,8 +43,8 @@ const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99d
 const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
 const rawContour4 = ['dr5qvnp6hfwt', 'dr5qvnp6h46c', 'dr5qvnp3gdwu', 'dr5qvnp3u57s'];
 const contour4 = rawContour4.map(contractPoint.encodeFromGeohash);
-// const rawContour5 = ['dr5qvnp3vur6', 'dr5qvnp3yv97', 'dr5qvnp3ybpq', 'dr5qvnp3wp47'];
-// const contour5 = rawContour5.map(contractPoint.encodeFromGeohash);
+const rawContour5 = ['dr5qvnp3vur6', 'dr5qvnp3yv97', 'dr5qvnp3ybpq', 'dr5qvnp3wp47'];
+const contour5 = rawContour5.map(contractPoint.encodeFromGeohash);
 // const rawContour6 = ['dr5qvnpda9gb', 'dr5qvnpda9gv', 'dr5qvnpda9gt', 'dr5qvnpda9g2'];
 // const contour6 = rawContour6.map(contractPoint.encodeFromGeohash);
 // const rawContour7 = ['dr5qvnpda9gu', 'dr5qvnpda9gf', 'dr5qvnpda9g3', 'dr5qvnpda9g5'];
@@ -56,6 +56,11 @@ const TokenType = {
   BUILDING: 2,
   ROOM: 3,
   PACKAGE: 4
+};
+
+const InclusionType = {
+  VALID_INSIDE_INVALID: 0,
+  INVALID_INSIDE_VALID: 1
 };
 
 describe('PPContourVerification', () => {
@@ -494,6 +499,8 @@ describe('PPContourVerification', () => {
         });
 
         it('it should burn token A if it has the same latestTimestamp as a token B', async function() {
+          // WARNING: tokenA timestamp could be earlier than tokenB,
+          // but it also could be equal, if these both transactions were mined in the same block
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
@@ -562,11 +569,27 @@ describe('PPContourVerification', () => {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
         await evmIncreaseTime(10);
         const invalidToken = await mintToken(contour2, TokenType.BUILDING);
+        const anotherInvalidToken = await mintToken(contour2, TokenType.ROOM, -5);
 
         await assertRevert(
           contourVerificationX.reportIntersection(
             validToken,
             invalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            0,
+            cPoint('dr5qvnpd0eqs'),
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          'Tokens type mismatch'
+        );
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            anotherInvalidToken,
             3,
             cPoint('dr5qvnp9cnpt'),
             cPoint('dr5qvnpd300r'),
@@ -648,6 +671,231 @@ describe('PPContourVerification', () => {
           ),
           'Contour intersects, but not the heights'
         );
+      });
+    });
+  });
+
+  describe('inclusion reporting', () => {
+    beforeEach(async function() {
+      await contourVerificationX.enableVerification(ether(50), 3600);
+      await evmIncreaseTime(3601);
+    });
+
+    describe('constraints', () => {
+      it('should deny reporting when validation has not started yet', async function() {
+        contourVerificationX = await PPContourVerification.new(
+          controllerX.address,
+          this.ppContourVerificationLib.address,
+          3600 /* one hour timeout */
+        );
+        await controllerX.setContourVerificationManager(contourVerificationX.address, { from: alice });
+
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour5, TokenType.LAND_PLOT);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnp3vur6'),
+            { from: dan }
+          ),
+          'Verification is disabled'
+        );
+      });
+
+      it('should deny reporting during a grace period', async function() {
+        await contourVerificationX.disableVerification();
+        await contourVerificationX.enableVerification(ether(50), 3600);
+        await evmIncreaseTime(3500);
+
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnp3vur6'),
+            { from: dan }
+          ),
+          'Verification is disabled'
+        );
+      });
+
+      it('should deny reporting when validation has been disabled', async function() {
+        await contourVerificationX.disableVerification();
+
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnp3vur6'),
+            { from: dan }
+          ),
+          'Verification is disabled'
+        );
+      });
+
+      it("should deny reporting when a valid token doesn't claim a contour uniqueness", async function() {
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        // set do not claim uniqueness flag to true
+        const data = registryX.contract.methods
+          .setPropertyExtraData(validToken, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+          .encodeABI();
+        const res = await controllerX.propose(data, 'foo', { from: charlie });
+        const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+        await controllerX.approve(proposalId, { from: geoDataManager });
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnp3vur6'),
+            { from: dan }
+          ),
+          "Valid token doesn't claim uniqueness"
+        );
+      });
+
+      it("should deny reporting when an invalid token doesn't claim a contour uniqueness", async function() {
+        const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        // set do not claim uniqueness flag to true
+        const data = registryX.contract.methods
+          .setPropertyExtraData(invalidToken, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+          .encodeABI();
+        const res = await controllerX.propose(data, 'foo', { from: charlie });
+        const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+        await controllerX.approve(proposalId, { from: geoDataManager });
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnp3vur6'),
+            { from: dan }
+          ),
+          "Invalid token doesn't claim uniqueness"
+        );
+      });
+
+      describe('timestamp constraints', () => {
+        it('it should burn the latest updated token', async function() {
+          const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+          await evmIncreaseTime(10);
+          const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+
+          const danBalanceBefore = await galtToken.balanceOf(dan);
+
+          await contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnpd100z'),
+            { from: dan }
+          );
+
+          const danBalanceAfter = await galtToken.balanceOf(dan);
+
+          assert.equal(await registryX.exists(validToken), true);
+          assert.equal(await registryX.exists(invalidToken), false);
+
+          assertErc20BalanceChanged(danBalanceBefore, danBalanceAfter, ether(42));
+        });
+
+        it('it deny burning not the latest updated token', async function() {
+          const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
+          await evmIncreaseTime(10);
+          const invalidToken = await mintToken(contour5, TokenType.LAND_PLOT);
+
+          await assertRevert(
+            contourVerificationX.reportInclusion(
+              invalidToken,
+              validToken,
+              InclusionType.VALID_INSIDE_INVALID,
+              3,
+              cPoint('dr5qvnp3vur6'),
+              { from: dan }
+            ),
+            "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied."
+          );
+        });
+
+        it('it should burn token A if it has the same latestTimestamp as a token B', async function() {
+          const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
+          const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
+
+          await contourVerificationX.reportInclusion(
+            tokenA,
+            tokenB,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnpd100z'),
+            { from: dan }
+          );
+
+          assert.equal(await registryX.exists(tokenA), true);
+          assert.equal(await registryX.exists(tokenB), false);
+        });
+      });
+    });
+
+    describe('for LAND_PLOT token types', () => {
+      it('it should allow burning when an invalid toke is inside a valid', async function() {
+        const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
+        const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        await contourVerificationX.reportInclusion(
+          tokenA,
+          tokenB,
+          InclusionType.INVALID_INSIDE_VALID,
+          3,
+          cPoint('dr5qvnpd100z'),
+          { from: dan }
+        );
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
+      it('it should allow burning when a valid token is inside an invalid', async function() {
+        const tokenA = await mintToken(contour4, TokenType.LAND_PLOT);
+        const tokenB = await mintToken(contour1, TokenType.LAND_PLOT);
+
+        await contourVerificationX.reportInclusion(
+          tokenA,
+          tokenB,
+          InclusionType.VALID_INSIDE_INVALID,
+          0,
+          cPoint('dr5qvnp6hfwt'),
+          { from: dan }
+        );
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
       });
     });
   });

@@ -26,6 +26,7 @@ contract PPContourVerification is Ownable {
   event DisableVerification();
   event ReportNoDeposit(address indexed reporter, uint256 token);
   event ReportIntersection(address indexed reporter, uint256 indexed validTokenId, uint256 indexed invalidTokenId);
+  event ReportInclusion(address indexed reporter, uint256 indexed validTokenId, uint256 indexed invalidTokenId);
 
   bytes32 public constant PPGR_DEPOSIT_HOLDER_KEY = bytes32("deposit_holder");
 
@@ -101,9 +102,9 @@ contract PPContourVerification is Ownable {
     external
     onlyActiveVerification
   {
-    IPPToken tokenContract = controller.tokenContract();
-
     _ensureInvalidity(_validTokenId, _invalidTokenId);
+
+    IPPToken tokenContract = controller.tokenContract();
 
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
@@ -144,20 +145,33 @@ contract PPContourVerification is Ownable {
     external
     onlyActiveVerification
   {
+    _ensureInvalidity(_validTokenId, _invalidTokenId);
+
     IPPToken tokenContract = controller.tokenContract();
+
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
 
-    require(
-      lib.pointInsideContour(
-        validContour,
-        invalidContour,
-        _inclusionType,
-        _includingPointIndex,
-        _includingPoint
-      ) == false,
-      "foo"
+    bool isInside = lib.pointInsideContour(
+      validContour,
+      invalidContour,
+      _inclusionType,
+      _includingPointIndex,
+      _includingPoint
     );
+
+    if (isInside == true) {
+      if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {
+        _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
+      }
+    } else {
+      revert("Valid token doesn't include invalid contour point");
+    }
+
+    _depositHolder().payout(address(_tokenContract()), _invalidTokenId, msg.sender);
+    controller.reportCVMisbehaviour(_invalidTokenId);
+
+    emit ReportInclusion(msg.sender, _validTokenId, _invalidTokenId);
   }
 
   // INTERNAL
