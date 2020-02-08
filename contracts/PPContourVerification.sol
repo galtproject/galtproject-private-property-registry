@@ -108,20 +108,25 @@ contract PPContourVerification is Ownable {
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
 
-    require(
-      lib.contourSegmentsIntersects(
-        validContour,
-        invalidContour,
-        _validContourSegmentFirstPointIndex,
-        _validContourSegmentFirstPoint,
-        _validContourSegmentSecondPoint,
-        _invalidContourSegmentFirstPointIndex,
-        _invalidContourSegmentFirstPoint,
-        _invalidContourSegmentSecondPoint,
-        false
-      ) == true,
-      "Tokens don't intersect"
+    bool intersects = lib.contourSegmentsIntersects(
+      validContour,
+      invalidContour,
+      _validContourSegmentFirstPointIndex,
+      _validContourSegmentFirstPoint,
+      _validContourSegmentSecondPoint,
+      _invalidContourSegmentFirstPointIndex,
+      _invalidContourSegmentFirstPoint,
+      _invalidContourSegmentSecondPoint,
+      false
     );
+
+    if (intersects == true) {
+      if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {
+        _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
+      }
+    } else {
+      revert("Tokens don't intersect");
+    }
 
     _depositHolder().payout(address(_tokenContract()), _invalidTokenId, msg.sender);
     controller.reportCVMisbehaviour(_invalidTokenId);
@@ -163,6 +168,27 @@ contract PPContourVerification is Ownable {
 
   function _depositHolder() internal view returns(PPDepositHolder) {
     return PPDepositHolder(controller.globalRegistry().getContract(PPGR_DEPOSIT_HOLDER_KEY));
+  }
+
+  function _requireVerticalIntersection(
+    uint256 _validTokenId,
+    uint256 _invalidTokenId,
+    uint256[] memory _validContour,
+    uint256[] memory _invalidContour
+  )
+    internal
+  {
+    IPPToken tokenContract = controller.tokenContract();
+
+    require(
+      lib.checkForRoomVerticalIntersection(
+        _validContour,
+        _invalidContour,
+        tokenContract.getHighestPoint(_validTokenId),
+        tokenContract.getHighestPoint(_invalidTokenId)
+      ) == true,
+      "Contour intersects, but not the heights"
+    );
   }
 
   function _ensureInvalidity(uint256 _validToken, uint256 _invalidToken) internal {

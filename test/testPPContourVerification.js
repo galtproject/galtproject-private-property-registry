@@ -39,8 +39,8 @@ const rawContour1 = ['dr5qvnpd300r', 'dr5qvnp655pq', 'dr5qvnp3g3w0', 'dr5qvnp9cn
 const contour1 = rawContour1.map(contractPoint.encodeFromGeohash);
 const rawContour2 = ['dr5qvnpd0eqs', 'dr5qvnpd5npy', 'dr5qvnp9grz7', 'dr5qvnpd100z'];
 const contour2 = rawContour2.map(contractPoint.encodeFromGeohash);
-// const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99ddh'];
-// const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
+const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99ddh'];
+const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
 const rawContour4 = ['dr5qvnp6hfwt', 'dr5qvnp6h46c', 'dr5qvnp3gdwu', 'dr5qvnp3u57s'];
 const contour4 = rawContour4.map(contractPoint.encodeFromGeohash);
 // const rawContour5 = ['dr5qvnp3vur6', 'dr5qvnp3yv97', 'dr5qvnp3ybpq', 'dr5qvnp3wp47'];
@@ -67,8 +67,41 @@ describe('PPContourVerification', () => {
   let registryX;
   let galtToken;
 
-  function cPoint(geohash) {
+  /**
+   *
+   * @param {string} geohash
+   * @param {number} height
+   * @returns {number}
+   */
+  function cPoint(geohash, height = 0) {
+    if (height) {
+      return addHeightToCPoint(contractPoint.encodeFromGeohash(geohash), height);
+    }
     return contractPoint.encodeFromGeohash(geohash);
+  }
+
+  /**
+   *
+   * @param {number[]} contour
+   * @param {number} height
+   * @returns {number[]}
+   */
+  function addHeightToContour(contour, height) {
+    const resultingContour = [];
+    for (let i = 0; i < contour.length; i++) {
+      resultingContour[i] = addHeightToCPoint(contour[i], height);
+    }
+    return resultingContour;
+  }
+
+  /**
+   *
+   * @param {number} _cPoint
+   * @param {number} height
+   */
+  function addHeightToCPoint(_cPoint, height) {
+    const parsed = contractPoint.decodeToLatLon(_cPoint);
+    return contractPoint.encodeFromLatLngHeight(parsed.lat, parsed.lon, height);
   }
 
   /**
@@ -109,9 +142,9 @@ describe('PPContourVerification', () => {
 
   before(async function() {
     galtToken = await MintableErc20Token.new();
-    await galtToken.mint(alice, ether(1000));
-    await galtToken.mint(bob, ether(1000));
-    await galtToken.mint(charlie, ether(1000));
+    await galtToken.mint(alice, ether(10000));
+    await galtToken.mint(bob, ether(10000));
+    await galtToken.mint(charlie, ether(10000));
 
     this.ppgr = await PPGlobalRegistry.new();
     this.acl = await PPACL.new();
@@ -410,10 +443,8 @@ describe('PPContourVerification', () => {
           "Invalid token doesn't claim uniqueness"
         );
       });
-    });
 
-    describe('for LAND_PLOT token types', () => {
-      describe('intersecting contours', () => {
+      describe('timestamp constraints', () => {
         it('it should burn the latest updated token', async function() {
           const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
           await evmIncreaseTime(10);
@@ -503,7 +534,9 @@ describe('PPContourVerification', () => {
           assert.equal(await registryX.exists(tokenB), true);
         });
       });
+    });
 
+    describe('for LAND_PLOT token types', () => {
       it('should deny burning when reporting non-intersecting contour', async function() {
         const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
         await evmIncreaseTime(10);
@@ -525,7 +558,7 @@ describe('PPContourVerification', () => {
         );
       });
 
-      it('should deny burning when reporting non-intersecting contour', async function() {
+      it('should deny burning when reporting tokens have different types', async function() {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
         await evmIncreaseTime(10);
         const invalidToken = await mintToken(contour2, TokenType.BUILDING);
@@ -545,8 +578,77 @@ describe('PPContourVerification', () => {
           'Tokens type mismatch'
         );
       });
+    });
 
-      it("should deny burning token when valid token doesn't claim contour uniqueness");
+    describe('for ROOM token types', () => {
+      it('should allow rejecting with existing token intersection proof', async function() {
+        const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour2, 25), TokenType.ROOM, 35);
+
+        const danBalanceBefore = await galtToken.balanceOf(dan);
+
+        await contourVerificationX.reportIntersection(
+          validToken,
+          invalidToken,
+          3,
+          cPoint('dr5qvnp9cnpt', 20),
+          cPoint('dr5qvnpd300r', 20),
+          0,
+          cPoint('dr5qvnpd0eqs', 25),
+          cPoint('dr5qvnpd5npy', 25),
+          { from: dan }
+        );
+
+        const danBalanceAfter = await galtToken.balanceOf(dan);
+
+        assert.equal(await registryX.exists(validToken), true);
+        assert.equal(await registryX.exists(invalidToken), false);
+
+        assertErc20BalanceChanged(danBalanceBefore, danBalanceAfter, ether(42));
+      });
+
+      it('should deny rejecting with (NON-IS contours AND IS heights)', async function() {
+        const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour3, 25), TokenType.ROOM, 35);
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            invalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt', 20),
+            cPoint('dr5qvnpd300r', 20),
+            1,
+            cPoint('dr5qvnp3ewcv', 25),
+            cPoint('dr5qvnp37vs4', 25),
+            { from: dan }
+          ),
+          "Tokens don't intersect"
+        );
+      });
+
+      it('should deny rejecting with (IS contours AND NON-IS heights)', async function() {
+        const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour2, -5), TokenType.ROOM, 10);
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            invalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt', 20),
+            cPoint('dr5qvnpd300r', 20),
+            0,
+            cPoint('dr5qvnpd0eqs', -5),
+            cPoint('dr5qvnpd5npy', -5),
+            { from: dan }
+          ),
+          'Contour intersects, but not the heights'
+        );
+      });
     });
   });
 });

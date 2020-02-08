@@ -42,6 +42,24 @@ contract PPContourVerificationPublicLib {
     );
   }
 
+  function checkForRoomVerticalIntersection(
+    uint256[] memory _validContour,
+    uint256[] memory _invalidContour,
+    int256 _vHP,
+    int256 _iHP
+  )
+    public
+    view
+    returns (bool)
+  {
+    return PPContourVerificationLib.checkForRoomVerticalIntersection(
+      _validContour,
+      _invalidContour,
+      _vHP,
+      _iHP
+    );
+  }
+
   function pointInsideContour(
     uint256[] memory _contourA,
     uint256[] memory _contourB,
