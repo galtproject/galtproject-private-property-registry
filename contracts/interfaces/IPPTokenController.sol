@@ -67,6 +67,7 @@ interface IPPTokenController {
   function initiateTokenBurn(uint256 _tokenId) external;
   function cancelTokenBurn(uint256 _tokenId) external;
   function burnTokenByTimeout(uint256 _tokenId) external;
+  function reportCVMisbehaviour(uint256 _tokenId) external;
   function propose(bytes calldata _data, string calldata _dataLink) external payable;
   function approve(uint256 _proposalId) external;
   function execute(uint256 _proposalId) external;

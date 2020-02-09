@@ -1,7 +1,7 @@
 const { contract } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
 const contractPoint = require('@galtproject/utils').contractPoint;
-const { cPoint, addHeightToContour } = require('./localHelpers');
+const { addHeightToContour } = require('./localHelpers');
 
 const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificationPublicLib');
 

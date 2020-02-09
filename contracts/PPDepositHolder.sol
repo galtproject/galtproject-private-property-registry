@@ -16,14 +16,11 @@ import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPTokenController.sol";
+import "./interfaces/IPPDepositHolder.sol";
 
 
-contract PPDepositHolder {
+contract PPDepositHolder is IPPDepositHolder {
   using SafeMath for uint256;
-
-  event Deposit(address indexed tokenContract, uint256 indexed tokenId, uint256 amount);
-  event Withdrawal(address indexed tokenContract, uint256 indexed tokenId, uint256 total);
-  event Payout(address indexed tokenContract, uint256 indexed tokenId, uint256 amount, address to);
 
   IPPGlobalRegistry public globalRegistry;
 

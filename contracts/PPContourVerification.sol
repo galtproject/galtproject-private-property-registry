@@ -13,12 +13,10 @@ import "@galtproject/geodesic/contracts/utils/GeohashUtils.sol";
 import "@galtproject/geodesic/contracts/utils/SegmentUtils.sol";
 import "@galtproject/geodesic/contracts/utils/LandUtils.sol";
 import "@galtproject/geodesic/contracts/utils/PolygonUtils.sol";
-// TODO: use interface
-import "./PPTokenController.sol";
-import "./PPToken.sol";
+import "./interfaces/IPPToken.sol";
 import "./libs/PPContourVerificationPublicLib.sol";
-// TODO: use interface
-import "./PPDepositHolder.sol";
+import "./interfaces/IPPDepositHolder.sol";
+import "./PPTokenController.sol";
 
 
 contract PPContourVerification is Ownable {
@@ -78,7 +76,7 @@ contract PPContourVerification is Ownable {
   function reportNoDeposit(uint256 _tokenId) external onlyActiveVerification {
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
 
-    PPDepositHolder depositHolder = _depositHolder();
+    IPPDepositHolder depositHolder = _depositHolder();
     bool isSufficient = depositHolder.isInsufficient(address(_tokenContract()), _tokenId, minimalDeposit);
 
     require(isSufficient == false, "The deposit is sufficient");
@@ -180,8 +178,8 @@ contract PPContourVerification is Ownable {
     return controller.tokenContract();
   }
 
-  function _depositHolder() internal view returns(PPDepositHolder) {
-    return PPDepositHolder(controller.globalRegistry().getContract(PPGR_DEPOSIT_HOLDER_KEY));
+  function _depositHolder() internal view returns(IPPDepositHolder) {
+    return IPPDepositHolder(controller.globalRegistry().getContract(PPGR_DEPOSIT_HOLDER_KEY));
   }
 
   function _requireVerticalIntersection(
