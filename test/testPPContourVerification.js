@@ -1,6 +1,15 @@
 const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
 const contractPoint = require('@galtproject/utils').contractPoint;
+const {
+  now,
+  ether,
+  assertRevert,
+  getEventArg,
+  numberToEvmWord,
+  assertErc20BalanceChanged,
+  evmIncreaseTime
+} = require('@galtproject/solidity-test-chest')(web3);
 const { cPoint, addHeightToContour } = require('./localHelpers');
 
 const PPDepositHolder = contract.fromArtifact('PPDepositHolder');
@@ -12,20 +21,9 @@ const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPContourVerification = contract.fromArtifact('PPContourVerification');
 const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificationPublicLib');
-const PPContourVerificationLib = contract.fromArtifact('PPContourVerificationLib');
 const PPToken = contract.fromArtifact('PPToken');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
-
-const {
-  now,
-  ether,
-  assertRevert,
-  getEventArg,
-  numberToEvmWord,
-  assertErc20BalanceChanged,
-  evmIncreaseTime
-} = require('@galtproject/solidity-test-chest')(web3);
 
 PPDepositHolder.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
@@ -119,8 +117,7 @@ describe('PPContourVerification', () => {
     this.ppgr = await PPGlobalRegistry.new();
     this.acl = await PPACL.new();
     this.ppTokenRegistry = await PPTokenRegistry.new();
-    // this.ppContourVerificationLib = await PPContourVerificationPublicLib.new();
-    this.ppContourVerificationLib = await PPContourVerificationLib.new();
+    this.ppContourVerificationLib = await PPContourVerificationPublicLib.new();
 
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
@@ -443,6 +440,48 @@ describe('PPContourVerification', () => {
           assertErc20BalanceChanged(danBalanceBefore, danBalanceAfter, ether(42));
         });
 
+        it('it should burn the latest updated token after second update', async function() {
+          const validToken = await mintToken(contour3, TokenType.LAND_PLOT);
+          await evmIncreaseTime(10);
+          const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+          await evmIncreaseTime(10);
+
+          const data = registryX.contract.methods.setContour(validToken, contour1, 42).encodeABI();
+          const res = await controllerX.propose(data, 'foo', { from: charlie });
+          const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+          await controllerX.approve(proposalId, { from: geoDataManager });
+
+          await assertRevert(
+            contourVerificationX.reportIntersection(
+              validToken,
+              invalidToken,
+              3,
+              cPoint('dr5qvnp9cnpt'),
+              cPoint('dr5qvnpd300r'),
+              0,
+              cPoint('dr5qvnpd0eqs'),
+              cPoint('dr5qvnpd5npy'),
+              { from: dan }
+            ),
+            "invalidTimestamp >= validTimestamp' doesn't satisfied"
+          );
+
+          await contourVerificationX.reportIntersection(
+            invalidToken,
+            validToken,
+            0,
+            cPoint('dr5qvnpd0eqs'),
+            cPoint('dr5qvnpd5npy'),
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            { from: dan }
+          );
+
+          assert.equal(await registryX.exists(validToken), false);
+          assert.equal(await registryX.exists(invalidToken), true);
+        });
+
         it('it deny burning not the latest updated token', async function() {
           const validToken = await mintToken(contour1, TokenType.LAND_PLOT);
           await evmIncreaseTime(10);
@@ -510,6 +549,28 @@ describe('PPContourVerification', () => {
     });
 
     describe('for LAND_PLOT token types', () => {
+      it('it should allow burning contours with a different heights', async function() {
+        // WARNING: tokenA timestamp could be earlier than tokenB,
+        // but it also could be equal, if these both transactions were mined in the same block
+        const tokenA = await mintToken(addHeightToContour(contour1, 50), TokenType.LAND_PLOT);
+        const tokenB = await mintToken(addHeightToContour(contour2, -4), TokenType.LAND_PLOT);
+
+        await contourVerificationX.reportIntersection(
+          tokenA,
+          tokenB,
+          3,
+          cPoint('dr5qvnp9cnpt', 50),
+          cPoint('dr5qvnpd300r', 50),
+          0,
+          cPoint('dr5qvnpd0eqs', -4),
+          cPoint('dr5qvnpd5npy', -4),
+          { from: dan }
+        );
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
       it('should deny burning when reporting non-intersecting contour', async function() {
         const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
         await evmIncreaseTime(10);
@@ -830,7 +891,7 @@ describe('PPContourVerification', () => {
     });
 
     describe('for LAND_PLOT token types', () => {
-      it('it should allow burning when an invalid toke is inside a valid', async function() {
+      it('it should allow burning when an invalid token is inside a valid', async function() {
         const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
@@ -862,6 +923,23 @@ describe('PPContourVerification', () => {
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
+      });
+
+      it('it should deny burning when the point is outside valid contour', async function() {
+        const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
+        const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            tokenA,
+            tokenB,
+            InclusionType.INVALID_INSIDE_VALID,
+            1,
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          'Inclusion not found'
+        );
       });
     });
 
