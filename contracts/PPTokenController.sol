@@ -28,6 +28,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   bytes32 public constant PROPOSAL_ETH_FEE_KEY = bytes32("CONTROLLER_PROPOSAL_ETH");
   bytes32 public constant DETAILS_UPDATED_EXTRA_KEY = bytes32("DETAILS_UPDATED_AT");
   bytes32 public constant CONTOUR_UPDATED_EXTRA_KEY = bytes32("CONTOUR_UPDATED_AT");
+  bytes32 public constant CLAIM_UNIQUENESS_KEY = bytes32("CLAIM_UNIQUENESS");
 
   // setDetails(uint256,uint8,uint8,uint256,bytes32,string,string)
   bytes32 internal constant TOKEN_SET_DETAILS_SIGNATURE = 0x18212fc600000000000000000000000000000000000000000000000000000000;
@@ -455,5 +456,9 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   function getContourUpdatedAt(uint256 _tokenId) public view returns (uint256) {
     return uint256(tokenContract.propertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY));
+  }
+
+  function getDoNotClaimUniquenessFlag(uint256 _tokenId) public view returns (bool) {
+    return tokenContract.propertyExtraData(_tokenId, CLAIM_UNIQUENESS_KEY) != 0x0;
   }
 }

@@ -23,7 +23,7 @@ contract PPContourVerificationPublicLib {
     uint256 _bSegmentFirstPointIndex,
     uint256 _bSegmentFirstPoint,
     uint256 _bSegmentSecondPoint,
-    bool _matchCollinear
+    bool _excludeCollinear
   )
     public
     view
@@ -38,7 +38,25 @@ contract PPContourVerificationPublicLib {
       _bSegmentFirstPointIndex,
       _bSegmentFirstPoint,
       _bSegmentSecondPoint,
-      _matchCollinear
+      _excludeCollinear
+    );
+  }
+
+  function checkForRoomVerticalIntersection(
+    uint256[] memory _validContour,
+    uint256[] memory _invalidContour,
+    int256 _vHP,
+    int256 _iHP
+  )
+    public
+    view
+    returns (bool)
+  {
+    return PPContourVerificationLib.checkForRoomVerticalIntersection(
+      _validContour,
+      _invalidContour,
+      _vHP,
+      _iHP
     );
   }
 
@@ -78,5 +96,13 @@ contract PPContourVerificationPublicLib {
       _a2g,
       _b2g
     );
+  }
+
+  function getLowestElevation(uint256[] memory _contour) public pure returns (int256) {
+    return PPContourVerificationLib.getLowestElevation(_contour);
+  }
+
+  function checkVerticalIntersection(int256 _aHP, int256 _aLP, int256 _bHP, int256 _bLP) public pure returns (bool) {
+    return PPContourVerificationLib.checkVerticalIntersection(_aHP, _aLP, _bHP, _bLP);
   }
 }

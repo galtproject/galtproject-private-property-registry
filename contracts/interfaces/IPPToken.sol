@@ -115,6 +115,7 @@ interface IPPToken {
   function controller() external view returns (address payable);
   function extraData(bytes32 _key) external view returns (bytes32);
   function propertyExtraData(uint256 _tokenId, bytes32 _key) external view returns (bytes32);
+  function propertyCreatedAt(uint256 _tokenId) external view returns (uint256);
   function tokensOfOwner(address _owner) external view returns (uint256[] memory);
   function ownerOf(uint256 _tokenId) external view returns (address);
   function exists(uint256 _tokenId) external view returns (bool);

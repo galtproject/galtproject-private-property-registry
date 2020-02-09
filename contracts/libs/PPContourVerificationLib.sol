@@ -49,7 +49,6 @@ library PPContourVerificationLib {
       return false;
     }
 
-    // Existing Token
     require(
       contourHasSegment(
         _aSegmentFirstPointIndex,
@@ -93,7 +92,6 @@ library PPContourVerificationLib {
     view
     returns (bool)
   {
-    // Verifying Token
     if (_inclusionType == InclusionType.A_POINT_INSIDE_B) {
       require(
         _contourA[_includingPointIndex] == _includingPoint,
@@ -210,27 +208,65 @@ library PPContourVerificationLib {
   function toLatLonPoint(
     uint256 _cPoint
   )
-    public
+    internal
     pure
     returns (int256[2] memory)
   {
     return CPointUtils.cPointToLatLonArr(_cPoint);
   }
 
-  function checkVerticalIntersection(int256 eHP, int256 eLP, int256 vHP, int256 vLP) public pure returns (bool) {
-    if (eHP < vHP && eHP > vLP) {
+  function checkForRoomVerticalIntersection(
+    uint256[] memory _validContour,
+    uint256[] memory _invalidContour,
+    int256 _vHP,
+    int256 _iHP
+  )
+    internal
+    view
+    returns (bool)
+  {
+    int256 vLP = getLowestElevation(_validContour);
+    int256 iLP = getLowestElevation(_invalidContour);
+
+    return checkVerticalIntersection(_vHP, vLP, _iHP, iLP);
+  }
+
+  function getLowestElevation(
+    uint256[] memory _contour
+  )
+    internal
+    pure
+    returns (int256)
+  {
+    uint256 len = _contour.length;
+    require(len > 2, "Empty contour passed in");
+
+    int256 theLowest = CPointUtils.cPointToHeight(_contour[0]);
+
+    for (uint256 i = 1; i < len; i++) {
+      int256 elevation = CPointUtils.cPointToHeight(_contour[i]);
+      if (elevation < theLowest) {
+        theLowest = elevation;
+      }
+    }
+
+    return theLowest;
+  }
+
+  function checkVerticalIntersection(int256 _aHP, int256 _aLP, int256 _bHP, int256 _bLP) internal pure returns (bool) {
+    if (_aHP < _bHP && _aHP > _bLP) {
       return true;
     }
 
-    if (vHP < eHP && vHP > eLP) {
+    if (_bHP < _aHP && _bHP > _aLP) {
       return true;
     }
 
-    if (eLP < vHP && eLP > vLP) {
+    if (_aLP < _bHP && _aLP > _bLP) {
       return true;
     }
 
-    if (vLP < eHP && vLP > eLP) {
+    if (_bLP < _aHP && _bLP > _aLP) {
       return true;
     }
 

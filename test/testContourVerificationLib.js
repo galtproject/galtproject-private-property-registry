@@ -1,8 +1,9 @@
 const { contract } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
+const contractPoint = require('@galtproject/utils').contractPoint;
+const { addHeightToContour } = require('./localHelpers');
 
 const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificationPublicLib');
-const contractPoint = require('@galtproject/utils').contractPoint;
 
 PPContourVerificationPublicLib.numberFormat = 'String';
 
@@ -273,6 +274,32 @@ describe('PPContourVerificationLib', () => {
 
     describe('precision', () => {
       // TODO: there could be some inclusion precision tests
+    });
+  });
+
+  describe('height inclusion', async function() {
+    it('should return the lowest z point of the contour', async function() {
+      assert.equal(await lib.getLowestElevation(addHeightToContour(contour1, 20)), 20);
+      assert.equal(await lib.getLowestElevation(addHeightToContour(contour1, 0)), 0);
+      assert.equal(await lib.getLowestElevation(addHeightToContour(contour1, -1000)), -1000);
+    });
+
+    it('should check for intersections', async function() {
+      assert.equal(await lib.checkVerticalIntersection(30, 20, -5, -10), false);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 10, -5), false);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 10, -5), false);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 20, 15), false);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 35, 30), false);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 40, 35), false);
+
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 40, 10), true);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 25, 22), true);
+
+      assert.equal(await lib.checkVerticalIntersection(-20, -30, -22, -25), true);
+      assert.equal(await lib.checkVerticalIntersection(-20, -30, -10, -40), true);
+
+      // TODO: figure out what we should do with HP < LP
+      assert.equal(await lib.checkVerticalIntersection(20, 30, 20, 10), false);
     });
   });
 });

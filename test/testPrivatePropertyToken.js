@@ -897,4 +897,47 @@ describe('PPToken and PPTokenController', () => {
       assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
     });
   });
+
+  describe('set/unset token uniqueness', () => {
+    it('should allow setting/unsetting claim contour uniqueness flag', async function() {
+      // CREATE REGISTRIES
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: alice
+      });
+      const registryX = await PPToken.at(getEventArg(res, 'Build', 'controller'));
+      const controllerX = await PPTokenController.at(getEventArg(res, 'Build', 'controller'));
+
+      await controllerX.setMinter(minter, { from: alice });
+      await controllerX.setGeoDataManager(geoDataManager, { from: alice });
+
+      res = await controllerX.mint(charlie, { from: minter });
+      const tokenA = getEventArg(res, 'Mint', 'tokenId');
+
+      assert.equal(await controllerX.getDoNotClaimUniquenessFlag(tokenA), false);
+
+      // set true
+      let data = registryX.contract.methods
+        .setPropertyExtraData(tokenA, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+        .encodeABI();
+
+      await assertRevert(controllerX.propose(data, 'foo', { from: alice }), 'Missing permissions');
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      let proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+      await controllerX.approve(proposalId, { from: geoDataManager });
+
+      assert.equal(await controllerX.getDoNotClaimUniquenessFlag(tokenA), true);
+
+      // set false
+      data = registryX.contract.methods
+        .setPropertyExtraData(tokenA, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(0))
+        .encodeABI();
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+      await controllerX.approve(proposalId, { from: geoDataManager });
+
+      assert.equal(await controllerX.getDoNotClaimUniquenessFlag(tokenA), false);
+    });
+  });
 });
