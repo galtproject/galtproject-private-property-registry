@@ -253,7 +253,7 @@ library PPContourVerificationLib {
     return theLowest;
   }
 
-  function checkVerticalIntersection(int256 _aHP, int256 _aLP, int256 _bHP, int256 _bLP) public pure returns (bool) {
+  function checkVerticalIntersection(int256 _aHP, int256 _aLP, int256 _bHP, int256 _bLP) internal pure returns (bool) {
     if (_aHP < _bHP && _aHP > _bLP) {
       return true;
     }

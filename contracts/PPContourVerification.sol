@@ -165,7 +165,7 @@ contract PPContourVerification is Ownable {
         _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
       }
     } else {
-      revert("Valid token doesn't include invalid contour point");
+      revert("Inclusion not found");
     }
 
     _depositHolder().payout(address(_tokenContract()), _invalidTokenId, msg.sender);

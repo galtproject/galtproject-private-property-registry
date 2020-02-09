@@ -1,6 +1,7 @@
 const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
 const contractPoint = require('@galtproject/utils').contractPoint;
+const { cPoint, addHeightToContour } = require('./localHelpers');
 
 const PPDepositHolder = contract.fromArtifact('PPDepositHolder');
 const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
@@ -11,6 +12,7 @@ const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPContourVerification = contract.fromArtifact('PPContourVerification');
 const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificationPublicLib');
+const PPContourVerificationLib = contract.fromArtifact('PPContourVerificationLib');
 const PPToken = contract.fromArtifact('PPToken');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
@@ -73,43 +75,6 @@ describe('PPContourVerification', () => {
   let galtToken;
 
   /**
-   *
-   * @param {string} geohash
-   * @param {number} height
-   * @returns {number}
-   */
-  function cPoint(geohash, height = 0) {
-    if (height) {
-      return addHeightToCPoint(contractPoint.encodeFromGeohash(geohash), height);
-    }
-    return contractPoint.encodeFromGeohash(geohash);
-  }
-
-  /**
-   *
-   * @param {number[]} contour
-   * @param {number} height
-   * @returns {number[]}
-   */
-  function addHeightToContour(contour, height) {
-    const resultingContour = [];
-    for (let i = 0; i < contour.length; i++) {
-      resultingContour[i] = addHeightToCPoint(contour[i], height);
-    }
-    return resultingContour;
-  }
-
-  /**
-   *
-   * @param {number} _cPoint
-   * @param {number} height
-   */
-  function addHeightToCPoint(_cPoint, height) {
-    const parsed = contractPoint.decodeToLatLon(_cPoint);
-    return contractPoint.encodeFromLatLngHeight(parsed.lat, parsed.lon, height);
-  }
-
-  /**
    * @param {number[]} contour
    * @param {TokenType} tokenType
    * @param {number} highestPoint
@@ -154,7 +119,8 @@ describe('PPContourVerification', () => {
     this.ppgr = await PPGlobalRegistry.new();
     this.acl = await PPACL.new();
     this.ppTokenRegistry = await PPTokenRegistry.new();
-    this.ppContourVerificationLib = await PPContourVerificationPublicLib.new();
+    // this.ppContourVerificationLib = await PPContourVerificationPublicLib.new();
+    this.ppContourVerificationLib = await PPContourVerificationLib.new();
 
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
@@ -896,6 +862,86 @@ describe('PPContourVerification', () => {
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
+      });
+    });
+
+    describe('for ROOM token types', () => {
+      it('should allow rejecting with existing token intersection proof', async function() {
+        const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour2, 25), TokenType.ROOM, 35);
+
+        const danBalanceBefore = await galtToken.balanceOf(dan);
+
+        await contourVerificationX.reportInclusion(
+          validToken,
+          invalidToken,
+          InclusionType.INVALID_INSIDE_VALID,
+          3,
+          cPoint('dr5qvnpd100z', 25),
+          { from: dan }
+        );
+
+        const danBalanceAfter = await galtToken.balanceOf(dan);
+
+        assert.equal(await registryX.exists(validToken), true);
+        assert.equal(await registryX.exists(invalidToken), false);
+
+        assertErc20BalanceChanged(danBalanceBefore, danBalanceAfter, ether(42));
+      });
+
+      it('should deny rejecting valid/invalid with (NON-IN contours AND IS heights)', async function() {
+        const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour2, 25), TokenType.ROOM, 35);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            1,
+            cPoint('dr5qvnpd5npy', 25),
+            { from: dan }
+          ),
+          'Inclusion not found'
+        );
+      });
+
+      it('should deny rejecting invalid/valid with (NON-IN contours AND IS heights)', async function() {
+        const validToken = await mintToken(addHeightToContour(contour2, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour1, 25), TokenType.ROOM, 35);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.VALID_INSIDE_INVALID,
+            1,
+            cPoint('dr5qvnpd5npy', 20),
+            { from: dan }
+          ),
+          'Inclusion not found'
+        );
+      });
+
+      it('should deny rejecting with (IN contours AND NON-IS heights)', async function() {
+        const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(addHeightToContour(contour2, -5), TokenType.ROOM, 10);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            validToken,
+            invalidToken,
+            InclusionType.INVALID_INSIDE_VALID,
+            3,
+            cPoint('dr5qvnpd100z', -5),
+            { from: dan }
+          ),
+          'Contour intersects, but not the heights'
+        );
       });
     });
   });

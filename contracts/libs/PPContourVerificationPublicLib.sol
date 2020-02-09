@@ -97,4 +97,12 @@ contract PPContourVerificationPublicLib {
       _b2g
     );
   }
+
+  function getLowestElevation(uint256[] memory _contour) public pure returns (int256) {
+    return PPContourVerificationLib.getLowestElevation(_contour);
+  }
+
+  function checkVerticalIntersection(int256 _aHP, int256 _aLP, int256 _bHP, int256 _bLP) public pure returns (bool) {
+    return PPContourVerificationLib.checkVerticalIntersection(_aHP, _aLP, _bHP, _bLP);
+  }
 }
