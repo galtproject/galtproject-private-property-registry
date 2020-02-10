@@ -20,6 +20,7 @@ const PPACL = contract.fromArtifact('PPACL');
 const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPContourVerification = contract.fromArtifact('PPContourVerification');
+const PPContourVerificationFactory = contract.fromArtifact('PPContourVerificationFactory');
 const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificationPublicLib');
 const PPToken = contract.fromArtifact('PPToken');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
@@ -145,18 +146,21 @@ describe('PPContourVerification', () => {
     await controllerX.setMinter(minter, { from: alice });
     await controllerX.setGeoDataManager(geoDataManager, { from: alice });
     await controllerX.setFee(bytes32('LOCKER_ETH'), ether(0.1), { from: alice });
+
+    this.contourVerificationFactory = await PPContourVerificationFactory.new(this.ppContourVerificationLib.address);
   });
 
   beforeEach(async function() {
-    const res = await controllerX.mint(charlie, { from: minter });
+    let res = await controllerX.mint(charlie, { from: minter });
     token3 = getEventArg(res, 'Mint', 'tokenId');
 
     // SETUP CONTOUR VERIFICATION MANAGER
-    contourVerificationX = await PPContourVerification.new(
-      controllerX.address,
-      this.ppContourVerificationLib.address,
-      3600 /* one hour timeout */
+    res = await this.contourVerificationFactory.build(controllerX.address, 3600 /* one hour timeout */);
+
+    contourVerificationX = await PPContourVerification.at(
+      getEventArg(res, 'NewPPContourVerification', 'contourVerificationContract')
     );
+
     await controllerX.setContourVerificationManager(contourVerificationX.address, { from: alice });
   });
 
