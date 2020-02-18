@@ -634,6 +634,88 @@ describe('PPContourVerification', () => {
       });
     });
 
+    describe('for BUILDING token types', () => {
+      it('it should allow burning contours with a different heights', async function() {
+        // WARNING: tokenA timestamp could be earlier than tokenB,
+        // but it also could be equal, if these both transactions were mined in the same block
+        const tokenA = await mintToken(addHeightToContour(contour1, 50), TokenType.BUILDING);
+        const tokenB = await mintToken(addHeightToContour(contour2, -4), TokenType.BUILDING);
+
+        await contourVerificationX.reportIntersection(
+          tokenA,
+          tokenB,
+          3,
+          cPoint('dr5qvnp9cnpt', 50),
+          cPoint('dr5qvnpd300r', 50),
+          0,
+          cPoint('dr5qvnpd0eqs', -4),
+          cPoint('dr5qvnpd5npy', -4),
+          { from: dan }
+        );
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
+      it('should deny burning when reporting non-intersecting contour', async function() {
+        const tokenA = await mintToken(contour1, TokenType.BUILDING);
+        await evmIncreaseTime(10);
+        const tokenB = await mintToken(contour4, TokenType.BUILDING);
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            tokenA,
+            tokenB,
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            0,
+            cPoint('dr5qvnp6hfwt'),
+            cPoint('dr5qvnp6h46c'),
+            { from: dan }
+          ),
+          "Tokens don't intersect"
+        );
+      });
+
+      it('should deny burning when reporting tokens have different types', async function() {
+        const validToken = await mintToken(contour1, TokenType.BUILDING);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+        const anotherInvalidToken = await mintToken(contour2, TokenType.ROOM, -5);
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            invalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            0,
+            cPoint('dr5qvnpd0eqs'),
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          'Tokens type mismatch'
+        );
+
+        await assertRevert(
+          contourVerificationX.reportIntersection(
+            validToken,
+            anotherInvalidToken,
+            3,
+            cPoint('dr5qvnp9cnpt'),
+            cPoint('dr5qvnpd300r'),
+            0,
+            cPoint('dr5qvnpd0eqs'),
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          'Tokens type mismatch'
+        );
+      });
+    });
+
     describe('for ROOM token types', () => {
       it('should allow rejecting with existing token intersection proof', async function() {
         const validToken = await mintToken(addHeightToContour(contour1, 20), TokenType.ROOM, 30);
@@ -932,6 +1014,59 @@ describe('PPContourVerification', () => {
       it('it should deny burning when the point is outside valid contour', async function() {
         const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(
+            tokenA,
+            tokenB,
+            InclusionType.INVALID_INSIDE_VALID,
+            1,
+            cPoint('dr5qvnpd5npy'),
+            { from: dan }
+          ),
+          'Inclusion not found'
+        );
+      });
+    });
+
+    describe('for BUILDING token types', () => {
+      it('it should allow burning when an invalid token is inside a valid', async function() {
+        const tokenA = await mintToken(contour1, TokenType.BUILDING);
+        const tokenB = await mintToken(contour2, TokenType.BUILDING);
+
+        await contourVerificationX.reportInclusion(
+          tokenA,
+          tokenB,
+          InclusionType.INVALID_INSIDE_VALID,
+          3,
+          cPoint('dr5qvnpd100z'),
+          { from: dan }
+        );
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
+      it('it should allow burning when a valid token is inside an invalid', async function() {
+        const tokenA = await mintToken(contour4, TokenType.BUILDING);
+        const tokenB = await mintToken(contour1, TokenType.BUILDING);
+
+        await contourVerificationX.reportInclusion(
+          tokenA,
+          tokenB,
+          InclusionType.VALID_INSIDE_INVALID,
+          0,
+          cPoint('dr5qvnp6hfwt'),
+          { from: dan }
+        );
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
+      it('it should deny burning when the point is outside valid contour', async function() {
+        const tokenA = await mintToken(contour1, TokenType.BUILDING);
+        const tokenB = await mintToken(contour2, TokenType.BUILDING);
 
         await assertRevert(
           contourVerificationX.reportInclusion(
