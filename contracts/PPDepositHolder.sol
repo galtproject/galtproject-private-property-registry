@@ -65,7 +65,7 @@ contract PPDepositHolder is IPPDepositHolder {
     IERC20(globalRegistry.getGaltTokenAddress())
       .transfer(msg.sender, balance);
 
-    emit Deposit(_tokenContract, _tokenId, balance);
+    emit Withdraw(_tokenContract, _tokenId, balance);
   }
 
   // @dev ContourVerifier claims to payout a deposit in order to reward a fisherman
