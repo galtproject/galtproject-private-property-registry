@@ -212,7 +212,7 @@ describe('PPContourVerification', () => {
 
       assert.equal(await registryX.exists(token3), false);
 
-      let res = await controllerX.mint(charlie, { from: minter });
+      const res = await controllerX.mint(charlie, { from: minter });
       const newToken = getEventArg(res, 'Mint', 'tokenId');
 
       assert.equal(await registryX.exists(newToken), true);
@@ -226,14 +226,14 @@ describe('PPContourVerification', () => {
       await evmIncreaseTime(3601);
 
       const data = registryX.contract.methods
-          .setPropertyExtraData(token3.toString(), await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
-          .encodeABI();
+        .setPropertyExtraData(token3.toString(), await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+        .encodeABI();
       const res = await controllerX.propose(data, 'foo', { from: charlie });
       const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
       await controllerX.approve(proposalId, { from: geoDataManager });
 
       // "Verification is disabled" is returned because "minimalDeposit" field is 0 when verification is disabled
-      await assertRevert(contourVerificationX.reportNoDeposit(token3, { from: dan }), 'Token doesn\'t claim uniqueness');
+      await assertRevert(contourVerificationX.reportNoDeposit(token3, { from: dan }), "Token doesn't claim uniqueness");
 
       assert.equal(await registryX.exists(token3), true);
     });
