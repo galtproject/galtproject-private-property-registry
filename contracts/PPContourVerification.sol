@@ -75,6 +75,7 @@ contract PPContourVerification is Ownable {
 
   function reportNoDeposit(uint256 _tokenId) external onlyActiveVerification {
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
+    require(controller.getDoNotClaimUniquenessFlag(_tokenId) == false, "Token doesn't claim uniqueness");
 
     address tokenContractAddress = address(_tokenContract());
     IPPDepositHolder depositHolder = _depositHolder();

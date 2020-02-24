@@ -208,9 +208,34 @@ describe('PPContourVerification', () => {
 
       await evmIncreaseTime(2);
 
-      contourVerificationX.reportNoDeposit(token3, { from: dan });
+      await contourVerificationX.reportNoDeposit(token3, { from: dan });
 
       assert.equal(await registryX.exists(token3), false);
+
+      const res = await controllerX.mint(charlie, { from: minter });
+      const newToken = getEventArg(res, 'Mint', 'tokenId');
+
+      assert.equal(await registryX.exists(newToken), true);
+
+      await contourVerificationX.reportNoDeposit(newToken, { from: alice });
+
+      assert.equal(await registryX.exists(newToken), false);
+    });
+
+    it('should deny burning on do not claim uniqueness flag', async function() {
+      await evmIncreaseTime(3601);
+
+      const data = registryX.contract.methods
+        .setPropertyExtraData(token3.toString(), await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+        .encodeABI();
+      const res = await controllerX.propose(data, 'foo', { from: charlie });
+      const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+      await controllerX.approve(proposalId, { from: geoDataManager });
+
+      // "Verification is disabled" is returned because "minimalDeposit" field is 0 when verification is disabled
+      await assertRevert(contourVerificationX.reportNoDeposit(token3, { from: dan }), "Token doesn't claim uniqueness");
+
+      assert.equal(await registryX.exists(token3), true);
     });
 
     it('should deny burning after disabling verification', async function() {
