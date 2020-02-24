@@ -76,12 +76,15 @@ contract PPContourVerification is Ownable {
   function reportNoDeposit(uint256 _tokenId) external onlyActiveVerification {
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
 
+    address tokenContractAddress = address(_tokenContract());
     IPPDepositHolder depositHolder = _depositHolder();
-    bool isSufficient = depositHolder.isInsufficient(address(_tokenContract()), _tokenId, minimalDeposit);
+    bool isSufficient = depositHolder.isInsufficient(tokenContractAddress, _tokenId, minimalDeposit);
 
     require(isSufficient == false, "The deposit is sufficient");
 
-    depositHolder.payout(address(_tokenContract()), _tokenId, msg.sender);
+    if (depositHolder.balanceOf(tokenContractAddress, _tokenId) > 0) {
+      depositHolder.payout(tokenContractAddress, _tokenId, msg.sender);
+    }
     controller.reportCVMisbehaviour(_tokenId);
 
     emit ReportNoDeposit(msg.sender, _tokenId);
@@ -102,7 +105,7 @@ contract PPContourVerification is Ownable {
   {
     _ensureInvalidity(_validTokenId, _invalidTokenId);
 
-    IPPToken tokenContract = controller.tokenContract();
+    IPPToken tokenContract = _tokenContract();
 
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
@@ -127,7 +130,7 @@ contract PPContourVerification is Ownable {
       revert("Tokens don't intersect");
     }
 
-    _depositHolder().payout(address(_tokenContract()), _invalidTokenId, msg.sender);
+    _depositHolder().payout(address(tokenContract), _invalidTokenId, msg.sender);
     controller.reportCVMisbehaviour(_invalidTokenId);
 
     emit ReportIntersection(msg.sender, _validTokenId, _invalidTokenId);
@@ -145,7 +148,7 @@ contract PPContourVerification is Ownable {
   {
     _ensureInvalidity(_validTokenId, _invalidTokenId);
 
-    IPPToken tokenContract = controller.tokenContract();
+    IPPToken tokenContract = _tokenContract();
 
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
@@ -166,7 +169,7 @@ contract PPContourVerification is Ownable {
       revert("Inclusion not found");
     }
 
-    _depositHolder().payout(address(_tokenContract()), _invalidTokenId, msg.sender);
+    _depositHolder().payout(address(tokenContract), _invalidTokenId, msg.sender);
     controller.reportCVMisbehaviour(_invalidTokenId);
 
     emit ReportInclusion(msg.sender, _validTokenId, _invalidTokenId);
