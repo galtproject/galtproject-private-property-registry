@@ -12,11 +12,11 @@ const {
 } = require('@galtproject/solidity-test-chest')(web3);
 const { cPoint, addHeightToContour } = require('./localHelpers');
 
+const PPACL = contract.fromArtifact('PPACL');
 const PPDepositHolder = contract.fromArtifact('PPDepositHolder');
 const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
 const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
 const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
-const PPACL = contract.fromArtifact('PPACL');
 const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPContourVerification = contract.fromArtifact('PPContourVerification');
