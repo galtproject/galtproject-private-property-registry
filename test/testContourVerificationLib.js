@@ -161,51 +161,19 @@ describe('PPContourVerificationLib', () => {
 
   describe('contour inclusion', () => {
     it('should match when a B contour point inside contour A', async function() {
-      assert.equal(
-        await lib.pointInsideContour(
-          contour1,
-          contour2,
-          INCLUSION_TYPE.B_INSIDE_A,
-          3
-        ),
-        true
-      );
+      assert.equal(await lib.pointInsideContour(contour1, contour2, INCLUSION_TYPE.B_INSIDE_A, 3), true);
     });
 
     it('should not match when a B point is not inside contour A', async function() {
-      assert.equal(
-        await lib.pointInsideContour(
-          contour1,
-          contour2,
-          INCLUSION_TYPE.B_INSIDE_A,
-          2
-        ),
-        false
-      );
+      assert.equal(await lib.pointInsideContour(contour1, contour2, INCLUSION_TYPE.B_INSIDE_A, 2), false);
     });
 
     it('should match when a A contour point inside contour B', async function() {
-      assert.equal(
-        await lib.pointInsideContour(
-          contour5,
-          contour1,
-          INCLUSION_TYPE.A_INSIDE_B,
-          0
-        ),
-        true
-      );
+      assert.equal(await lib.pointInsideContour(contour5, contour1, INCLUSION_TYPE.A_INSIDE_B, 0), true);
     });
 
     it('should not match when a A point is not inside contour B', async function() {
-      assert.equal(
-        await lib.pointInsideContour(
-          contour5,
-          contour1,
-          INCLUSION_TYPE.A_INSIDE_B,
-          2
-        ),
-        false
-      );
+      assert.equal(await lib.pointInsideContour(contour5, contour1, INCLUSION_TYPE.A_INSIDE_B, 2), false);
     });
 
     describe('precision', () => {

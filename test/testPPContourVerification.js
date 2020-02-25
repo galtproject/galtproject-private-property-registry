@@ -10,7 +10,7 @@ const {
   assertErc20BalanceChanged,
   evmIncreaseTime
 } = require('@galtproject/solidity-test-chest')(web3);
-const { cPoint, addHeightToContour } = require('./localHelpers');
+const { addHeightToContour } = require('./localHelpers');
 
 const PPACL = contract.fromArtifact('PPACL');
 const PPDepositHolder = contract.fromArtifact('PPDepositHolder');
@@ -613,13 +613,9 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour5, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          }),
           'Verification is disabled'
         );
       });
@@ -634,13 +630,9 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          }),
           'Verification is disabled'
         );
       });
@@ -653,13 +645,9 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          }),
           'Verification is disabled'
         );
       });
@@ -678,13 +666,9 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          }),
           "Valid token doesn't claim uniqueness"
         );
       });
@@ -703,13 +687,9 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          }),
           "Invalid token doesn't claim uniqueness"
         );
       });
@@ -722,13 +702,9 @@ describe('PPContourVerification', () => {
 
           const danBalanceBefore = await galtToken.balanceOf(dan);
 
-          await contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          );
+          await contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          });
 
           const danBalanceAfter = await galtToken.balanceOf(dan);
 
@@ -744,13 +720,9 @@ describe('PPContourVerification', () => {
           const invalidToken = await mintToken(contour5, TokenType.LAND_PLOT);
 
           await assertRevert(
-            contourVerificationX.reportInclusion(
-              invalidToken,
-              validToken,
-              InclusionType.VALID_INSIDE_INVALID,
-              3,
-              { from: dan }
-            ),
+            contourVerificationX.reportInclusion(invalidToken, validToken, InclusionType.VALID_INSIDE_INVALID, 3, {
+              from: dan
+            }),
             "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied."
           );
         });
@@ -759,13 +731,9 @@ describe('PPContourVerification', () => {
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-          await contourVerificationX.reportInclusion(
-            tokenA,
-            tokenB,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          );
+          await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          });
 
           assert.equal(await registryX.exists(tokenA), true);
           assert.equal(await registryX.exists(tokenB), false);
@@ -778,13 +746,9 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-        await contourVerificationX.reportInclusion(
-          tokenA,
-          tokenB,
-          InclusionType.INVALID_INSIDE_VALID,
-          3,
-          { from: dan }
-        );
+        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 3, {
+          from: dan
+        });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
@@ -794,13 +758,9 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour4, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour1, TokenType.LAND_PLOT);
 
-        await contourVerificationX.reportInclusion(
-          tokenA,
-          tokenB,
-          InclusionType.VALID_INSIDE_INVALID,
-          0,
-          { from: dan }
-        );
+        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.VALID_INSIDE_INVALID, 0, {
+          from: dan
+        });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
@@ -811,13 +771,7 @@ describe('PPContourVerification', () => {
         const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            tokenA,
-            tokenB,
-            InclusionType.INVALID_INSIDE_VALID,
-            1,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 1, { from: dan }),
           'Inclusion not found'
         );
       });
@@ -828,13 +782,9 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour1, TokenType.BUILDING);
         const tokenB = await mintToken(contour2, TokenType.BUILDING);
 
-        await contourVerificationX.reportInclusion(
-          tokenA,
-          tokenB,
-          InclusionType.INVALID_INSIDE_VALID,
-          3,
-          { from: dan }
-        );
+        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 3, {
+          from: dan
+        });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
@@ -844,13 +794,9 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour4, TokenType.BUILDING);
         const tokenB = await mintToken(contour1, TokenType.BUILDING);
 
-        await contourVerificationX.reportInclusion(
-          tokenA,
-          tokenB,
-          InclusionType.VALID_INSIDE_INVALID,
-          0,
-          { from: dan }
-        );
+        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.VALID_INSIDE_INVALID, 0, {
+          from: dan
+        });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
@@ -861,13 +807,7 @@ describe('PPContourVerification', () => {
         const tokenB = await mintToken(contour2, TokenType.BUILDING);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            tokenA,
-            tokenB,
-            InclusionType.INVALID_INSIDE_VALID,
-            1,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 1, { from: dan }),
           'Inclusion not found'
         );
       });
@@ -881,13 +821,9 @@ describe('PPContourVerification', () => {
 
         const danBalanceBefore = await galtToken.balanceOf(dan);
 
-        await contourVerificationX.reportInclusion(
-          validToken,
-          invalidToken,
-          InclusionType.INVALID_INSIDE_VALID,
-          3,
-          { from: dan }
-        );
+        await contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          from: dan
+        });
 
         const danBalanceAfter = await galtToken.balanceOf(dan);
 
@@ -903,13 +839,9 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour2, 25), TokenType.ROOM, 35);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            1,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 1, {
+            from: dan
+          }),
           'Inclusion not found'
         );
       });
@@ -920,13 +852,9 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour1, 25), TokenType.ROOM, 35);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.VALID_INSIDE_INVALID,
-            1,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.VALID_INSIDE_INVALID, 1, {
+            from: dan
+          }),
           'Inclusion not found'
         );
       });
@@ -937,13 +865,9 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour2, -5), TokenType.ROOM, 10);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(
-            validToken,
-            invalidToken,
-            InclusionType.INVALID_INSIDE_VALID,
-            3,
-            { from: dan }
-          ),
+          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+            from: dan
+          }),
           'Contour intersects, but not the heights'
         );
       });
