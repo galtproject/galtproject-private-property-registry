@@ -18,11 +18,7 @@ contract PPContourVerificationPublicLib {
     uint256[] memory _contourA,
     uint256[] memory _contourB,
     uint256 _aSegmentFirstPointIndex,
-    uint256 _aSegmentFirstPoint,
-    uint256 _aSegmentSecondPoint,
     uint256 _bSegmentFirstPointIndex,
-    uint256 _bSegmentFirstPoint,
-    uint256 _bSegmentSecondPoint,
     bool _excludeCollinear
   )
     public
@@ -33,11 +29,7 @@ contract PPContourVerificationPublicLib {
       _contourA,
       _contourB,
       _aSegmentFirstPointIndex,
-      _aSegmentFirstPoint,
-      _aSegmentSecondPoint,
       _bSegmentFirstPointIndex,
-      _bSegmentFirstPoint,
-      _bSegmentSecondPoint,
       _excludeCollinear
     );
   }
@@ -64,8 +56,7 @@ contract PPContourVerificationPublicLib {
     uint256[] memory _contourA,
     uint256[] memory _contourB,
     PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
-    uint256 _includingPoint
+    uint256 _includingPointIndex
   )
     public
     view
@@ -75,8 +66,7 @@ contract PPContourVerificationPublicLib {
       _contourA,
       _contourB,
       _inclusionType,
-      _includingPointIndex,
-      _includingPoint
+      _includingPointIndex
     );
   }
 

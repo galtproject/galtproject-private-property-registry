@@ -27,17 +27,22 @@ library PPContourVerificationLib {
     uint256[] memory _contourA,
     uint256[] memory _contourB,
     uint256 _aSegmentFirstPointIndex,
-    uint256 _aSegmentFirstPoint,
-    uint256 _aSegmentSecondPoint,
     uint256 _bSegmentFirstPointIndex,
-    uint256 _bSegmentFirstPoint,
-    uint256 _bSegmentSecondPoint,
     bool _excludeCollinear
   )
     internal
     view
     returns (bool)
   {
+    uint contourAlen = _contourA.length;
+    uint contourBlen = _contourB.length;
+
+    uint256 _aSegmentFirstPoint = _contourA[_aSegmentFirstPointIndex];
+    uint256 _aSegmentSecondPoint = _aSegmentFirstPointIndex + 1 == contourAlen ? _contourA[0] : _contourA[_aSegmentFirstPointIndex + 1];
+
+    uint256 _bSegmentFirstPoint = _contourB[_bSegmentFirstPointIndex];
+    uint256 _bSegmentSecondPoint = _bSegmentFirstPointIndex + 1 == contourBlen ? _contourB[0] : _contourB[_bSegmentFirstPointIndex + 1];
+
     bool isCollinear = segmentsAreCollinear(
       _aSegmentFirstPoint,
       _aSegmentSecondPoint,
@@ -48,26 +53,6 @@ library PPContourVerificationLib {
     if (_excludeCollinear && isCollinear) {
       return false;
     }
-
-    require(
-      contourHasSegment(
-        _aSegmentFirstPointIndex,
-        _aSegmentFirstPoint,
-        _aSegmentSecondPoint,
-        _contourA
-      ) == true,
-      "Invalid segment for contour A"
-    );
-
-    require(
-      contourHasSegment(
-        _bSegmentFirstPointIndex,
-        _bSegmentFirstPoint,
-        _bSegmentSecondPoint,
-        _contourB
-      ) == true,
-      "Invalid segment for contour B"
-    );
 
     return SegmentUtils.segmentsIntersect(
       getLatLonSegment(
@@ -85,32 +70,21 @@ library PPContourVerificationLib {
     uint256[] memory _contourA,
     uint256[] memory _contourB,
     PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
-    uint256 _includingPoint
+    uint256 _includingPointIndex
   )
     internal
     view
     returns (bool)
   {
     if (_inclusionType == InclusionType.A_POINT_INSIDE_B) {
-      require(
-        _contourA[_includingPointIndex] == _includingPoint,
-        "Invalid point of A contour"
-      );
-
       return isInsideWithoutCache(
-        _includingPoint,
+        _contourA[_includingPointIndex],
         _contourB
       );
 
     } else {
-      require(
-        _contourB[_includingPointIndex] == _includingPoint,
-        "Invalid point of B contour"
-      );
-
       return isInsideWithoutCache(
-        _includingPoint,
+        _contourB[_includingPointIndex],
         _contourA
       );
     }
@@ -141,36 +115,6 @@ library PPContourVerificationLib {
     }
 
     return inside;
-  }
-
-  function contourHasSegment(
-    uint256 _firstPointIndex,
-    uint256 _firstPoint,
-    uint256 _secondPoint,
-    uint256[] memory _contour
-  )
-    internal
-    pure
-    returns (bool)
-  {
-    uint256 len = _contour.length;
-    require(len > 0, "Empty contour");
-    require(_firstPointIndex < len, "Invalid existing coord index");
-
-    if (_contour[_firstPointIndex] != _firstPoint) {
-      return false;
-    }
-
-    uint256 secondPointIndex = _firstPointIndex + 1;
-    if (secondPointIndex == len) {
-      secondPointIndex = 0;
-    }
-
-    if (_contour[secondPointIndex] != _secondPoint) {
-      return false;
-    }
-
-    return true;
   }
 
   function segmentsAreCollinear(

@@ -95,11 +95,7 @@ contract PPContourVerification is Ownable {
     uint256 _validTokenId,
     uint256 _invalidTokenId,
     uint256 _validContourSegmentFirstPointIndex,
-    uint256 _validContourSegmentFirstPoint,
-    uint256 _validContourSegmentSecondPoint,
-    uint256 _invalidContourSegmentFirstPointIndex,
-    uint256 _invalidContourSegmentFirstPoint,
-    uint256 _invalidContourSegmentSecondPoint
+    uint256 _invalidContourSegmentFirstPointIndex
   )
     external
     onlyActiveVerification
@@ -115,11 +111,7 @@ contract PPContourVerification is Ownable {
       validContour,
       invalidContour,
       _validContourSegmentFirstPointIndex,
-      _validContourSegmentFirstPoint,
-      _validContourSegmentSecondPoint,
       _invalidContourSegmentFirstPointIndex,
-      _invalidContourSegmentFirstPoint,
-      _invalidContourSegmentSecondPoint,
       false
     );
 
@@ -141,8 +133,7 @@ contract PPContourVerification is Ownable {
     uint256 _validTokenId,
     uint256 _invalidTokenId,
     PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
-    uint256 _includingPoint
+    uint256 _includingPointIndex
   )
     external
     onlyActiveVerification
@@ -158,8 +149,7 @@ contract PPContourVerification is Ownable {
       validContour,
       invalidContour,
       _inclusionType,
-      _includingPointIndex,
-      _includingPoint
+      _includingPointIndex
     );
 
     if (isInside == true) {
