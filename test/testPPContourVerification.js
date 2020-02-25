@@ -320,17 +320,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           'Verification is disabled'
         );
       });
@@ -345,17 +335,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           'Verification is disabled'
         );
       });
@@ -368,17 +348,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           'Verification is disabled'
         );
       });
@@ -397,17 +367,7 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           "Valid token doesn't claim uniqueness"
         );
       });
@@ -426,17 +386,7 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           "Invalid token doesn't claim uniqueness"
         );
       });
@@ -449,17 +399,7 @@ describe('PPContourVerification', () => {
 
           const danBalanceBefore = await galtToken.balanceOf(dan);
 
-          await contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          );
+          await contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan });
 
           const danBalanceAfter = await galtToken.balanceOf(dan);
 
@@ -481,31 +421,11 @@ describe('PPContourVerification', () => {
           await controllerX.approve(proposalId, { from: geoDataManager });
 
           await assertRevert(
-            contourVerificationX.reportIntersection(
-              validToken,
-              invalidToken,
-              3,
-              cPoint('dr5qvnp9cnpt'),
-              cPoint('dr5qvnpd300r'),
-              0,
-              cPoint('dr5qvnpd0eqs'),
-              cPoint('dr5qvnpd5npy'),
-              { from: dan }
-            ),
+            contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
             "invalidTimestamp >= validTimestamp' doesn't satisfied"
           );
 
-          await contourVerificationX.reportIntersection(
-            invalidToken,
-            validToken,
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            { from: dan }
-          );
+          await contourVerificationX.reportIntersection(invalidToken, validToken, 0, 3, { from: dan });
 
           assert.equal(await registryX.exists(validToken), false);
           assert.equal(await registryX.exists(invalidToken), true);
@@ -517,17 +437,7 @@ describe('PPContourVerification', () => {
           const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
           await assertRevert(
-            contourVerificationX.reportIntersection(
-              invalidToken,
-              validToken,
-              0,
-              cPoint('dr5qvnpd0eqs'),
-              cPoint('dr5qvnpd5npy'),
-              3,
-              cPoint('dr5qvnp9cnpt'),
-              cPoint('dr5qvnpd300r'),
-              { from: dan }
-            ),
+            contourVerificationX.reportIntersection(invalidToken, validToken, 0, 3, { from: dan }),
             "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied."
           );
         });
@@ -538,17 +448,7 @@ describe('PPContourVerification', () => {
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-          await contourVerificationX.reportIntersection(
-            tokenA,
-            tokenB,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          );
+          await contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan });
 
           assert.equal(await registryX.exists(tokenA), true);
           assert.equal(await registryX.exists(tokenB), false);
@@ -559,17 +459,7 @@ describe('PPContourVerification', () => {
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-          await contourVerificationX.reportIntersection(
-            tokenB,
-            tokenA,
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            { from: dan }
-          );
+          await contourVerificationX.reportIntersection(tokenB, tokenA, 0, 3, { from: dan });
 
           assert.equal(await registryX.exists(tokenA), false);
           assert.equal(await registryX.exists(tokenB), true);
@@ -584,17 +474,7 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(addHeightToContour(contour1, 50), TokenType.LAND_PLOT);
         const tokenB = await mintToken(addHeightToContour(contour2, -4), TokenType.LAND_PLOT);
 
-        await contourVerificationX.reportIntersection(
-          tokenA,
-          tokenB,
-          3,
-          cPoint('dr5qvnp9cnpt', 50),
-          cPoint('dr5qvnpd300r', 50),
-          0,
-          cPoint('dr5qvnpd0eqs', -4),
-          cPoint('dr5qvnpd5npy', -4),
-          { from: dan }
-        );
+        await contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
@@ -606,17 +486,7 @@ describe('PPContourVerification', () => {
         const tokenB = await mintToken(contour4, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            tokenA,
-            tokenB,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnp6hfwt'),
-            cPoint('dr5qvnp6h46c'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan }),
           "Tokens don't intersect"
         );
       });
@@ -628,32 +498,12 @@ describe('PPContourVerification', () => {
         const anotherInvalidToken = await mintToken(contour2, TokenType.ROOM, -5);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           'Tokens type mismatch'
         );
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            anotherInvalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, anotherInvalidToken, 3, 0, { from: dan }),
           'Tokens type mismatch'
         );
       });
@@ -666,17 +516,7 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(addHeightToContour(contour1, 50), TokenType.BUILDING);
         const tokenB = await mintToken(addHeightToContour(contour2, -4), TokenType.BUILDING);
 
-        await contourVerificationX.reportIntersection(
-          tokenA,
-          tokenB,
-          3,
-          cPoint('dr5qvnp9cnpt', 50),
-          cPoint('dr5qvnpd300r', 50),
-          0,
-          cPoint('dr5qvnpd0eqs', -4),
-          cPoint('dr5qvnpd5npy', -4),
-          { from: dan }
-        );
+        await contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
@@ -688,17 +528,7 @@ describe('PPContourVerification', () => {
         const tokenB = await mintToken(contour4, TokenType.BUILDING);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            tokenA,
-            tokenB,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnp6hfwt'),
-            cPoint('dr5qvnp6h46c'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan }),
           "Tokens don't intersect"
         );
       });
@@ -710,32 +540,12 @@ describe('PPContourVerification', () => {
         const anotherInvalidToken = await mintToken(contour2, TokenType.ROOM, -5);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           'Tokens type mismatch'
         );
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            anotherInvalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt'),
-            cPoint('dr5qvnpd300r'),
-            0,
-            cPoint('dr5qvnpd0eqs'),
-            cPoint('dr5qvnpd5npy'),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, anotherInvalidToken, 3, 0, { from: dan }),
           'Tokens type mismatch'
         );
       });
@@ -749,17 +559,7 @@ describe('PPContourVerification', () => {
 
         const danBalanceBefore = await galtToken.balanceOf(dan);
 
-        await contourVerificationX.reportIntersection(
-          validToken,
-          invalidToken,
-          3,
-          cPoint('dr5qvnp9cnpt', 20),
-          cPoint('dr5qvnpd300r', 20),
-          0,
-          cPoint('dr5qvnpd0eqs', 25),
-          cPoint('dr5qvnpd5npy', 25),
-          { from: dan }
-        );
+        await contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan });
 
         const danBalanceAfter = await galtToken.balanceOf(dan);
 
@@ -775,17 +575,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour3, 25), TokenType.ROOM, 35);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt', 20),
-            cPoint('dr5qvnpd300r', 20),
-            1,
-            cPoint('dr5qvnp3ewcv', 25),
-            cPoint('dr5qvnp37vs4', 25),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 1, { from: dan }),
           "Tokens don't intersect"
         );
       });
@@ -796,17 +586,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour2, -5), TokenType.ROOM, 10);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(
-            validToken,
-            invalidToken,
-            3,
-            cPoint('dr5qvnp9cnpt', 20),
-            cPoint('dr5qvnpd300r', 20),
-            0,
-            cPoint('dr5qvnpd0eqs', -5),
-            cPoint('dr5qvnpd5npy', -5),
-            { from: dan }
-          ),
+          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
           'Contour intersects, but not the heights'
         );
       });

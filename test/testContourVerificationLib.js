@@ -119,67 +119,15 @@ describe('PPContourVerificationLib', () => {
 
   describe('contour intersection', () => {
     it('should return true for intersecting contours', async function() {
-      assert.equal(
-        await lib.contourSegmentsIntersects(
-          contour1,
-          contour2,
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnp9cnpt'),
-          contractPoint.encodeFromGeohash('dr5qvnpd300r'),
-          0,
-          contractPoint.encodeFromGeohash('dr5qvnpd0eqs'),
-          contractPoint.encodeFromGeohash('dr5qvnpd5npy'),
-          true
-        ),
-        true
-      );
+      assert.equal(await lib.contourSegmentsIntersects(contour1, contour2, 3, 0, true), true);
 
-      assert.equal(
-        await lib.contourSegmentsIntersects(
-          contour1,
-          contour2,
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnp9cnpt'),
-          contractPoint.encodeFromGeohash('dr5qvnpd300r'),
-          0,
-          contractPoint.encodeFromGeohash('dr5qvnpd0eqs'),
-          contractPoint.encodeFromGeohash('dr5qvnpd5npy'),
-          false
-        ),
-        true
-      );
+      assert.equal(await lib.contourSegmentsIntersects(contour1, contour2, 3, 0, false), true);
     });
 
     it('should return false for non-intersecting contours', async function() {
-      assert.equal(
-        await lib.contourSegmentsIntersects(
-          contour1,
-          contour3,
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnp9cnpt'),
-          contractPoint.encodeFromGeohash('dr5qvnpd300r'),
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnp99ddh'),
-          contractPoint.encodeFromGeohash('dr5qvnp9c7b2'),
-          true
-        ),
-        false
-      );
+      assert.equal(await lib.contourSegmentsIntersects(contour1, contour3, 3, 3, true), false);
 
-      assert.equal(
-        await lib.contourSegmentsIntersects(
-          contour1,
-          contour3,
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnp9cnpt'),
-          contractPoint.encodeFromGeohash('dr5qvnpd300r'),
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnp99ddh'),
-          contractPoint.encodeFromGeohash('dr5qvnp9c7b2'),
-          false
-        ),
-        false
-      );
+      assert.equal(await lib.contourSegmentsIntersects(contour1, contour3, 3, 3, false), false);
     });
 
     it('should match collinear contours if specified', async function() {
@@ -188,11 +136,7 @@ describe('PPContourVerificationLib', () => {
           contour6,
           contour7,
           0,
-          contractPoint.encodeFromGeohash('dr5qvnpda9gb'),
-          contractPoint.encodeFromGeohash('dr5qvnpda9gv'),
           0,
-          contractPoint.encodeFromGeohash('dr5qvnpda9gu'),
-          contractPoint.encodeFromGeohash('dr5qvnpda9gf'),
           // excludeCollinear
           false
         ),
@@ -206,11 +150,7 @@ describe('PPContourVerificationLib', () => {
           contour6,
           contour7,
           0,
-          contractPoint.encodeFromGeohash('dr5qvnpda9gb'),
-          contractPoint.encodeFromGeohash('dr5qvnpda9gv'),
           0,
-          contractPoint.encodeFromGeohash('dr5qvnpda9gu'),
-          contractPoint.encodeFromGeohash('dr5qvnpda9gf'),
           // excludeCollinear
           true
         ),
