@@ -56,8 +56,7 @@ contract PPContourVerificationPublicLib {
     uint256[] memory _contourA,
     uint256[] memory _contourB,
     PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
-    uint256 _includingPoint
+    uint256 _includingPointIndex
   )
     public
     view
@@ -67,8 +66,7 @@ contract PPContourVerificationPublicLib {
       _contourA,
       _contourB,
       _inclusionType,
-      _includingPointIndex,
-      _includingPoint
+      _includingPointIndex
     );
   }
 

@@ -166,8 +166,7 @@ describe('PPContourVerificationLib', () => {
           contour1,
           contour2,
           INCLUSION_TYPE.B_INSIDE_A,
-          3,
-          contractPoint.encodeFromGeohash('dr5qvnpd100z')
+          3
         ),
         true
       );
@@ -179,8 +178,7 @@ describe('PPContourVerificationLib', () => {
           contour1,
           contour2,
           INCLUSION_TYPE.B_INSIDE_A,
-          2,
-          contractPoint.encodeFromGeohash('dr5qvnp9grz7')
+          2
         ),
         false
       );
@@ -192,8 +190,7 @@ describe('PPContourVerificationLib', () => {
           contour5,
           contour1,
           INCLUSION_TYPE.A_INSIDE_B,
-          0,
-          contractPoint.encodeFromGeohash('dr5qvnp3vur6')
+          0
         ),
         true
       );
@@ -205,8 +202,7 @@ describe('PPContourVerificationLib', () => {
           contour5,
           contour1,
           INCLUSION_TYPE.A_INSIDE_B,
-          2,
-          contractPoint.encodeFromGeohash('dr5qvnp3ybpq')
+          2
         ),
         false
       );

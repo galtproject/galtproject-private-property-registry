@@ -618,7 +618,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnp3vur6'),
             { from: dan }
           ),
           'Verification is disabled'
@@ -640,7 +639,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnp3vur6'),
             { from: dan }
           ),
           'Verification is disabled'
@@ -660,7 +658,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnp3vur6'),
             { from: dan }
           ),
           'Verification is disabled'
@@ -686,7 +683,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnp3vur6'),
             { from: dan }
           ),
           "Valid token doesn't claim uniqueness"
@@ -712,7 +708,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnp3vur6'),
             { from: dan }
           ),
           "Invalid token doesn't claim uniqueness"
@@ -732,7 +727,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnpd100z'),
             { from: dan }
           );
 
@@ -755,7 +749,6 @@ describe('PPContourVerification', () => {
               validToken,
               InclusionType.VALID_INSIDE_INVALID,
               3,
-              cPoint('dr5qvnp3vur6'),
               { from: dan }
             ),
             "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied."
@@ -771,7 +764,6 @@ describe('PPContourVerification', () => {
             tokenB,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnpd100z'),
             { from: dan }
           );
 
@@ -791,7 +783,6 @@ describe('PPContourVerification', () => {
           tokenB,
           InclusionType.INVALID_INSIDE_VALID,
           3,
-          cPoint('dr5qvnpd100z'),
           { from: dan }
         );
 
@@ -808,7 +799,6 @@ describe('PPContourVerification', () => {
           tokenB,
           InclusionType.VALID_INSIDE_INVALID,
           0,
-          cPoint('dr5qvnp6hfwt'),
           { from: dan }
         );
 
@@ -826,7 +816,6 @@ describe('PPContourVerification', () => {
             tokenB,
             InclusionType.INVALID_INSIDE_VALID,
             1,
-            cPoint('dr5qvnpd5npy'),
             { from: dan }
           ),
           'Inclusion not found'
@@ -844,7 +833,6 @@ describe('PPContourVerification', () => {
           tokenB,
           InclusionType.INVALID_INSIDE_VALID,
           3,
-          cPoint('dr5qvnpd100z'),
           { from: dan }
         );
 
@@ -861,7 +849,6 @@ describe('PPContourVerification', () => {
           tokenB,
           InclusionType.VALID_INSIDE_INVALID,
           0,
-          cPoint('dr5qvnp6hfwt'),
           { from: dan }
         );
 
@@ -879,7 +866,6 @@ describe('PPContourVerification', () => {
             tokenB,
             InclusionType.INVALID_INSIDE_VALID,
             1,
-            cPoint('dr5qvnpd5npy'),
             { from: dan }
           ),
           'Inclusion not found'
@@ -900,7 +886,6 @@ describe('PPContourVerification', () => {
           invalidToken,
           InclusionType.INVALID_INSIDE_VALID,
           3,
-          cPoint('dr5qvnpd100z', 25),
           { from: dan }
         );
 
@@ -923,7 +908,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             1,
-            cPoint('dr5qvnpd5npy', 25),
             { from: dan }
           ),
           'Inclusion not found'
@@ -941,7 +925,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.VALID_INSIDE_INVALID,
             1,
-            cPoint('dr5qvnpd5npy', 20),
             { from: dan }
           ),
           'Inclusion not found'
@@ -959,7 +942,6 @@ describe('PPContourVerification', () => {
             invalidToken,
             InclusionType.INVALID_INSIDE_VALID,
             3,
-            cPoint('dr5qvnpd100z', -5),
             { from: dan }
           ),
           'Contour intersects, but not the heights'

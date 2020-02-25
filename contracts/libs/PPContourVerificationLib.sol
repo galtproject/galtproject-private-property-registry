@@ -70,32 +70,21 @@ library PPContourVerificationLib {
     uint256[] memory _contourA,
     uint256[] memory _contourB,
     PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
-    uint256 _includingPoint
+    uint256 _includingPointIndex
   )
     internal
     view
     returns (bool)
   {
     if (_inclusionType == InclusionType.A_POINT_INSIDE_B) {
-      require(
-        _contourA[_includingPointIndex] == _includingPoint,
-        "Invalid point of A contour"
-      );
-
       return isInsideWithoutCache(
-        _includingPoint,
+        _contourA[_includingPointIndex],
         _contourB
       );
 
     } else {
-      require(
-        _contourB[_includingPointIndex] == _includingPoint,
-        "Invalid point of B contour"
-      );
-
       return isInsideWithoutCache(
-        _includingPoint,
+        _contourB[_includingPointIndex],
         _contourA
       );
     }
