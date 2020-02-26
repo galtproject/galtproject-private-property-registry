@@ -79,20 +79,23 @@ library PPContourVerificationLib {
     if (_inclusionType == InclusionType.A_POINT_INSIDE_B) {
       return isInsideWithoutCache(
         _contourA[_includingPointIndex],
-        _contourB
+        _contourB,
+        true
       );
 
     } else {
       return isInsideWithoutCache(
         _contourB[_includingPointIndex],
-        _contourA
+        _contourA,
+        true
       );
     }
   }
 
   function isInsideWithoutCache(
     uint256 _cPoint,
-    uint256[] memory _polygon
+    uint256[] memory _polygon,
+    bool _excludeCollinear
   )
     internal
     pure
@@ -108,6 +111,11 @@ library PPContourVerificationLib {
       (int256 xj, int256 yj) = CPointUtils.cPointToLatLon(_polygon[j]);
 
       bool intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (_excludeCollinear) {
+        if (SegmentUtils.pointOnSegment([x, y], [xi, yi], [xj, yj])) {
+          return false;
+        }
+      }
       if (intersect) {
         inside = !inside;
       }
@@ -132,7 +140,12 @@ library PPContourVerificationLib {
     int256[2] memory a2 = toLatLonPoint(_a2);
     int256[2] memory b2 = toLatLonPoint(_b2);
 
-    return SegmentUtils.pointOnSegment(a2, a1, b1) && SegmentUtils.pointOnSegment(b2, a1, b1);
+    return SegmentUtils.pointOnSegment(a2, a1, b1) ||
+    SegmentUtils.pointOnSegment(b2, a1, b1) ||
+    SegmentUtils.pointOnSegment(a1, b1, b2) ||
+    SegmentUtils.pointOnSegment(a2, b1, b2) ||
+    SegmentUtils.pointOnSegment(b1, a1, a2) ||
+    SegmentUtils.pointOnSegment(b2, a1, a2);
   }
 
   function getLatLonSegment(
