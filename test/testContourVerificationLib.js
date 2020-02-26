@@ -80,7 +80,7 @@ describe('PPContourVerificationLib', () => {
   });
 
   describe('collinear segment detection', () => {
-    it.only('should match when one contour includes another on 9-th geohash precision level', async function() {
+    it('should match when one contour includes another on 9-th geohash precision level', async function() {
       assert.equal(
         await lib.segmentsAreCollinear(
           contractPoint.encodeFromGeohash('dr5qvnpdb9g8'),
@@ -92,22 +92,42 @@ describe('PPContourVerificationLib', () => {
       );
 
       assert.equal(
-          await lib.pointInsideContour(
-              ['dr5qvnpdb9g8', 'dr5qvnpdv9g8', 'dr5qvnpdt9g8', 'dr5qvnpd29g8'].map(contractPoint.encodeFromGeohash),
-              ['dr5qvnpdu9g8', 'dr5qvnpdf9g8', 'dr5qvnpd39g8', 'dr5qvnpd59g8'].map(contractPoint.encodeFromGeohash),
-              '0',
-              '1'
-          ),
-          false
+        await lib.pointInsideContour(
+          ['dr5qvnpdb9g8', 'dr5qvnpdv9g8', 'dr5qvnpdt9g8', 'dr5qvnpd29g8'].map(contractPoint.encodeFromGeohash),
+          ['dr5qvnpdu9g8', 'dr5qvnpdf9g8', 'dr5qvnpd39g8', 'dr5qvnpd59g8'].map(contractPoint.encodeFromGeohash),
+          '0',
+          '1'
+        ),
+        false
       );
 
-      const contour1 = ["3504908379293184277775089960751380970484929", "3504908379293184267663027581401573803463709", "3504908379293184275610438330677859925195924", "3504908379293184272425294371702652776185295", "3504908379293184279042971574425585869879316", "3504908379293184291505241382486358460634246"];
-      const contour2 = ["3504908379293184276105216900222897518066954", "3504908379293184272425294371702652776185295", "3504908379293184275610438330677859925195924", "3504908379293184265220051476743923045052113", "3504908379293184244717583796716105286622206", "3504908379293184247067791225427070709953585", "3504908379293184236739256304372281954668313", "3504908379293184244006351132210159812812507", "3504908379293184253809172293908300056543103", "3504908379293184256283083588377561732987908", "3504908379293184266518849833485665153149377", "3504908379293184267199165754924073416653579"];
+      const collinearContour1 = [
+        '3504908379293184277775089960751380970484929',
+        '3504908379293184267663027581401573803463709',
+        '3504908379293184275610438330677859925195924',
+        '3504908379293184272425294371702652776185295',
+        '3504908379293184279042971574425585869879316',
+        '3504908379293184291505241382486358460634246'
+      ];
+      const collinearContour2 = [
+        '3504908379293184276105216900222897518066954',
+        '3504908379293184272425294371702652776185295',
+        '3504908379293184275610438330677859925195924',
+        '3504908379293184265220051476743923045052113',
+        '3504908379293184244717583796716105286622206',
+        '3504908379293184247067791225427070709953585',
+        '3504908379293184236739256304372281954668313',
+        '3504908379293184244006351132210159812812507',
+        '3504908379293184253809172293908300056543103',
+        '3504908379293184256283083588377561732987908',
+        '3504908379293184266518849833485665153149377',
+        '3504908379293184267199165754924073416653579'
+      ];
 
-      // assert.equal(await lib.pointInsideContour(contour1, contour2, '1', '1'), false);
+      assert.equal(await lib.pointInsideContour(collinearContour1, collinearContour2, '1', '1'), false);
 
-      assert.equal(await lib.contourSegmentsIntersects(contour1, contour2, '1', '2', true), false);
-      assert.equal(await lib.contourSegmentsIntersects(contour1, contour2, '1', '2', false), true);
+      assert.equal(await lib.contourSegmentsIntersects(collinearContour1, collinearContour2, '1', '2', true), false);
+      assert.equal(await lib.contourSegmentsIntersects(collinearContour1, collinearContour2, '1', '2', false), true);
     });
 
     it('should match when one contour includes another on 12-th geohash precision level', async function() {
@@ -122,7 +142,7 @@ describe('PPContourVerificationLib', () => {
       );
     });
 
-    it.skip('should NOT match when contour intersection degree is extremely low on 12-th degree level', async function() {
+    it.skip('should NOT match contour intersection degree is extremely low on 12-th degree level', async function() {
       // TODO: find the better case
       assert.equal(
         await lib.segmentsAreCollinear(
