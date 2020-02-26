@@ -132,7 +132,12 @@ library PPContourVerificationLib {
     int256[2] memory a2 = toLatLonPoint(_a2);
     int256[2] memory b2 = toLatLonPoint(_b2);
 
-    return SegmentUtils.pointOnSegment(a2, a1, b1) && SegmentUtils.pointOnSegment(b2, a1, b1);
+    return SegmentUtils.pointOnSegment(a2, a1, b1)
+    || SegmentUtils.pointOnSegment(b2, a1, b1)
+    || SegmentUtils.pointOnSegment(a1, b1, b2)
+    || SegmentUtils.pointOnSegment(a2, b1, b2)
+    || SegmentUtils.pointOnSegment(b1, a1, a2)
+    || SegmentUtils.pointOnSegment(b2, a1, a2);
   }
 
   function getLatLonSegment(
