@@ -222,7 +222,10 @@ describe('PPContourVerification', () => {
 
       assert.equal(await registryX.exists(newToken), true);
 
-      await assertRevert(contourVerificationX.reportNoDeposit(newToken, { from: alice }), 'newTokenTimeout not passed yet');
+      await assertRevert(
+        contourVerificationX.reportNoDeposit(newToken, { from: alice }),
+        'newTokenTimeout not passed yet'
+      );
 
       await evmIncreaseTime(3601);
 

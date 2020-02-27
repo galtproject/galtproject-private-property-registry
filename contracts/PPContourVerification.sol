@@ -43,7 +43,14 @@ contract PPContourVerification is Ownable {
     _;
   }
 
-  constructor(PPTokenController _controller, PPContourVerificationPublicLib _lib, uint256 _minimalTimeout, uint256 _newTokenTimeout) public {
+  constructor(
+    PPTokenController _controller,
+    PPContourVerificationPublicLib _lib,
+    uint256 _minimalTimeout,
+    uint256 _newTokenTimeout
+  )
+    public
+  {
     controller = _controller;
     lib = _lib;
     minimalTimeout = _minimalTimeout;
