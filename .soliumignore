@@ -4,3 +4,4 @@ test
 contracts/Migrations.sol
 contracts/Strings.sol
 contracts/vendor
+contracts/mediators/PPHomeMediator.sol

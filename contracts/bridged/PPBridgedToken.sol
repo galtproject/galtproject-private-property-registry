@@ -88,7 +88,10 @@ contract PPBridgedToken is IPPBridgedToken, ERC721Full, Ownable {
     string calldata _dataLink,
     uint256[] calldata _contour,
     int256 _highestPoint
-  ) external onlyMediator {
+  )
+    external
+    onlyMediator
+  {
     _mint(_to, _tokenId);
 
     emit Mint(_to, _tokenId);
