@@ -91,49 +91,10 @@ contract PPContourVerification is Ownable {
     emit ReportNoDeposit(msg.sender, _tokenId);
   }
 
-  function reportIntersection(
-    uint256 _validTokenId,
-    uint256 _invalidTokenId,
-    uint256 _validContourSegmentFirstPointIndex,
-    uint256 _invalidContourSegmentFirstPointIndex
-  )
-    external
-    onlyActiveVerification
-  {
-    _ensureInvalidity(_validTokenId, _invalidTokenId);
-
-    IPPToken tokenContract = _tokenContract();
-
-    uint256[] memory validContour = tokenContract.getContour(_validTokenId);
-    uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
-
-    bool intersects = lib.contourSegmentsIntersects(
-      validContour,
-      invalidContour,
-      _validContourSegmentFirstPointIndex,
-      _invalidContourSegmentFirstPointIndex,
-      false
-    );
-
-    if (intersects == true) {
-      if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {
-        _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
-      }
-    } else {
-      revert("Tokens don't intersect");
-    }
-
-    _depositHolder().payout(address(tokenContract), _invalidTokenId, msg.sender);
-    controller.reportCVMisbehaviour(_invalidTokenId);
-
-    emit ReportIntersection(msg.sender, _validTokenId, _invalidTokenId);
-  }
-
   function reportInclusion(
     uint256 _validTokenId,
     uint256 _invalidTokenId,
-    PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex
+    uint256 _includingPoint
   )
     external
     onlyActiveVerification
@@ -145,12 +106,7 @@ contract PPContourVerification is Ownable {
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
 
-    bool isInside = lib.pointInsideContour(
-      validContour,
-      invalidContour,
-      _inclusionType,
-      _includingPointIndex
-    );
+    bool isInside = lib.pointInsideContour(validContour, invalidContour, _includingPoint);
 
     if (isInside == true) {
       if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {

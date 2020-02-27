@@ -57,18 +57,25 @@ describe('PPContourVerificationLib', () => {
 
   const rawContour1 = ['dr5qvnpd300r', 'dr5qvnp655pq', 'dr5qvnp3g3w0', 'dr5qvnp9cnpt'];
   const contour1 = rawContour1.map(contractPoint.encodeFromGeohash);
+  const contour1Point = contractPoint.encodeFromLatLng(40.5948277257, -73.9497781981);
   const rawContour2 = ['dr5qvnpd0eqs', 'dr5qvnpd5npy', 'dr5qvnp9grz7', 'dr5qvnpd100z'];
   const contour2 = rawContour2.map(contractPoint.encodeFromGeohash);
+  const contour1Contour2Point = contractPoint.encodeFromLatLng(40.5948365051, -73.9496169672);
+  const contour2Point = contractPoint.encodeFromLatLng(40.5948365392, -73.9495732865);
   const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99ddh'];
   const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
+  const contour1Contour3Point =contractPoint.encodeFromLatLng(40.5948074835, -73.9497317122);
   // const rawContour4 = ['dr5qvnp6hfwt', 'dr5qvnp6h46c', 'dr5qvnp3gdwu', 'dr5qvnp3u57s'];
   // const contour4 = rawContour4.map(contractPoint.encodeFromGeohash);
   const rawContour5 = ['dr5qvnp3vur6', 'dr5qvnp3yv97', 'dr5qvnp3ybpq', 'dr5qvnp3wp47'];
   const contour5 = rawContour5.map(contractPoint.encodeFromGeohash);
+  const contour1Contour5Point = contractPoint.encodeFromLatLng(40.5948079809, -73.9497188934);
   const rawContour6 = ['dr5qvnpda9gb', 'dr5qvnpda9gv', 'dr5qvnpda9gt', 'dr5qvnpda9g2'];
   const contour6 = rawContour6.map(contractPoint.encodeFromGeohash);
+  // console.log('contour6', contour6);
   const rawContour7 = ['dr5qvnpda9gu', 'dr5qvnpda9gf', 'dr5qvnpda9g3', 'dr5qvnpda9g5'];
   const contour7 = rawContour7.map(contractPoint.encodeFromGeohash);
+  // console.log('contour7', contour7);
   // const rawContour8 = ['dr5bvnpda9ga', 'dr5vvnpda9ga', 'dr5tvnpda9ga', 'dr52vnpda9ga'];
   // const contour8 = rawContour8.map(contractPoint.encodeFromGeohash);
   // const rawContour9 = ['dr5uvnpda9ga', 'dr5fvnpda9ga', 'dr53vnpda9ga', 'dr55vnpda9ga'];
@@ -95,10 +102,9 @@ describe('PPContourVerificationLib', () => {
         await lib.pointInsideContour(
           ['dr5qvnpdb9g8', 'dr5qvnpdv9g8', 'dr5qvnpdt9g8', 'dr5qvnpd29g8'].map(contractPoint.encodeFromGeohash),
           ['dr5qvnpdu9g8', 'dr5qvnpdf9g8', 'dr5qvnpd39g8', 'dr5qvnpd59g8'].map(contractPoint.encodeFromGeohash),
-          '0',
-          '1'
+          contractPoint.encodeFromLatLng(40.5949390009, -73.9495249377)
         ),
-        false
+        true
       );
 
       const collinearContour1 = [
@@ -124,7 +130,7 @@ describe('PPContourVerificationLib', () => {
         '3504908379293184267199165754924073416653579'
       ];
 
-      assert.equal(await lib.pointInsideContour(collinearContour1, collinearContour2, '1', '1'), false);
+      assert.equal(await lib.pointInsideContour(collinearContour1, collinearContour2, contractPoint.encodeFromLatLng(40.7557079387, -73.9652475815)), false);
 
       assert.equal(await lib.contourSegmentsIntersects(collinearContour1, collinearContour2, '1', '2', true), false);
       assert.equal(await lib.contourSegmentsIntersects(collinearContour1, collinearContour2, '1', '2', false), true);
@@ -200,19 +206,15 @@ describe('PPContourVerificationLib', () => {
 
   describe('contour inclusion', () => {
     it('should match when a B contour point inside contour A', async function() {
-      assert.equal(await lib.pointInsideContour(contour1, contour2, INCLUSION_TYPE.B_INSIDE_A, 3), true);
+      assert.equal(await lib.pointInsideContour(contour1, contour2, contour1Contour2Point), true);
     });
 
     it('should not match when a B point is not inside contour A', async function() {
-      assert.equal(await lib.pointInsideContour(contour1, contour2, INCLUSION_TYPE.B_INSIDE_A, 2), false);
-    });
-
-    it('should match when a A contour point inside contour B', async function() {
-      assert.equal(await lib.pointInsideContour(contour5, contour1, INCLUSION_TYPE.A_INSIDE_B, 0), true);
+      assert.equal(await lib.pointInsideContour(contour1, contour2, contour2Point), false);
     });
 
     it('should not match when a A point is not inside contour B', async function() {
-      assert.equal(await lib.pointInsideContour(contour5, contour1, INCLUSION_TYPE.A_INSIDE_B, 2), false);
+      assert.equal(await lib.pointInsideContour(contour5, contour1, contour1Point), false);
     });
 
     describe('precision', () => {
