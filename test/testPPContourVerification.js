@@ -47,7 +47,7 @@ const contour2Point = contractPoint.encodeFromLatLng(40.5948365392, -73.94957328
 const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99ddh'];
 const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
 // console.log('contour3', contour3);
-const contour1Contour3Point =contractPoint.encodeFromLatLng(40.5948074835, -73.9497317122);
+const contour1Contour3Point = contractPoint.encodeFromLatLng(40.5948074835, -73.9497317122);
 const rawContour4 = ['dr5qvnp6hfwt', 'dr5qvnp6h46c', 'dr5qvnp3gdwu', 'dr5qvnp3u57s'];
 const contour4 = rawContour4.map(contractPoint.encodeFromGeohash);
 // console.log('contour4', contour4);
@@ -559,7 +559,7 @@ describe('PPContourVerification', () => {
 
         await assertRevert(
           contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour3Point, { from: dan }),
-          "Inclusion not found"
+          'Inclusion not found'
         );
       });
 

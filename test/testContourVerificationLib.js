@@ -59,12 +59,12 @@ describe('PPContourVerificationLib', () => {
   const contour2Point = contractPoint.encodeFromLatLng(40.5948365392, -73.9495732865);
   const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99ddh'];
   const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
-  const contour1Contour3Point =contractPoint.encodeFromLatLng(40.5948074835, -73.9497317122);
+  // const contour1Contour3Point = contractPoint.encodeFromLatLng(40.5948074835, -73.9497317122);
   // const rawContour4 = ['dr5qvnp6hfwt', 'dr5qvnp6h46c', 'dr5qvnp3gdwu', 'dr5qvnp3u57s'];
   // const contour4 = rawContour4.map(contractPoint.encodeFromGeohash);
   const rawContour5 = ['dr5qvnp3vur6', 'dr5qvnp3yv97', 'dr5qvnp3ybpq', 'dr5qvnp3wp47'];
   const contour5 = rawContour5.map(contractPoint.encodeFromGeohash);
-  const contour1Contour5Point = contractPoint.encodeFromLatLng(40.5948079809, -73.9497188934);
+  // const contour1Contour5Point = contractPoint.encodeFromLatLng(40.5948079809, -73.9497188934);
   const rawContour6 = ['dr5qvnpda9gb', 'dr5qvnpda9gv', 'dr5qvnpda9gt', 'dr5qvnpda9g2'];
   const contour6 = rawContour6.map(contractPoint.encodeFromGeohash);
   // console.log('contour6', contour6);
@@ -125,7 +125,14 @@ describe('PPContourVerificationLib', () => {
         '3504908379293184267199165754924073416653579'
       ];
 
-      assert.equal(await lib.pointInsideContour(collinearContour1, collinearContour2, contractPoint.encodeFromLatLng(40.7557079387, -73.9652475815)), false);
+      assert.equal(
+        await lib.pointInsideContour(
+          collinearContour1,
+          collinearContour2,
+          contractPoint.encodeFromLatLng(40.7557079387, -73.9652475815)
+        ),
+        false
+      );
 
       assert.equal(await lib.contourSegmentsIntersects(collinearContour1, collinearContour2, '1', '2', true), false);
       assert.equal(await lib.contourSegmentsIntersects(collinearContour1, collinearContour2, '1', '2', false), true);
