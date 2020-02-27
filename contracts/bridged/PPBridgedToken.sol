@@ -112,6 +112,19 @@ contract PPBridgedToken is IPPBridgedToken, ERC721Full, Ownable {
     p.highestPoint = _highestPoint;
   }
 
+  function recover(
+    address _to,
+    uint256 _tokenId
+  )
+    external
+    onlyMediator
+  {
+    _mint(_to, _tokenId);
+
+    emit Mint(_to, _tokenId);
+    emit Recover(_to, _tokenId);
+  }
+
   function burn(uint256 _tokenId) external onlyMediator {
     address owner = ownerOf(_tokenId);
 

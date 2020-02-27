@@ -15,14 +15,13 @@ import "../bridged/interfaces/IPPBridgedToken.sol";
 
 
 contract PPHomeMediator is BasicMediator {
-  function passMessage(address _from, uint256 _tokenId, bytes memory _metadata) internal {
+  function passMessage(address _from, uint256 _tokenId, bytes memory/* ignoring metadata */) internal {
     bytes4 methodSelector = IForeignMediator(0).handleBridgedTokens.selector;
     bytes memory data = abi.encodeWithSelector(methodSelector, _from, _tokenId, nonce);
 
     bytes32 dataHash = keccak256(data);
     setMessageHashTokenId(dataHash, _tokenId);
     setMessageHashRecipient(dataHash, _from);
-    setMessageHashMetadata(dataHash, _metadata);
     setNonce(dataHash);
 
     bridgeContract.requireToPassMessage(mediatorContractOnOtherSide, data, requestGasLimit);
@@ -96,6 +95,13 @@ contract PPHomeMediator is BasicMediator {
     );
   }
 
+  function recover(address _recipient, uint256 _tokenId) internal {
+    IPPBridgedToken(erc721Token).recover(
+      _recipient,
+      _tokenId
+    );
+  }
+
   function bridgeSpecificActionsOnTokenTransfer(address _from, uint256 _tokenId) internal {
     bytes memory metadata = getMetadata(_tokenId);
 
@@ -117,10 +123,9 @@ contract PPHomeMediator is BasicMediator {
 
     address recipient = messageHashRecipient[_dataHash];
     uint256 tokenId = messageHashTokenId[_dataHash];
-    bytes memory metadata = messageHashMetadata[_dataHash];
 
     setMessageHashFixed(_dataHash);
-    mintToken(recipient, tokenId, metadata);
+    recover(recipient, tokenId);
 
     emit FailedMessageFixed(_dataHash, recipient, tokenId);
   }

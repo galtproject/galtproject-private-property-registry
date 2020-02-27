@@ -19,6 +19,7 @@ interface IPPBridgedToken {
   event SetLegalAgreementIpfsHash(bytes32 legalAgreementIpfsHash);
   event SetExtraData(bytes32 indexed key, bytes32 value);
   event Mint(address indexed to, uint256 indexed privatePropertyId);
+  event Recover(address indexed to, uint256 indexed privatePropertyId);
   event Burn(address indexed from, uint256 indexed privatePropertyId);
 
   enum AreaSource {
@@ -73,6 +74,10 @@ interface IPPBridgedToken {
     string calldata _dataLink,
     uint256[] calldata _contour,
     int256 _highestPoint
+  ) external;
+  function recover(
+    address _to,
+    uint256 _tokenId
   ) external;
 
   // GETTERS
