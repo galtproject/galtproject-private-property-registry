@@ -25,6 +25,7 @@ contract AMBMock {
     transactionHash = bytes32(0);
 
     messageCallStatus[_txHash] = status;
+    delete failedReason[_txHash];
     if (!status) {
       failedMessageDataHash[_txHash] = keccak256(_data);
       failedMessageReceiver[_txHash] = _contract;
