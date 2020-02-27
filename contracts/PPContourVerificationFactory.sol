@@ -23,8 +23,8 @@ contract PPContourVerificationFactory {
     lib = _lib;
   }
 
-  function build(PPTokenController _controller, uint256 _minimalTimeout) external returns (PPContourVerification) {
-    PPContourVerification cv = new PPContourVerification(_controller, lib, _minimalTimeout);
+  function build(PPTokenController _controller, uint256 _minimalTimeout, uint256 _newTokenTimeout) external returns (PPContourVerification) {
+    PPContourVerification cv = new PPContourVerification(_controller, lib, _minimalTimeout, _newTokenTimeout);
 
     emit NewPPContourVerification(address(cv));
 
