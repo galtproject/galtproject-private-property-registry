@@ -160,7 +160,7 @@ describe('PPContourVerification', () => {
     token3 = getEventArg(res, 'Mint', 'tokenId');
 
     // SETUP CONTOUR VERIFICATION MANAGER
-    res = await this.contourVerificationFactory.build(controllerX.address, 3600 /* one hour timeout */);
+    res = await this.contourVerificationFactory.build(controllerX.address, ONE_HOUR, ONE_HOUR);
 
     contourVerificationX = await PPContourVerification.at(
       getEventArg(res, 'NewPPContourVerification', 'contourVerificationContract')
@@ -221,6 +221,13 @@ describe('PPContourVerification', () => {
       const newToken = getEventArg(res, 'Mint', 'tokenId');
 
       assert.equal(await registryX.exists(newToken), true);
+
+      await assertRevert(
+        contourVerificationX.reportNoDeposit(newToken, { from: alice }),
+        'newTokenTimeout not passed yet'
+      );
+
+      await evmIncreaseTime(3601);
 
       await contourVerificationX.reportNoDeposit(newToken, { from: alice });
 
@@ -316,7 +323,8 @@ describe('PPContourVerification', () => {
         contourVerificationX = await PPContourVerification.new(
           controllerX.address,
           this.ppContourVerificationLib.address,
-          3600 /* one hour timeout */
+          ONE_HOUR,
+          ONE_HOUR
         );
         await controllerX.setContourVerificationManager(contourVerificationX.address, { from: alice });
 
@@ -587,7 +595,8 @@ describe('PPContourVerification', () => {
         contourVerificationX = await PPContourVerification.new(
           controllerX.address,
           this.ppContourVerificationLib.address,
-          3600 /* one hour timeout */
+          ONE_HOUR,
+          ONE_HOUR
         );
         await controllerX.setContourVerificationManager(contourVerificationX.address, { from: alice });
 

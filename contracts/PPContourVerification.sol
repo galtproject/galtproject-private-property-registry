@@ -35,6 +35,7 @@ contract PPContourVerification is Ownable {
   // 0 if disabled, in GALT
   uint256 public minimalDeposit;
   uint256 public minimalTimeout;
+  uint256 public newTokenTimeout;
 
   modifier onlyActiveVerification() {
     require(activeFrom != 0 && now >= activeFrom, "Verification is disabled");
@@ -42,10 +43,18 @@ contract PPContourVerification is Ownable {
     _;
   }
 
-  constructor(PPTokenController _controller, PPContourVerificationPublicLib _lib, uint256 _minimalTimeout) public {
+  constructor(
+    PPTokenController _controller,
+    PPContourVerificationPublicLib _lib,
+    uint256 _minimalTimeout,
+    uint256 _newTokenTimeout
+  )
+    public
+  {
     controller = _controller;
     lib = _lib;
     minimalTimeout = _minimalTimeout;
+    newTokenTimeout = _newTokenTimeout;
   }
 
   // OWNER INTERFACE
@@ -74,6 +83,10 @@ contract PPContourVerification is Ownable {
   // PUBLIC INTERFACE
 
   function reportNoDeposit(uint256 _tokenId) external onlyActiveVerification {
+
+    uint256 propertyCreatedAt = _tokenContract().propertyCreatedAt(_tokenId);
+    require(now >= propertyCreatedAt + newTokenTimeout, "newTokenTimeout not passed yet");
+
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
     require(controller.getDoNotClaimUniquenessFlag(_tokenId) == false, "Token doesn't claim uniqueness");
 
