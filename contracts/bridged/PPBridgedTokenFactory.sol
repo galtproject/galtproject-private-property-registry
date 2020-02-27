@@ -15,18 +15,23 @@ import "./PPBridgedToken.sol";
 import "../interfaces/IPPTokenRegistry.sol";
 import "../traits/ChargesFee.sol";
 import "../interfaces/IPPGlobalRegistry.sol";
+import "../mediators/PPHomeMediator.sol";
+import "../mediators/PPMediatorFactory.sol";
 
 
 /**
- * Builds Token and registers it in PrivatePropertyGlobalRegistry
+ * Builds Bridged Token  contract and registers it in PPGlobalRegistry
  */
 contract PPBridgedTokenFactory is Ownable, ChargesFee {
-  event Build(address token);
+  event NewPPBridgedToken(address token, address mediator);
+  event SetHomeMediatorFactory(address factory);
 
   IPPGlobalRegistry public globalRegistry;
+  PPMediatorFactory public homeMediatorFactory;
 
   constructor(
     address _globalRegistry,
+    address _homeMediatorFactory,
     uint256 _ethFee,
     uint256 _galtFee
   )
@@ -35,6 +40,13 @@ contract PPBridgedTokenFactory is Ownable, ChargesFee {
     Ownable()
   {
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
+    homeMediatorFactory = PPMediatorFactory(_homeMediatorFactory);
+  }
+
+  function setHomeMediatorFactory(address _factory) external onlyOwner {
+    homeMediatorFactory = PPMediatorFactory(_factory);
+
+    emit SetHomeMediatorFactory(_factory);
   }
 
   // USER INTERFACE
@@ -43,6 +55,8 @@ contract PPBridgedTokenFactory is Ownable, ChargesFee {
     string calldata _tokenName,
     string calldata _tokenSymbol,
     string calldata _dataLink,
+    address _owner,
+    address _mediatorContractOnOtherSide,
     bytes32 _legalAgreementIpfsHash
   )
     external
@@ -57,19 +71,26 @@ contract PPBridgedTokenFactory is Ownable, ChargesFee {
       _tokenSymbol
     );
 
+    address ppTokenAddress = address(ppToken);
+    address ppMediatorAddress = homeMediatorFactory.build(_owner, ppTokenAddress, _mediatorContractOnOtherSide);
+
     // setting up contracts
     ppToken.setContractDataLink(_dataLink);
     ppToken.setLegalAgreementIpfsHash(_legalAgreementIpfsHash);
+    ppToken.setHomeMediator(ppMediatorAddress);
 
     // transferring ownership
-    ppToken.transferOwnership(msg.sender);
+    ppToken.transferOwnership(_owner);
 
+    IOwnedUpgradeabilityProxy(ppMediatorAddress).transferProxyOwnership(_owner);
+
+    // registering token in registry
     IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress())
-      .addToken(address(ppToken));
+      .addToken(ppTokenAddress);
 
-    emit Build(address(ppToken));
+    emit NewPPBridgedToken(ppTokenAddress, ppMediatorAddress);
 
-    return address(ppToken);
+    return ppTokenAddress;
   }
 
   // INTERNAL

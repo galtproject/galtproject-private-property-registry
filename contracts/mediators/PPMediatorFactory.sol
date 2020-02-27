@@ -16,17 +16,28 @@ import "@galtproject/libs/contracts/proxy/unstructured-storage/OwnedUpgradeabili
 
 
 contract PPMediatorFactory {
-  event Build(address mediatorAddress);
+  event NewPPMediator(address mediator);
 
   address public implementation;
+  address public bridgeContract;
+  uint256 public initialGasLimit;
   IOwnedUpgradeabilityProxyFactory internal ownedUpgradeabilityProxyFactory;
 
-  constructor(IOwnedUpgradeabilityProxyFactory _factory, address _impl) public {
+  constructor(
+    IOwnedUpgradeabilityProxyFactory _factory,
+    address _impl,
+    address _bridgeContract,
+    uint256 _initialGasLimit
+  )
+    public
+  {
     ownedUpgradeabilityProxyFactory = _factory;
     implementation = _impl;
+    bridgeContract = _bridgeContract;
+    initialGasLimit = _initialGasLimit;
   }
 
-  function build(
+  function buildWithPayload(
     bytes calldata _payload
   )
     external
@@ -38,7 +49,35 @@ contract PPMediatorFactory {
       true
     );
 
-    emit Build(mediator);
+    emit NewPPMediator(mediator);
+
+    return mediator;
+  }
+
+  function build(
+    address _owner,
+    address _token,
+    address _mediatorContractOnOtherSide
+  )
+    external
+    returns (address)
+  {
+    bytes memory payload = abi.encodeWithSignature(
+      "initialize(address,address,address,uint256,address)",
+      bridgeContract,
+      _mediatorContractOnOtherSide,
+      _token,
+      initialGasLimit,
+      _owner
+    );
+
+    address mediator = _build(
+      payload,
+      false,
+      true
+    );
+
+    emit NewPPMediator(mediator);
 
     return mediator;
   }

@@ -57,7 +57,8 @@ describe('Mediators', () => {
 
   beforeEach(async function() {
     this.ownedUpgradeabilityProxyFactory = await OwnedUpgradeabilityProxyFactory.new();
-    const proxyFactory = this.ownedUpgradeabilityProxyFactory.address;
+    const proxyFactoryAddress = this.ownedUpgradeabilityProxyFactory.address;
+    bridge = await AMBMock.new();
 
     // foreign chain core contracts
     await (async () => {
@@ -90,10 +91,14 @@ describe('Mediators', () => {
       await this.ppTokenFactory.setGaltFee(galtFee);
 
       const foreignMediatorImplementation = await PPForeignMediator.new(anywhere);
-      this.foreignMediatorFactory = await PPMediatorFactory.new(proxyFactory, foreignMediatorImplementation.address);
-      bridge = await AMBMock.new();
+      this.foreignMediatorFactory = await PPMediatorFactory.new(
+        proxyFactoryAddress,
+        foreignMediatorImplementation.address,
+        bridge.address,
+        2000000
+      );
       // 2M
-      await bridge.setMaxGasPerTx(5000000);
+      await bridge.setMaxGasPerTx(2000000);
       res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
         from: alice,
         value: ethFee,
@@ -106,18 +111,8 @@ describe('Mediators', () => {
       await controllerX.setGeoDataManager(geoDataManager, { from: alice });
 
       // Create a foreign mediator
-      const txData = foreignMediatorImplementation.contract.methods
-        .initialize(
-          bridge.address,
-          // will be changed below
-          anywhere,
-          tokenX.address,
-          2000000,
-          alice
-        )
-        .encodeABI();
-      res = await this.foreignMediatorFactory.build(txData);
-      foreignMediator = await PPForeignMediator.at(getEventArg(res, 'Build', 'mediatorAddress'));
+      res = await this.foreignMediatorFactory.build(alice, tokenX.address, anywhere);
+      foreignMediator = await PPForeignMediator.at(getEventArg(res, 'NewPPMediator', 'mediator'));
     })();
 
     // home chain core contracts
@@ -129,7 +124,19 @@ describe('Mediators', () => {
       await this.bridgedPPGR.initialize();
       await this.ppBridgedTokenRegistry.initialize(this.bridgedPPGR.address);
 
-      this.ppBridgedTokenFactory = await PPBridgedTokenFactory.new(this.bridgedPPGR.address, ether(10), ether(5));
+      const homeMediatorImplementation = await PPHomeMediator.new(anywhere);
+      this.homeMediatorFactory = await PPMediatorFactory.new(
+        proxyFactoryAddress,
+        homeMediatorImplementation.address,
+        bridge.address,
+        2000000
+      );
+      this.ppBridgedTokenFactory = await PPBridgedTokenFactory.new(
+        this.bridgedPPGR.address,
+        this.homeMediatorFactory.address,
+        ether(10),
+        ether(5)
+      );
 
       // PPGR setup
       await this.bridgedPPGR.setContract(await this.bridgedPPGR.PPGR_ACL(), this.bridgedACL.address);
@@ -141,30 +148,24 @@ describe('Mediators', () => {
       // ACL setup
       await this.bridgedACL.setRole(bytes32('TOKEN_REGISTRAR'), this.ppBridgedTokenFactory.address, true);
 
-      const homeMediatorImplementation = await PPHomeMediator.new(anywhere);
-      this.homeMediatorFactory = await PPMediatorFactory.new(proxyFactory, homeMediatorImplementation.address);
+      res = await this.ppBridgedTokenFactory.build(
+        'Bridged Building',
+        'BBDL',
+        registryDataLink,
+        alice,
+        foreignMediator.address,
+        utf8ToHex(''),
+        {
+          from: bob,
+          value: ether(10)
+        }
+      );
+      bridgedTokenX = await PPBridgedToken.at(getEventArg(res, 'NewPPBridgedToken', 'token'));
+      homeMediator = await PPHomeMediator.at(getEventArg(res, 'NewPPBridgedToken', 'mediator'));
 
-      res = await this.ppBridgedTokenFactory.build('Bridged Building', 'BBDL', registryDataLink, utf8ToHex(''), {
-        from: alice,
-        value: ether(10)
-      });
-      bridgedTokenX = await PPBridgedToken.at(getEventArg(res, 'Build', 'token'));
-
-      // Create a home mediator
-      const txData = homeMediatorImplementation.contract.methods
-        .initialize(
-          bridge.address,
-          // in tests is the same for both mediators
-          foreignMediator.address,
-          bridgedTokenX.address,
-          2000000,
-          alice
-        )
-        .encodeABI();
-      res = await this.homeMediatorFactory.build(txData);
-      homeMediator = await PPHomeMediator.at(getEventArg(res, 'Build', 'mediatorAddress'));
-
-      await bridgedTokenX.setHomeMediator(homeMediator.address, { from: alice });
+      assert.equal(await homeMediator.owner(), alice);
+      assert.equal(await homeMediator.bridgeContract(), bridge.address);
+      assert.equal(await homeMediator.erc721Token(), bridgedTokenX.address);
     })();
 
     await foreignMediator.setMediatorContractOnOtherSide(homeMediator.address, { from: alice });
@@ -410,7 +411,7 @@ describe('Mediators', () => {
       assert.equal(decodeErrorReason(res2), 'Invalid contract on other side');
 
       // correct behaviour...
-      await bridge.executeMessageCall(homeMediator.address, foreignMediator.address, fixData, exampleTxHash, 5000000);
+      await bridge.executeMessageCall(homeMediator.address, foreignMediator.address, fixData, exampleTxHash, 2000000);
 
       assert.equal(await bridge.failedReason(exampleTxHash), null);
       assert.equal(await homeMediator.messageHashFixed(dataHash), true);
