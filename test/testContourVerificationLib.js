@@ -7,11 +7,6 @@ const PPContourVerificationPublicLib = contract.fromArtifact('PPContourVerificat
 
 PPContourVerificationPublicLib.numberFormat = 'String';
 
-const INCLUSION_TYPE = {
-  A_INSIDE_B: 0,
-  B_INSIDE_A: 1
-};
-
 describe('PPContourVerificationLib', () => {
   // Contour #1
   // 40.594870, -73.949618 dr5qvnpd300r
