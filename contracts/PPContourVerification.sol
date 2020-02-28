@@ -35,6 +35,7 @@ contract PPContourVerification is Ownable {
   // 0 if disabled, in GALT
   uint256 public minimalDeposit;
   uint256 public minimalTimeout;
+  uint256 public newTokenTimeout;
 
   modifier onlyActiveVerification() {
     require(activeFrom != 0 && now >= activeFrom, "Verification is disabled");
@@ -42,10 +43,18 @@ contract PPContourVerification is Ownable {
     _;
   }
 
-  constructor(PPTokenController _controller, PPContourVerificationPublicLib _lib, uint256 _minimalTimeout) public {
+  constructor(
+    PPTokenController _controller,
+    PPContourVerificationPublicLib _lib,
+    uint256 _minimalTimeout,
+    uint256 _newTokenTimeout
+  )
+    public
+  {
     controller = _controller;
     lib = _lib;
     minimalTimeout = _minimalTimeout;
+    newTokenTimeout = _newTokenTimeout;
   }
 
   // OWNER INTERFACE
@@ -74,6 +83,10 @@ contract PPContourVerification is Ownable {
   // PUBLIC INTERFACE
 
   function reportNoDeposit(uint256 _tokenId) external onlyActiveVerification {
+
+    uint256 propertyCreatedAt = _tokenContract().propertyCreatedAt(_tokenId);
+    require(now >= propertyCreatedAt + newTokenTimeout, "newTokenTimeout not passed yet");
+
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
     require(controller.getDoNotClaimUniquenessFlag(_tokenId) == false, "Token doesn't claim uniqueness");
 
@@ -91,49 +104,10 @@ contract PPContourVerification is Ownable {
     emit ReportNoDeposit(msg.sender, _tokenId);
   }
 
-  function reportIntersection(
-    uint256 _validTokenId,
-    uint256 _invalidTokenId,
-    uint256 _validContourSegmentFirstPointIndex,
-    uint256 _invalidContourSegmentFirstPointIndex
-  )
-    external
-    onlyActiveVerification
-  {
-    _ensureInvalidity(_validTokenId, _invalidTokenId);
-
-    IPPToken tokenContract = _tokenContract();
-
-    uint256[] memory validContour = tokenContract.getContour(_validTokenId);
-    uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
-
-    bool intersects = lib.contourSegmentsIntersects(
-      validContour,
-      invalidContour,
-      _validContourSegmentFirstPointIndex,
-      _invalidContourSegmentFirstPointIndex,
-      false
-    );
-
-    if (intersects == true) {
-      if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {
-        _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
-      }
-    } else {
-      revert("Tokens don't intersect");
-    }
-
-    _depositHolder().payout(address(tokenContract), _invalidTokenId, msg.sender);
-    controller.reportCVMisbehaviour(_invalidTokenId);
-
-    emit ReportIntersection(msg.sender, _validTokenId, _invalidTokenId);
-  }
-
   function reportInclusion(
     uint256 _validTokenId,
     uint256 _invalidTokenId,
-    PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex
+    uint256 _includingPoint
   )
     external
     onlyActiveVerification
@@ -145,12 +119,7 @@ contract PPContourVerification is Ownable {
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
 
-    bool isInside = lib.pointInsideContour(
-      validContour,
-      invalidContour,
-      _inclusionType,
-      _includingPointIndex
-    );
+    bool isInside = lib.pointInsideContour(validContour, invalidContour, _includingPoint);
 
     if (isInside == true) {
       if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {

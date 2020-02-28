@@ -38,14 +38,24 @@ const registryDataLink = 'bafyreihtjrn4lggo3qjvaamqihvgas57iwsozhpdr2al2uucrt3qo
 
 const rawContour1 = ['dr5qvnpd300r', 'dr5qvnp655pq', 'dr5qvnp3g3w0', 'dr5qvnp9cnpt'];
 const contour1 = rawContour1.map(contractPoint.encodeFromGeohash);
+// console.log('contour1', contour1);
 const rawContour2 = ['dr5qvnpd0eqs', 'dr5qvnpd5npy', 'dr5qvnp9grz7', 'dr5qvnpd100z'];
 const contour2 = rawContour2.map(contractPoint.encodeFromGeohash);
+// console.log('contour2', contour2);
+const contour1Contour2Point = contractPoint.encodeFromLatLng(40.5948365051, -73.9496169672);
+const contour2Point = contractPoint.encodeFromLatLng(40.5948365392, -73.9495732865);
 const rawContour3 = ['dr5qvnp9c7b2', 'dr5qvnp3ewcv', 'dr5qvnp37vs4', 'dr5qvnp99ddh'];
 const contour3 = rawContour3.map(contractPoint.encodeFromGeohash);
+// console.log('contour3', contour3);
+const contour1Contour3Point = contractPoint.encodeFromLatLng(40.5948074835, -73.9497317122);
 const rawContour4 = ['dr5qvnp6hfwt', 'dr5qvnp6h46c', 'dr5qvnp3gdwu', 'dr5qvnp3u57s'];
 const contour4 = rawContour4.map(contractPoint.encodeFromGeohash);
+// console.log('contour4', contour4);
+const contour1Contour4Point = contractPoint.encodeFromLatLng(40.5948232658, -73.9498220612);
 const rawContour5 = ['dr5qvnp3vur6', 'dr5qvnp3yv97', 'dr5qvnp3ybpq', 'dr5qvnp3wp47'];
 const contour5 = rawContour5.map(contractPoint.encodeFromGeohash);
+// console.log('contour5', contour5);
+const contour1Contour5Point = contractPoint.encodeFromLatLng(40.5948079809, -73.9497188934);
 // const rawContour6 = ['dr5qvnpda9gb', 'dr5qvnpda9gv', 'dr5qvnpda9gt', 'dr5qvnpda9g2'];
 // const contour6 = rawContour6.map(contractPoint.encodeFromGeohash);
 // const rawContour7 = ['dr5qvnpda9gu', 'dr5qvnpda9gf', 'dr5qvnpda9g3', 'dr5qvnpda9g5'];
@@ -57,11 +67,6 @@ const TokenType = {
   BUILDING: 2,
   ROOM: 3,
   PACKAGE: 4
-};
-
-const InclusionType = {
-  VALID_INSIDE_INVALID: 0,
-  INVALID_INSIDE_VALID: 1
 };
 
 describe('PPContourVerification', () => {
@@ -155,7 +160,7 @@ describe('PPContourVerification', () => {
     token3 = getEventArg(res, 'Mint', 'tokenId');
 
     // SETUP CONTOUR VERIFICATION MANAGER
-    res = await this.contourVerificationFactory.build(controllerX.address, 3600 /* one hour timeout */);
+    res = await this.contourVerificationFactory.build(controllerX.address, ONE_HOUR, ONE_HOUR);
 
     contourVerificationX = await PPContourVerification.at(
       getEventArg(res, 'NewPPContourVerification', 'contourVerificationContract')
@@ -216,6 +221,13 @@ describe('PPContourVerification', () => {
       const newToken = getEventArg(res, 'Mint', 'tokenId');
 
       assert.equal(await registryX.exists(newToken), true);
+
+      await assertRevert(
+        contourVerificationX.reportNoDeposit(newToken, { from: alice }),
+        'newTokenTimeout not passed yet'
+      );
+
+      await evmIncreaseTime(3601);
 
       await contourVerificationX.reportNoDeposit(newToken, { from: alice });
 
@@ -311,7 +323,8 @@ describe('PPContourVerification', () => {
         contourVerificationX = await PPContourVerification.new(
           controllerX.address,
           this.ppContourVerificationLib.address,
-          3600 /* one hour timeout */
+          ONE_HOUR,
+          ONE_HOUR
         );
         await controllerX.setContourVerificationManager(contourVerificationX.address, { from: alice });
 
@@ -320,7 +333,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           'Verification is disabled'
         );
       });
@@ -335,7 +348,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           'Verification is disabled'
         );
       });
@@ -348,7 +361,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           'Verification is disabled'
         );
       });
@@ -367,7 +380,7 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           "Valid token doesn't claim uniqueness"
         );
       });
@@ -386,7 +399,7 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           "Invalid token doesn't claim uniqueness"
         );
       });
@@ -399,7 +412,7 @@ describe('PPContourVerification', () => {
 
           const danBalanceBefore = await galtToken.balanceOf(dan);
 
-          await contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan });
+          await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
 
           const danBalanceAfter = await galtToken.balanceOf(dan);
 
@@ -410,25 +423,25 @@ describe('PPContourVerification', () => {
         });
 
         it('it should burn the latest updated token after second update', async function() {
-          const validToken = await mintToken(contour3, TokenType.LAND_PLOT);
+          const invalidToken = await mintToken(contour3, TokenType.LAND_PLOT);
           await evmIncreaseTime(10);
-          const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
+          const validToken = await mintToken(contour2, TokenType.LAND_PLOT);
           await evmIncreaseTime(10);
 
-          const data = registryX.contract.methods.setContour(validToken, contour1, 42).encodeABI();
+          const data = registryX.contract.methods.setContour(invalidToken, contour1, 42).encodeABI();
           const res = await controllerX.propose(data, 'foo', { from: charlie });
           const proposalId = getEventArg(res, 'NewProposal', 'proposalId');
           await controllerX.approve(proposalId, { from: geoDataManager });
 
           await assertRevert(
-            contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+            contourVerificationX.reportInclusion(invalidToken, validToken, contour1Contour2Point, { from: dan }),
             "invalidTimestamp >= validTimestamp' doesn't satisfied"
           );
 
-          await contourVerificationX.reportIntersection(invalidToken, validToken, 0, 3, { from: dan });
+          await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
 
-          assert.equal(await registryX.exists(validToken), false);
-          assert.equal(await registryX.exists(invalidToken), true);
+          assert.equal(await registryX.exists(invalidToken), false);
+          assert.equal(await registryX.exists(validToken), true);
         });
 
         it('it deny burning not the latest updated token', async function() {
@@ -437,7 +450,7 @@ describe('PPContourVerification', () => {
           const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
           await assertRevert(
-            contourVerificationX.reportIntersection(invalidToken, validToken, 0, 3, { from: dan }),
+            contourVerificationX.reportInclusion(invalidToken, validToken, contour1Contour2Point, { from: dan }),
             "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied."
           );
         });
@@ -448,7 +461,7 @@ describe('PPContourVerification', () => {
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-          await contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan });
+          await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, { from: dan });
 
           assert.equal(await registryX.exists(tokenA), true);
           assert.equal(await registryX.exists(tokenB), false);
@@ -459,7 +472,7 @@ describe('PPContourVerification', () => {
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-          await contourVerificationX.reportIntersection(tokenB, tokenA, 0, 3, { from: dan });
+          await contourVerificationX.reportInclusion(tokenB, tokenA, contour1Contour2Point, { from: dan });
 
           assert.equal(await registryX.exists(tokenA), false);
           assert.equal(await registryX.exists(tokenB), true);
@@ -474,21 +487,10 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(addHeightToContour(contour1, 50), TokenType.LAND_PLOT);
         const tokenB = await mintToken(addHeightToContour(contour2, -4), TokenType.LAND_PLOT);
 
-        await contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan });
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, { from: dan });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
-      });
-
-      it('should deny burning when reporting non-intersecting contour', async function() {
-        const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
-        await evmIncreaseTime(10);
-        const tokenB = await mintToken(contour4, TokenType.LAND_PLOT);
-
-        await assertRevert(
-          contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan }),
-          "Tokens don't intersect"
-        );
       });
 
       it('should deny burning when reporting tokens have different types', async function() {
@@ -498,12 +500,12 @@ describe('PPContourVerification', () => {
         const anotherInvalidToken = await mintToken(contour2, TokenType.ROOM, -5);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           'Tokens type mismatch'
         );
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, anotherInvalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, anotherInvalidToken, contour1Contour2Point, { from: dan }),
           'Tokens type mismatch'
         );
       });
@@ -516,21 +518,10 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(addHeightToContour(contour1, 50), TokenType.BUILDING);
         const tokenB = await mintToken(addHeightToContour(contour2, -4), TokenType.BUILDING);
 
-        await contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan });
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, { from: dan });
 
         assert.equal(await registryX.exists(tokenA), true);
         assert.equal(await registryX.exists(tokenB), false);
-      });
-
-      it('should deny burning when reporting non-intersecting contour', async function() {
-        const tokenA = await mintToken(contour1, TokenType.BUILDING);
-        await evmIncreaseTime(10);
-        const tokenB = await mintToken(contour4, TokenType.BUILDING);
-
-        await assertRevert(
-          contourVerificationX.reportIntersection(tokenA, tokenB, 3, 0, { from: dan }),
-          "Tokens don't intersect"
-        );
       });
 
       it('should deny burning when reporting tokens have different types', async function() {
@@ -540,12 +531,12 @@ describe('PPContourVerification', () => {
         const anotherInvalidToken = await mintToken(contour2, TokenType.ROOM, -5);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           'Tokens type mismatch'
         );
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, anotherInvalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, anotherInvalidToken, contour1Contour2Point, { from: dan }),
           'Tokens type mismatch'
         );
       });
@@ -559,7 +550,7 @@ describe('PPContourVerification', () => {
 
         const danBalanceBefore = await galtToken.balanceOf(dan);
 
-        await contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan });
+        await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
 
         const danBalanceAfter = await galtToken.balanceOf(dan);
 
@@ -575,8 +566,8 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour3, 25), TokenType.ROOM, 35);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 1, { from: dan }),
-          "Tokens don't intersect"
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour3Point, { from: dan }),
+          'Inclusion not found'
         );
       });
 
@@ -586,7 +577,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour2, -5), TokenType.ROOM, 10);
 
         await assertRevert(
-          contourVerificationX.reportIntersection(validToken, invalidToken, 3, 0, { from: dan }),
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
           'Contour intersects, but not the heights'
         );
       });
@@ -604,7 +595,8 @@ describe('PPContourVerification', () => {
         contourVerificationX = await PPContourVerification.new(
           controllerX.address,
           this.ppContourVerificationLib.address,
-          3600 /* one hour timeout */
+          ONE_HOUR,
+          ONE_HOUR
         );
         await controllerX.setContourVerificationManager(contourVerificationX.address, { from: alice });
 
@@ -613,7 +605,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour5, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour5Point, {
             from: dan
           }),
           'Verification is disabled'
@@ -630,7 +622,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
             from: dan
           }),
           'Verification is disabled'
@@ -645,7 +637,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
             from: dan
           }),
           'Verification is disabled'
@@ -666,7 +658,7 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
             from: dan
           }),
           "Valid token doesn't claim uniqueness"
@@ -687,7 +679,7 @@ describe('PPContourVerification', () => {
         await controllerX.approve(proposalId, { from: geoDataManager });
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
             from: dan
           }),
           "Invalid token doesn't claim uniqueness"
@@ -702,7 +694,7 @@ describe('PPContourVerification', () => {
 
           const danBalanceBefore = await galtToken.balanceOf(dan);
 
-          await contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
             from: dan
           });
 
@@ -720,7 +712,7 @@ describe('PPContourVerification', () => {
           const invalidToken = await mintToken(contour5, TokenType.LAND_PLOT);
 
           await assertRevert(
-            contourVerificationX.reportInclusion(invalidToken, validToken, InclusionType.VALID_INSIDE_INVALID, 3, {
+            contourVerificationX.reportInclusion(invalidToken, validToken, contour1Contour5Point, {
               from: dan
             }),
             "Expression 'invalidTimestamp >= validTimestamp' doesn't satisfied."
@@ -731,7 +723,7 @@ describe('PPContourVerification', () => {
           const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
           const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-          await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 3, {
+          await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, {
             from: dan
           });
 
@@ -746,7 +738,19 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
-        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 3, {
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, {
+          from: dan
+        });
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
+      it('it should allow burning when an invalid token the same as valid', async function() {
+        const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
+        const tokenB = await mintToken(contour1, TokenType.LAND_PLOT);
+
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, {
           from: dan
         });
 
@@ -758,7 +762,7 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour4, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour1, TokenType.LAND_PLOT);
 
-        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.VALID_INSIDE_INVALID, 0, {
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour4Point, {
           from: dan
         });
 
@@ -771,7 +775,7 @@ describe('PPContourVerification', () => {
         const tokenB = await mintToken(contour2, TokenType.LAND_PLOT);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 1, { from: dan }),
+          contourVerificationX.reportInclusion(tokenA, tokenB, contour2Point, { from: dan }),
           'Inclusion not found'
         );
       });
@@ -782,7 +786,7 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour1, TokenType.BUILDING);
         const tokenB = await mintToken(contour2, TokenType.BUILDING);
 
-        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 3, {
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, {
           from: dan
         });
 
@@ -794,7 +798,7 @@ describe('PPContourVerification', () => {
         const tokenA = await mintToken(contour4, TokenType.BUILDING);
         const tokenB = await mintToken(contour1, TokenType.BUILDING);
 
-        await contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.VALID_INSIDE_INVALID, 0, {
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour4Point, {
           from: dan
         });
 
@@ -807,7 +811,7 @@ describe('PPContourVerification', () => {
         const tokenB = await mintToken(contour2, TokenType.BUILDING);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(tokenA, tokenB, InclusionType.INVALID_INSIDE_VALID, 1, { from: dan }),
+          contourVerificationX.reportInclusion(tokenA, tokenB, contour2Point, { from: dan }),
           'Inclusion not found'
         );
       });
@@ -821,7 +825,7 @@ describe('PPContourVerification', () => {
 
         const danBalanceBefore = await galtToken.balanceOf(dan);
 
-        await contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+        await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
           from: dan
         });
 
@@ -839,7 +843,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour2, 25), TokenType.ROOM, 35);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 1, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour2Point, {
             from: dan
           }),
           'Inclusion not found'
@@ -852,7 +856,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour1, 25), TokenType.ROOM, 35);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.VALID_INSIDE_INVALID, 1, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour2Point, {
             from: dan
           }),
           'Inclusion not found'
@@ -865,7 +869,7 @@ describe('PPContourVerification', () => {
         const invalidToken = await mintToken(addHeightToContour(contour2, -5), TokenType.ROOM, 10);
 
         await assertRevert(
-          contourVerificationX.reportInclusion(validToken, invalidToken, InclusionType.INVALID_INSIDE_VALID, 3, {
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, {
             from: dan
           }),
           'Contour intersects, but not the heights'

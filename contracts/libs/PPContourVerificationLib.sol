@@ -69,27 +69,13 @@ library PPContourVerificationLib {
   function pointInsideContour(
     uint256[] memory _contourA,
     uint256[] memory _contourB,
-    PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex
+    uint256 _includingPoint
   )
     internal
     view
     returns (bool)
   {
-    if (_inclusionType == InclusionType.A_POINT_INSIDE_B) {
-      return isInsideWithoutCache(
-        _contourA[_includingPointIndex],
-        _contourB,
-        true
-      );
-
-    } else {
-      return isInsideWithoutCache(
-        _contourB[_includingPointIndex],
-        _contourA,
-        true
-      );
-    }
+    return isInsideWithoutCache(_includingPoint, _contourA, true) && isInsideWithoutCache(_includingPoint, _contourB, true);
   }
 
   function isInsideWithoutCache(
