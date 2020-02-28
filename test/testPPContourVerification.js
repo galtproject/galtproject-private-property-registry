@@ -746,6 +746,18 @@ describe('PPContourVerification', () => {
         assert.equal(await registryX.exists(tokenB), false);
       });
 
+      it('it should allow burning when an invalid token the same as valid', async function() {
+        const tokenA = await mintToken(contour1, TokenType.LAND_PLOT);
+        const tokenB = await mintToken(contour1, TokenType.LAND_PLOT);
+
+        await contourVerificationX.reportInclusion(tokenA, tokenB, contour1Contour2Point, {
+          from: dan
+        });
+
+        assert.equal(await registryX.exists(tokenA), true);
+        assert.equal(await registryX.exists(tokenB), false);
+      });
+
       it('it should allow burning when a valid token is inside an invalid', async function() {
         const tokenA = await mintToken(contour4, TokenType.LAND_PLOT);
         const tokenB = await mintToken(contour1, TokenType.LAND_PLOT);
