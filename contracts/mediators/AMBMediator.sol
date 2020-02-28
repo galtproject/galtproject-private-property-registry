@@ -28,20 +28,14 @@ contract AMBMediator is Ownable {
 
   function setBridgeContract(address _bridgeContract) external onlyOwner {
     _setBridgeContract(_bridgeContract);
-
-    emit SetBridgeContract(_bridgeContract);
   }
 
   function setMediatorContractOnOtherSide(address _mediatorContract) external onlyOwner {
     _setMediatorContractOnOtherSide(_mediatorContract);
-
-    emit SetMediatorContractOnOtherSide(_mediatorContract);
   }
 
   function setRequestGasLimit(uint256 _requestGasLimit) external onlyOwner {
     _setRequestGasLimit(_requestGasLimit);
-
-    emit SetRequestGasLimit(_requestGasLimit);
   }
 
   // INTERNAL
@@ -49,14 +43,20 @@ contract AMBMediator is Ownable {
   function _setBridgeContract(address _bridgeContract) internal {
     require(Address.isContract(_bridgeContract), "Address should be a contract");
     bridgeContract = IAMB(_bridgeContract);
+
+    emit SetBridgeContract(_bridgeContract);
   }
 
   function _setMediatorContractOnOtherSide(address _mediatorContract) internal {
     mediatorContractOnOtherSide = _mediatorContract;
+
+    emit SetMediatorContractOnOtherSide(_mediatorContract);
   }
 
   function _setRequestGasLimit(uint256 _requestGasLimit) internal {
     require(_requestGasLimit <= bridgeContract.maxGasPerTx(), "Gas value exceeds bridge limit");
     requestGasLimit = _requestGasLimit;
+
+    emit SetRequestGasLimit(_requestGasLimit);
   }
 }
