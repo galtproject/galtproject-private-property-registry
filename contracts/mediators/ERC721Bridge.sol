@@ -14,6 +14,8 @@ import "../interfaces/IPPToken.sol";
 
 
 contract ERC721Bridge {
+  event SetERC721Token(address token);
+
   bytes32 internal constant ERC721_TOKEN = keccak256(abi.encodePacked("erc721token"));
 
   address public erc721Token;
@@ -21,5 +23,7 @@ contract ERC721Bridge {
   function _setErc721token(address _token) internal {
     require(Address.isContract(_token), "Address should be a contract");
     erc721Token = _token;
+
+    emit SetERC721Token(_token);
   }
 }

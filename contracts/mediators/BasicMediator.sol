@@ -16,6 +16,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 
 contract BasicMediator is AMBMediator, ERC721Bridge, OwnableAndInitializable {
+  event RequestFailedMessageFix(bytes32 indexed txHash);
   event FailedMessageFixed(bytes32 indexed dataHash, address recipient, uint256 tokenId);
 
   bytes4 internal constant GET_DETAILS = 0xb93a89f7; // getDetails(uint256)
@@ -30,6 +31,7 @@ contract BasicMediator is AMBMediator, ERC721Bridge, OwnableAndInitializable {
     address _mediatorContractOnOtherSide,
     address _erc721token,
     uint256 _requestGasLimit,
+    uint256 _oppositeChainId,
     address _owner
   )
     external
@@ -40,6 +42,8 @@ contract BasicMediator is AMBMediator, ERC721Bridge, OwnableAndInitializable {
     _setMediatorContractOnOtherSide(_mediatorContractOnOtherSide);
     _setErc721token(_erc721token);
     _setRequestGasLimit(_requestGasLimit);
+
+    oppositeChainId = _oppositeChainId;
 
     setNonce(keccak256(abi.encodePacked(address(this))));
 
@@ -116,5 +120,7 @@ contract BasicMediator is AMBMediator, ERC721Bridge, OwnableAndInitializable {
     bytes4 methodSelector = this.fixFailedMessage.selector;
     bytes memory data = abi.encodeWithSelector(methodSelector, dataHash);
     bridgeContract.requireToPassMessage(mediatorContractOnOtherSide, data, requestGasLimit);
+
+    emit RequestFailedMessageFix(_txHash);
   }
 }

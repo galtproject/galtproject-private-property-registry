@@ -15,6 +15,11 @@ import "./interfaces/IAMB.sol";
 
 
 contract AMBMediator is Ownable {
+  event SetBridgeContract(address bridgeContract);
+  event SetMediatorContractOnOtherSide(address mediatorContract);
+  event SetRequestGasLimit(uint256 requestGasLimit);
+
+  uint256 public oppositeChainId;
   IAMB public bridgeContract;
   address public mediatorContractOnOtherSide;
   uint256 public requestGasLimit;
@@ -38,14 +43,20 @@ contract AMBMediator is Ownable {
   function _setBridgeContract(address _bridgeContract) internal {
     require(Address.isContract(_bridgeContract), "Address should be a contract");
     bridgeContract = IAMB(_bridgeContract);
+
+    emit SetBridgeContract(_bridgeContract);
   }
 
   function _setMediatorContractOnOtherSide(address _mediatorContract) internal {
     mediatorContractOnOtherSide = _mediatorContract;
+
+    emit SetMediatorContractOnOtherSide(_mediatorContract);
   }
 
   function _setRequestGasLimit(uint256 _requestGasLimit) internal {
     require(_requestGasLimit <= bridgeContract.maxGasPerTx(), "Gas value exceeds bridge limit");
     requestGasLimit = _requestGasLimit;
+
+    emit SetRequestGasLimit(_requestGasLimit);
   }
 }

@@ -95,7 +95,8 @@ describe('Mediators', () => {
         proxyFactoryAddress,
         foreignMediatorImplementation.address,
         bridge.address,
-        2000000
+        2000000,
+        42
       );
       // 2M
       await bridge.setMaxGasPerTx(2000000);
@@ -113,6 +114,7 @@ describe('Mediators', () => {
       // Create a foreign mediator
       res = await this.foreignMediatorFactory.build(alice, tokenX.address, anywhere);
       foreignMediator = await PPForeignMediator.at(getEventArg(res, 'NewPPMediator', 'mediator'));
+      assert.equal(await foreignMediator.oppositeChainId(), 42);
     })();
 
     // home chain core contracts
@@ -129,7 +131,8 @@ describe('Mediators', () => {
         proxyFactoryAddress,
         homeMediatorImplementation.address,
         bridge.address,
-        2000000
+        2000000,
+        5
       );
       this.ppBridgedTokenFactory = await PPBridgedTokenFactory.new(
         this.bridgedPPGR.address,
@@ -163,6 +166,7 @@ describe('Mediators', () => {
       bridgedTokenX = await PPBridgedToken.at(getEventArg(res, 'NewPPBridgedToken', 'token'));
       homeMediator = await PPHomeMediator.at(getEventArg(res, 'NewPPBridgedToken', 'mediator'));
 
+      assert.equal(await homeMediator.oppositeChainId(), 5);
       assert.equal(await homeMediator.owner(), alice);
       assert.equal(await homeMediator.bridgeContract(), bridge.address);
       assert.equal(await homeMediator.erc721Token(), bridgedTokenX.address);
