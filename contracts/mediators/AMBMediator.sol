@@ -15,6 +15,11 @@ import "./interfaces/IAMB.sol";
 
 
 contract AMBMediator is Ownable {
+  event SetBridgeContract(address bridgeContract);
+  event SetMediatorContractOnOtherSide(address mediatorContract);
+  event SetRequestGasLimit(uint256 requestGasLimit);
+
+  uint256 public oppositeChainId;
   IAMB public bridgeContract;
   address public mediatorContractOnOtherSide;
   uint256 public requestGasLimit;
@@ -23,14 +28,20 @@ contract AMBMediator is Ownable {
 
   function setBridgeContract(address _bridgeContract) external onlyOwner {
     _setBridgeContract(_bridgeContract);
+
+    emit SetBridgeContract(_bridgeContract);
   }
 
   function setMediatorContractOnOtherSide(address _mediatorContract) external onlyOwner {
     _setMediatorContractOnOtherSide(_mediatorContract);
+
+    emit SetMediatorContractOnOtherSide(_mediatorContract);
   }
 
   function setRequestGasLimit(uint256 _requestGasLimit) external onlyOwner {
     _setRequestGasLimit(_requestGasLimit);
+
+    emit SetRequestGasLimit(_requestGasLimit);
   }
 
   // INTERNAL

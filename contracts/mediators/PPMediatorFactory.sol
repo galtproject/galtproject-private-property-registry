@@ -16,8 +16,11 @@ import "@galtproject/libs/contracts/proxy/unstructured-storage/OwnedUpgradeabili
 
 
 contract PPMediatorFactory {
-  event NewPPMediator(address mediator);
+  event NewPPMediatorRaw(address mediator);
+  event NewPPMediator(address mediator, address tokenId, address _mediatorContractOnOtherSide);
 
+  // oppositeChainId specified only for information
+  uint256 public oppositeChainId;
   address public implementation;
   address public bridgeContract;
   uint256 public initialGasLimit;
@@ -27,7 +30,8 @@ contract PPMediatorFactory {
     IOwnedUpgradeabilityProxyFactory _factory,
     address _impl,
     address _bridgeContract,
-    uint256 _initialGasLimit
+    uint256 _initialGasLimit,
+    uint256 _oppositeChainId
   )
     public
   {
@@ -35,6 +39,7 @@ contract PPMediatorFactory {
     implementation = _impl;
     bridgeContract = _bridgeContract;
     initialGasLimit = _initialGasLimit;
+    oppositeChainId = _oppositeChainId;
   }
 
   function buildWithPayload(
@@ -49,7 +54,7 @@ contract PPMediatorFactory {
       true
     );
 
-    emit NewPPMediator(mediator);
+    emit NewPPMediatorRaw(mediator);
 
     return mediator;
   }
@@ -63,11 +68,12 @@ contract PPMediatorFactory {
     returns (address)
   {
     bytes memory payload = abi.encodeWithSignature(
-      "initialize(address,address,address,uint256,address)",
+      "initialize(address,address,address,uint256,uint256,address)",
       bridgeContract,
       _mediatorContractOnOtherSide,
       _token,
       initialGasLimit,
+      oppositeChainId,
       _owner
     );
 
@@ -77,7 +83,7 @@ contract PPMediatorFactory {
       true
     );
 
-    emit NewPPMediator(mediator);
+    emit NewPPMediator(mediator, _token, _mediatorContractOnOtherSide);
 
     return mediator;
   }
