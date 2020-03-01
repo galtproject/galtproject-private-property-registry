@@ -202,7 +202,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     uint256 _area,
     bytes32 _ledgerIdentifier,
     string calldata _humanAddress,
-    string calldata _dataLink
+    string calldata _dataLink,
+    bool _claimUniqueness
   )
     external
     onlyMinter
@@ -218,6 +219,8 @@ contract PPTokenController is IPPTokenController, Ownable {
     tokenContract.incrementSetupStage(_privatePropertyId);
 
     _updateDetailsUpdatedAt(_privatePropertyId);
+
+    tokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, _claimUniqueness ? bytes(1) : bytes(0));
   }
 
   function setInitialContour(
@@ -458,7 +461,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     return uint256(tokenContract.propertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY));
   }
 
-  function getDoNotClaimUniquenessFlag(uint256 _tokenId) public view returns (bool) {
+  function getClaimUniquenessFlag(uint256 _tokenId) public view returns (bool) {
     return tokenContract.propertyExtraData(_tokenId, CLAIM_UNIQUENESS_KEY) != 0x0;
   }
 }

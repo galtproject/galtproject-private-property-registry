@@ -88,7 +88,6 @@ contract PPContourVerification is Ownable {
     require(now >= propertyCreatedAt + newTokenTimeout, "newTokenTimeout not passed yet");
 
     require(_tokenContract().exists(_tokenId), "Token doesn't exist");
-    require(controller.getDoNotClaimUniquenessFlag(_tokenId) == false, "Token doesn't claim uniqueness");
 
     address tokenContractAddress = address(_tokenContract());
     IPPDepositHolder depositHolder = _depositHolder();
@@ -172,13 +171,20 @@ contract PPContourVerification is Ownable {
     require(tokenContract.exists(_validToken) == true, "Valid token doesn't exist");
     require(tokenContract.exists(_invalidToken) == true, "Invalid token doesn't exist");
 
+    IPPToken.TokenType validTokenType = tokenContract.getType(_validToken);
     require(
-      tokenContract.getType(_validToken) == tokenContract.getType(_invalidToken),
+      validTokenType == tokenContract.getType(_invalidToken),
       "Tokens type mismatch"
     );
 
-    require(controller.getDoNotClaimUniquenessFlag(_validToken) == false, "Valid token doesn't claim uniqueness");
-    require(controller.getDoNotClaimUniquenessFlag(_invalidToken) == false, "Invalid token doesn't claim uniqueness");
+    bool uniquenessValidToken = controller.getClaimUniquenessFlag(_validToken);
+    bool uniquenessInvalidToken = controller.getClaimUniquenessFlag(_invalidToken);
+
+    if (uniquenessValidToken && uniquenessInvalidToken && validTokenType == IPPToken.TokenType.ROOM) {
+      bytes32 validHumanAddressHash = keccak256(abi.encodePacked(tokenContract.getHumanAddress(_validToken)));
+      bytes32 invalidHumanAddressHash = keccak256(abi.encodePacked(tokenContract.getHumanAddress(_invalidToken)));
+      require(validHumanAddressHash != invalidHumanAddressHash, "Human address should be different for tokens on claim uniqueness");
+    }
 
     uint256 validLatestTimestamp = controller.getContourUpdatedAt(_validToken);
     if (validLatestTimestamp == 0) {
