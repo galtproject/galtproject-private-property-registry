@@ -235,7 +235,7 @@ describe('PPContourVerification', () => {
       assert.equal(await registryX.exists(newToken), false);
     });
 
-    it('should allow burning on do not claim uniqueness flag', async function() {
+    it('should ignore uniqueness flag for non-room token', async function() {
       await evmIncreaseTime(3601);
 
       const data = registryX.contract.methods
@@ -367,7 +367,7 @@ describe('PPContourVerification', () => {
         );
       });
 
-      it('true, false claim a contour uniqueness should not working for land tokens', async function() {
+      it('contour uniqueness should not working for land tokens: true, false', async function() {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT, 0, true);
         await evmIncreaseTime(10);
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT, 0, false);
@@ -377,7 +377,7 @@ describe('PPContourVerification', () => {
         assert.equal(await registryX.exists(invalidToken), false);
       });
 
-      it('false, true claim a contour uniqueness should not working for land tokens', async function() {
+      it('contour uniqueness should not working for land tokens: false, true', async function() {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT, 0, false);
         await evmIncreaseTime(10);
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT, 0, true);
@@ -387,7 +387,7 @@ describe('PPContourVerification', () => {
         assert.equal(await registryX.exists(invalidToken), false);
       });
 
-      it("true, true should deny reporting when an invalid token doesn't claim a contour uniqueness", async function() {
+      it("should deny reporting when an invalid token doesn't claim a contour uniqueness: true, true", async function() {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT, 0, true);
         await evmIncreaseTime(10);
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT, 0, true);
