@@ -183,7 +183,7 @@ contract PPContourVerification is Ownable {
     if (uniquenessValidToken && uniquenessInvalidToken && validTokenType == IPPToken.TokenType.ROOM) {
       bytes32 validHumanAddressHash = keccak256(abi.encodePacked(tokenContract.getHumanAddress(_validToken)));
       bytes32 invalidHumanAddressHash = keccak256(abi.encodePacked(tokenContract.getHumanAddress(_invalidToken)));
-      require(validHumanAddressHash != invalidHumanAddressHash, "Human address should be different for tokens on claim uniqueness");
+      require(validHumanAddressHash == invalidHumanAddressHash, "Both tokens have uniqueness flag and different human addresses");
     }
 
     uint256 validLatestTimestamp = controller.getContourUpdatedAt(_validToken);

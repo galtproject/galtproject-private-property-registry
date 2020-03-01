@@ -220,7 +220,7 @@ contract PPTokenController is IPPTokenController, Ownable {
 
     _updateDetailsUpdatedAt(_privatePropertyId);
 
-    tokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, _claimUniqueness ? bytes(1) : bytes(0));
+    tokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, bytes32(uint256(_claimUniqueness ? 1 : 0)));
   }
 
   function setInitialContour(
