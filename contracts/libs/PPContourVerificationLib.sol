@@ -69,41 +69,19 @@ library PPContourVerificationLib {
   function pointInsideContour(
     uint256[] memory _contourA,
     uint256[] memory _contourB,
-    PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
     uint256 _includingPoint
   )
     internal
     view
     returns (bool)
   {
-    if (_inclusionType == InclusionType.A_POINT_INSIDE_B) {
-      require(
-        _contourA[_includingPointIndex] == _includingPoint,
-        "Invalid point of A contour"
-      );
-
-      return isInsideWithoutCache(
-        _includingPoint,
-        _contourB
-      );
-
-    } else {
-      require(
-        _contourB[_includingPointIndex] == _includingPoint,
-        "Invalid point of B contour"
-      );
-
-      return isInsideWithoutCache(
-        _includingPoint,
-        _contourA
-      );
-    }
+    return isInsideWithoutCache(_includingPoint, _contourA, true) && isInsideWithoutCache(_includingPoint, _contourB, true);
   }
 
   function isInsideWithoutCache(
     uint256 _cPoint,
-    uint256[] memory _polygon
+    uint256[] memory _polygon,
+    bool _excludeCollinear
   )
     internal
     pure
@@ -119,6 +97,11 @@ library PPContourVerificationLib {
       (int256 xj, int256 yj) = CPointUtils.cPointToLatLon(_polygon[j]);
 
       bool intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (_excludeCollinear) {
+        if (SegmentUtils.pointOnSegment([x, y], [xi, yi], [xj, yj])) {
+          return false;
+        }
+      }
       if (intersect) {
         inside = !inside;
       }
@@ -143,7 +126,12 @@ library PPContourVerificationLib {
     int256[2] memory a2 = toLatLonPoint(_a2);
     int256[2] memory b2 = toLatLonPoint(_b2);
 
-    return SegmentUtils.pointOnSegment(a2, a1, b1) && SegmentUtils.pointOnSegment(b2, a1, b1);
+    return SegmentUtils.pointOnSegment(a2, a1, b1) ||
+    SegmentUtils.pointOnSegment(b2, a1, b1) ||
+    SegmentUtils.pointOnSegment(a1, b1, b2) ||
+    SegmentUtils.pointOnSegment(a2, b1, b2) ||
+    SegmentUtils.pointOnSegment(b1, a1, a2) ||
+    SegmentUtils.pointOnSegment(b2, a1, a2);
   }
 
   function getLatLonSegment(

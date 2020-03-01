@@ -55,21 +55,13 @@ contract PPContourVerificationPublicLib {
   function pointInsideContour(
     uint256[] memory _contourA,
     uint256[] memory _contourB,
-    PPContourVerificationLib.InclusionType _inclusionType,
-    uint256 _includingPointIndex,
     uint256 _includingPoint
   )
     public
     view
     returns (bool)
   {
-    return PPContourVerificationLib.pointInsideContour(
-      _contourA,
-      _contourB,
-      _inclusionType,
-      _includingPointIndex,
-      _includingPoint
-    );
+    return PPContourVerificationLib.pointInsideContour(_contourA, _contourB, _includingPoint);
   }
 
   function segmentsAreCollinear(
