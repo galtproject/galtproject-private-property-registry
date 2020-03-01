@@ -387,6 +387,7 @@ describe('PPContourVerification', () => {
         assert.equal(await registryX.exists(invalidToken), false);
       });
 
+      // eslint-disable-next-line max-len
       it("should deny reporting when an invalid token doesn't claim a contour uniqueness: true, true", async function() {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT, 0, true);
         await evmIncreaseTime(10);
@@ -576,6 +577,30 @@ describe('PPContourVerification', () => {
         assert.equal(await registryX.exists(invalidToken), false);
       });
 
+      // eslint-disable-next-line max-len
+      it('should allow report token intersection only one claim uniqueness with different human addresses', async function() {
+        const validToken = await mintToken(
+          addHeightToContour(contour1, 20),
+          TokenType.ROOM,
+          30,
+          true,
+          'Human address 1'
+        );
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(
+          addHeightToContour(contour2, 25),
+          TokenType.ROOM,
+          35,
+          false,
+          'Human address 2'
+        );
+
+        await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
+
+        assert.equal(await registryX.exists(validToken), true);
+        assert.equal(await registryX.exists(invalidToken), false);
+      });
+
       it('should deny report token intersection claim uniqueness with different human addresses', async function() {
         const validToken = await mintToken(
           addHeightToContour(contour1, 20),
@@ -592,6 +617,44 @@ describe('PPContourVerification', () => {
           true,
           'Human address 2'
         );
+
+        await assertRevert(
+          contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
+          'Both tokens have uniqueness flag and different human addresses'
+        );
+
+        assert.equal(await registryX.exists(validToken), true);
+        assert.equal(await registryX.exists(invalidToken), true);
+      });
+
+      it('should deny report token intersection claim uniqueness set by proposal', async function() {
+        const validToken = await mintToken(
+          addHeightToContour(contour1, 20),
+          TokenType.ROOM,
+          30,
+          false,
+          'Human address 1'
+        );
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(
+          addHeightToContour(contour2, 25),
+          TokenType.ROOM,
+          35,
+          false,
+          'Human address 2'
+        );
+
+        let data = registryX.contract.methods
+          .setPropertyExtraData(validToken.toString(), await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+          .encodeABI();
+        let res = await controllerX.propose(data, 'foo', { from: charlie });
+        await controllerX.approve(getEventArg(res, 'NewProposal', 'proposalId'), { from: geoDataManager });
+
+        data = registryX.contract.methods
+          .setPropertyExtraData(invalidToken.toString(), await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+          .encodeABI();
+        res = await controllerX.propose(data, 'foo', { from: charlie });
+        await controllerX.approve(getEventArg(res, 'NewProposal', 'proposalId'), { from: geoDataManager });
 
         await assertRevert(
           contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan }),
