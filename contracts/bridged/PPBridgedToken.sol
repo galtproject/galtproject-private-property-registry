@@ -16,6 +16,7 @@ import "./interfaces/IPPBridgedToken.sol";
 
 
 contract PPBridgedToken is IPPBridgedToken, ERC721Full, Ownable {
+  bytes32 public constant TYPE = bytes32("BRIDGET");
 
   uint256 public constant VERSION = 1;
 
