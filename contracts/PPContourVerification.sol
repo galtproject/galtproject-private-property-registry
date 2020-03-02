@@ -122,7 +122,11 @@ contract PPContourVerification is Ownable {
 
     if (isInside == true) {
       if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {
-        _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
+        bool uniquenessValidToken = controller.getClaimUniquenessFlag(_validTokenId);
+        bool uniquenessInvalidToken = controller.getClaimUniquenessFlag(_invalidTokenId);
+        if (!uniquenessValidToken || !uniquenessInvalidToken) {
+          _requireVerticalIntersection(_validTokenId, _invalidTokenId, validContour, invalidContour);
+        }
       }
     } else {
       revert("Inclusion not found");

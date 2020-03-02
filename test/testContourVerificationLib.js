@@ -242,6 +242,14 @@ describe('PPContourVerificationLib', () => {
       assert.equal(await lib.checkVerticalIntersection(30, 20, 40, 10), true);
       assert.equal(await lib.checkVerticalIntersection(30, 20, 25, 22), true);
 
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 30, 20), true);
+      assert.equal(await lib.checkVerticalIntersection(30, 21, 30, 20), true);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 30, 21), true);
+      assert.equal(await lib.checkVerticalIntersection(30, 19, 30, 20), true);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 30, 19), true);
+      assert.equal(await lib.checkVerticalIntersection(0, 0, 0, 0), true);
+      assert.equal(await lib.checkVerticalIntersection(30, 20, 25, 25), true);
+
       assert.equal(await lib.checkVerticalIntersection(-20, -30, -22, -25), true);
       assert.equal(await lib.checkVerticalIntersection(-20, -30, -10, -40), true);
 
