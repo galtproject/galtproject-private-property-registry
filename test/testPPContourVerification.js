@@ -69,7 +69,7 @@ const TokenType = {
   PACKAGE: 4
 };
 
-describe('PPContourVerification', () => {
+describe.only('PPContourVerification', () => {
   const [alice, bob, charlie, dan, minter, geoDataManager] = accounts;
   let hodler;
   let token3;
@@ -559,6 +559,30 @@ describe('PPContourVerification', () => {
           addHeightToContour(contour1, 20),
           TokenType.ROOM,
           30,
+          true,
+          'Human address 1'
+        );
+        await evmIncreaseTime(10);
+        const invalidToken = await mintToken(
+          addHeightToContour(contour2, 25),
+          TokenType.ROOM,
+          35,
+          true,
+          'Human address 1'
+        );
+
+        await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
+
+        assert.equal(await registryX.exists(validToken), true);
+        assert.equal(await registryX.exists(invalidToken), false);
+      });
+
+      // eslint-disable-next-line max-len
+      it('should allow report token intersection proof, claim uniqueness and same human addresses without vertical intersection', async function() {
+        const validToken = await mintToken(
+          addHeightToContour(contour1, 10),
+          TokenType.ROOM,
+          20,
           true,
           'Human address 1'
         );
