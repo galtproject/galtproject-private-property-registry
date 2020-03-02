@@ -96,6 +96,7 @@ describe('PPLockers', () => {
       utf8ToHex('foo'),
       'bar',
       'buzz',
+      false,
       { from: minter }
     );
 

@@ -15,6 +15,8 @@ import "./interfaces/IHomeMediator.sol";
 
 
 contract PPForeignMediator is BasicMediator {
+  bytes32 public constant LOCKER_TYPE = bytes32("MEDIATOR");
+
   function passMessage(address _from, uint256 _tokenId) internal {
     bytes memory metadata = getMetadata(_tokenId);
 

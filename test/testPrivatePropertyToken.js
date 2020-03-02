@@ -192,6 +192,7 @@ describe('PPToken and PPTokenController', () => {
           utf8ToHex('foo'),
           'bar',
           'buzz',
+          false,
           { from: minter }
         ),
         'ERC721: owner query for nonexistent token'
@@ -237,6 +238,7 @@ describe('PPToken and PPTokenController', () => {
         utf8ToHex('foo'),
         'bar',
         'buzz',
+        false,
         { from: minter }
       );
 
@@ -447,6 +449,7 @@ describe('PPToken and PPTokenController', () => {
         utf8ToHex('foo'),
         'bar',
         'buzz',
+        false,
         { from: minter }
       );
 
@@ -831,6 +834,7 @@ describe('PPToken and PPTokenController', () => {
         utf8ToHex('foo'),
         'bar',
         'buzz',
+        false,
         { from: minter }
       );
       let detailsUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
@@ -913,7 +917,7 @@ describe('PPToken and PPTokenController', () => {
       res = await controllerX.mint(charlie, { from: minter });
       const tokenA = getEventArg(res, 'Mint', 'tokenId');
 
-      assert.equal(await controllerX.getDoNotClaimUniquenessFlag(tokenA), false);
+      assert.equal(await controllerX.getClaimUniquenessFlag(tokenA), false);
 
       // set true
       let data = registryX.contract.methods
@@ -926,7 +930,7 @@ describe('PPToken and PPTokenController', () => {
       let proposalId = getEventArg(res, 'NewProposal', 'proposalId');
       await controllerX.approve(proposalId, { from: geoDataManager });
 
-      assert.equal(await controllerX.getDoNotClaimUniquenessFlag(tokenA), true);
+      assert.equal(await controllerX.getClaimUniquenessFlag(tokenA), true);
 
       // set false
       data = registryX.contract.methods
@@ -937,7 +941,7 @@ describe('PPToken and PPTokenController', () => {
       proposalId = getEventArg(res, 'NewProposal', 'proposalId');
       await controllerX.approve(proposalId, { from: geoDataManager });
 
-      assert.equal(await controllerX.getDoNotClaimUniquenessFlag(tokenA), false);
+      assert.equal(await controllerX.getClaimUniquenessFlag(tokenA), false);
     });
   });
 });

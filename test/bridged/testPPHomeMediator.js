@@ -194,6 +194,7 @@ describe('Mediators', () => {
       'bar',
       // dataLink
       'buzz',
+      false,
       { from: minter }
     );
 
