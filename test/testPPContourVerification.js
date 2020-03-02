@@ -69,7 +69,7 @@ const TokenType = {
   PACKAGE: 4
 };
 
-describe.only('PPContourVerification', () => {
+describe('PPContourVerification', () => {
   const [alice, bob, charlie, dan, minter, geoDataManager] = accounts;
   let hodler;
   let token3;
