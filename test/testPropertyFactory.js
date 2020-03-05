@@ -1,11 +1,15 @@
-const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
-const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
-const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
-const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
-const PPToken = artifacts.require('PPToken.sol');
-const PPTokenController = artifacts.require('PPTokenController.sol');
-const PPACL = artifacts.require('PPACL.sol');
-const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
+const { accounts, defaultSender, contract, web3 } = require('@openzeppelin/test-environment');
+const { assert } = require('chai');
+
+const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
+const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
+const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
+const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const PPToken = contract.fromArtifact('PPToken');
+const PPTokenController = contract.fromArtifact('PPTokenController');
+const PPACL = contract.fromArtifact('PPACL');
+// 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
+const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const _ = require('lodash');
 
 const { ether, gwei, assertRevert, assertEthBalanceChanged } = require('@galtproject/solidity-test-chest')(web3);
@@ -15,8 +19,9 @@ const bytes32 = utf8ToHex;
 
 const ONE_HOUR = 60 * 60;
 
-contract('PPTokenFactory', accounts => {
-  const [owner, alice, anywhere] = accounts;
+describe('PPTokenFactory', () => {
+  const [alice, anywhere] = accounts;
+  const owner = defaultSender;
 
   const ethFee = ether(10);
   const galtFee = ether(20);

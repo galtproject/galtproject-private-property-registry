@@ -1,22 +1,25 @@
-const PPTokenFactory = artifacts.require('PPTokenFactory.sol');
-const PPTokenControllerFactory = artifacts.require('PPTokenControllerFactory.sol');
-const PPGlobalRegistry = artifacts.require('PPGlobalRegistry.sol');
-const PPTokenRegistry = artifacts.require('PPTokenRegistry.sol');
-const PPACL = artifacts.require('PPACL.sol');
-const PPToken = artifacts.require('PPToken.sol');
-const PPTokenController = artifacts.require('PPTokenController.sol');
-const MintableErc20Token = artifacts.require('openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol');
-const MockPPToken = artifacts.require('MockPPToken.sol');
-const PPLockerRegistry = artifacts.require('PPLockerRegistry.sol');
-const PPLockerFactory = artifacts.require('PPLockerFactory.sol');
-const PPLocker = artifacts.require('PPLocker.sol');
+const { accounts, defaultSender, contract, web3 } = require('@openzeppelin/test-environment');
+const { assert } = require('chai');
+
+const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
+const PPTokenControllerFactory = contract.fromArtifact('PPTokenControllerFactory');
+const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
+const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const PPACL = contract.fromArtifact('PPACL');
+const PPToken = contract.fromArtifact('PPToken');
+const PPTokenController = contract.fromArtifact('PPTokenController');
+// 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
+const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
+const MockPPToken = contract.fromArtifact('MockPPToken');
+const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
+const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
+const PPLocker = contract.fromArtifact('PPLocker');
 const galt = require('@galtproject/utils');
 const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
-
-const { web3 } = PPToken;
+MintableErc20Token.numberFormat = 'String';
 
 const {
   ether,
@@ -25,6 +28,7 @@ const {
   assertErc20BalanceChanged,
   assertEthBalanceChanged,
   numberToEvmWord,
+  getEventArg,
   hex
 } = require('@galtproject/solidity-test-chest')(web3);
 
@@ -44,9 +48,8 @@ const ProposalStatus = {
   CANCELLED: 5
 };
 
-contract('PPToken and PPTokenController', accounts => {
+describe('PPToken and PPTokenController', () => {
   const [
-    unknown,
     systemOwner,
     registryOwner,
     minter,
@@ -58,6 +61,7 @@ contract('PPToken and PPTokenController', accounts => {
     charlie,
     dan
   ] = accounts;
+  const unknown = defaultSender;
 
   const galtFee = ether(20);
 
@@ -188,6 +192,7 @@ contract('PPToken and PPTokenController', accounts => {
           utf8ToHex('foo'),
           'bar',
           'buzz',
+          false,
           { from: minter }
         ),
         'ERC721: owner query for nonexistent token'
@@ -233,6 +238,7 @@ contract('PPToken and PPTokenController', accounts => {
         utf8ToHex('foo'),
         'bar',
         'buzz',
+        false,
         { from: minter }
       );
 
@@ -443,6 +449,7 @@ contract('PPToken and PPTokenController', accounts => {
         utf8ToHex('foo'),
         'bar',
         'buzz',
+        false,
         { from: minter }
       );
 
@@ -795,6 +802,146 @@ contract('PPToken and PPTokenController', accounts => {
       assertErc20BalanceChanged(bobBalanceBefore, bobBalanceAfter, ether(42));
 
       assert.equal(await this.galtToken.balanceOf(controller.address), ether(0));
+    });
+  });
+
+  describe('update timestamps', () => {
+    it('should set initial updatedAt timestamps when minting a token', async function() {
+      // CREATE REGISTRIES
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: alice
+      });
+      const registryX = await PPToken.at(getEventArg(res, 'Build', 'controller'));
+      const controllerX = await PPTokenController.at(getEventArg(res, 'Build', 'controller'));
+
+      await controllerX.setMinter(minter, { from: alice });
+      await controllerX.setGeoDataManager(geoDataManager, { from: alice });
+
+      res = await controllerX.mint(charlie, { from: minter });
+      const token1 = getEventArg(res, 'Mint', 'tokenId');
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), 0);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), 0);
+
+      // setInitialDetails
+      await evmIncreaseTime(10);
+      res = await controllerX.setInitialDetails(
+        token1,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        false,
+        { from: minter }
+      );
+      let detailsUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), 0);
+
+      // setInitialContour
+      await evmIncreaseTime(10);
+      res = await controllerX.setInitialContour(
+        token1,
+        contour,
+        // highestPoint
+        -42,
+        { from: minter }
+      );
+      let contourUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
+
+      // proposal for details update
+      await evmIncreaseTime(10);
+      let data = registryX.contract.methods
+        .setDetails(
+          token1,
+          // tokenType
+          2,
+          1,
+          456,
+          utf8ToHex('foo'),
+          'bar',
+          'buzz'
+        )
+        .encodeABI();
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      let proposalId = getEventArg(res, 'NewProposal', 'tokenId');
+
+      res = await controllerX.approve(proposalId, { from: geoDataManager });
+      detailsUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
+
+      // proposal for contour update
+      await evmIncreaseTime(10);
+      data = registryX.contract.methods
+        .setContour(
+          token1,
+          contour,
+          // highestPoint
+          42
+        )
+        .encodeABI();
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+
+      res = await controllerX.approve(proposalId, { from: geoDataManager });
+      contourUpdatedAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+
+      assert.equal(await controllerX.getDetailsUpdatedAt(token1), detailsUpdatedAt);
+      assert.equal(await controllerX.getContourUpdatedAt(token1), contourUpdatedAt);
+    });
+  });
+
+  describe('set/unset token uniqueness', () => {
+    it('should allow setting/unsetting claim contour uniqueness flag', async function() {
+      // CREATE REGISTRIES
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+        from: alice
+      });
+      const registryX = await PPToken.at(getEventArg(res, 'Build', 'controller'));
+      const controllerX = await PPTokenController.at(getEventArg(res, 'Build', 'controller'));
+
+      await controllerX.setMinter(minter, { from: alice });
+      await controllerX.setGeoDataManager(geoDataManager, { from: alice });
+
+      res = await controllerX.mint(charlie, { from: minter });
+      const tokenA = getEventArg(res, 'Mint', 'tokenId');
+
+      assert.equal(await controllerX.getClaimUniquenessFlag(tokenA), false);
+
+      // set true
+      let data = registryX.contract.methods
+        .setPropertyExtraData(tokenA, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(1))
+        .encodeABI();
+
+      await assertRevert(controllerX.propose(data, 'foo', { from: alice }), 'Missing permissions');
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      let proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+      await controllerX.approve(proposalId, { from: geoDataManager });
+
+      assert.equal(await controllerX.getClaimUniquenessFlag(tokenA), true);
+
+      // set false
+      data = registryX.contract.methods
+        .setPropertyExtraData(tokenA, await controllerX.CLAIM_UNIQUENESS_KEY(), numberToEvmWord(0))
+        .encodeABI();
+
+      res = await controllerX.propose(data, 'foo', { from: charlie });
+      proposalId = getEventArg(res, 'NewProposal', 'proposalId');
+      await controllerX.approve(proposalId, { from: geoDataManager });
+
+      assert.equal(await controllerX.getClaimUniquenessFlag(tokenA), false);
     });
   });
 });

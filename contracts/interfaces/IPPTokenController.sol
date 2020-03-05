@@ -13,8 +13,10 @@ pragma solidity ^0.5.13;
 interface IPPTokenController {
   event Mint(address indexed to, uint256 indexed tokenId);
   event SetGeoDataManager(address indexed geoDataManager);
+  event SetContourVerificationManager(address indexed contourVerificationManager);
   event SetFeeManager(address indexed feeManager);
   event SetFeeCollector(address indexed feeCollector);
+  event ReportCVMisbehaviour(uint256 tokenId);
   event NewProposal(
     uint256 indexed proposalId,
     uint256 indexed tokenId,
@@ -43,6 +45,8 @@ interface IPPTokenController {
   event SetFee(bytes32 indexed key, uint256 value);
   event WithdrawEth(address indexed to, uint256 amount);
   event WithdrawErc20(address indexed to, address indexed tokenAddress, uint256 amount);
+  event UpdateContourUpdatedAt(uint256 indexed tokenId, uint256 timestamp);
+  event UpdateDetailsUpdatedAt(uint256 indexed tokenId, uint256 timestamp);
 
   enum PropertyInitialSetupStage {
     PENDING,
@@ -50,6 +54,7 @@ interface IPPTokenController {
     DONE
   }
 
+  function contourVerificationManager() external view returns (address);
   function fees(bytes32) external view returns (uint256);
   function setBurner(address _burner) external;
   function setGeoDataManager(address _geoDataManager) external;
@@ -62,6 +67,7 @@ interface IPPTokenController {
   function initiateTokenBurn(uint256 _tokenId) external;
   function cancelTokenBurn(uint256 _tokenId) external;
   function burnTokenByTimeout(uint256 _tokenId) external;
+  function reportCVMisbehaviour(uint256 _tokenId) external;
   function propose(bytes calldata _data, string calldata _dataLink) external payable;
   function approve(uint256 _proposalId) external;
   function execute(uint256 _proposalId) external;
