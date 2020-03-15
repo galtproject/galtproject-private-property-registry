@@ -95,10 +95,11 @@ contract PPContourVerification is Ownable {
 
     require(isSufficient == false, "The deposit is sufficient");
 
+    controller.reportCVMisbehaviour(_tokenId);
+
     if (depositHolder.balanceOf(tokenContractAddress, _tokenId) > 0) {
       depositHolder.payout(tokenContractAddress, _tokenId, msg.sender);
     }
-    controller.reportCVMisbehaviour(_tokenId);
 
     emit ReportNoDeposit(msg.sender, _tokenId);
   }
