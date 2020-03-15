@@ -17,6 +17,7 @@ import "./interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPRA.sol";
+import "./interfaces/IPPTokenVoting.sol";
 
 
 contract PPLocker is IPPLocker {
@@ -131,6 +132,15 @@ contract PPLocker is IPPLocker {
 
   function cancelTokenBurn() external onlyOwner {
     IPPTokenController(tokenContract.controller()).cancelTokenBurn(tokenId);
+  }
+
+  function vote(IPPTokenVoting voting, uint256 voteId, bool _support, bool _executesIfDecided) external onlyOwner {
+    require(address(voting.registry()) == address(tokenContract), "Registries does not match");
+    require(tokenDeposited, "Token not deposited");
+
+    uint256[] memory _tokensIds = new uint256[](1);
+    _tokensIds[0] = tokenId;
+    voting.voteByTokens(_tokensIds, voteId, _support, _executesIfDecided);
   }
 
   // GETTERS
