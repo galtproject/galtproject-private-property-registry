@@ -13,13 +13,15 @@ import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/drafts/Strings.sol";
 import "./interfaces/IPPToken.sol";
+import "@galtproject/core/contracts/CheckpointableId.sol";
 
 
-contract PPToken is IPPToken, ERC721Full, Ownable {
+contract PPToken is IPPToken, ERC721Full, Ownable, CheckpointableId {
 
   uint256 public constant VERSION = 2;
 
   uint256 public tokenIdCounter;
+  uint256 public totalAreaSupply;
   address payable public controller;
   string public contractDataLink;
   string public baseURI;
@@ -104,11 +106,11 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     Property storage p = properties[_tokenId];
 
     p.tokenType = _tokenType;
-    p.areaSource = _areaSource;
-    p.area = _area;
     p.ledgerIdentifier = _ledgerIdentifier;
     p.humanAddress = _humanAddress;
     p.dataLink = _dataLink;
+
+    _setArea(_tokenId, _area, _areaSource);
 
     emit SetDetails(msg.sender, _tokenId);
   }
@@ -135,11 +137,22 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
     emit SetHumanAddress(_tokenId, _humanAddress);
   }
 
-  function setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) external onlyController {
+  function _setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) internal {
+    int256 _areaDiff = int256(_area) - int256(properties[_tokenId].area);
+
+    totalAreaSupply += uint256(_areaDiff);
+
     properties[_tokenId].area = _area;
     properties[_tokenId].areaSource = _areaSource;
 
+    _updateValueAtNow(_cachedBalances[_tokenId], _area);
+    _updateValueAtNow(_cachedTotalSupply, totalAreaSupply);
+
     emit SetArea(_tokenId, _area, _areaSource);
+  }
+
+  function setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) external onlyController {
+    _setArea(_tokenId, _area, _areaSource);
   }
 
   function setLedgerIdentifier(uint256 _tokenId, bytes32 _ledgerIdentifier) external onlyController {
@@ -242,6 +255,14 @@ contract PPToken is IPPToken, ERC721Full, Ownable {
 
   function getArea(uint256 _tokenId) external view returns (uint256) {
     return properties[_tokenId].area;
+  }
+
+  function getAreaAt(uint256 _tokenId, uint256 _block) external view returns (uint256) {
+    return _getValueAt(_cachedBalances[_tokenId], _block);
+  }
+
+  function getTotalAreaSupplyAt(uint256 _block) external view returns (uint256) {
+    return _getValueAt(_cachedTotalSupply, _block);
   }
 
   function getAreaSource(uint256 _tokenId) external view returns (AreaSource) {
