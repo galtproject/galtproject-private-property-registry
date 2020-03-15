@@ -12,7 +12,6 @@ const PPTokenVotingFactory = contract.fromArtifact('PPTokenVotingFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
-const galt = require('@galtproject/utils');
 const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
@@ -28,7 +27,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPTokenVoting', () => {
-  const [systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, charlie, dan] = accounts;
+  const [systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, dan] = accounts;
   const unknown = defaultSender;
 
   const galtFee = ether(20);
@@ -158,10 +157,7 @@ describe('PPTokenVoting', () => {
         'VOTING_SENDER_NOT_TOKEN_HOLDER'
       );
 
-      await assertRevert(
-        voting.vote(voteId, false, true, { from: dan }),
-        'VOTING_SENDER_NOT_TOKEN_HOLDER'
-      );
+      await assertRevert(voting.vote(voteId, false, true, { from: dan }), 'VOTING_SENDER_NOT_TOKEN_HOLDER');
 
       let voteData = await voting.getVote(voteId);
       assert.equal(voteData.open, true);
@@ -184,17 +180,9 @@ describe('PPTokenVoting', () => {
 
       await assertRevert(voting.voteByTokens([danTokenId], voteId, true, true, { from: dan }), 'VOTING_CAN_NOT_VOTE');
 
-      //change area and vote with previous area
-      let changeAreaData = token.contract.methods
-        .setDetails(
-          aliceTokenId,
-          2,
-          1,
-          ether(50),
-          utf8ToHex('foo'),
-          'bar',
-          'buzz'
-        )
+      // change area and vote with previous area
+      const changeAreaData = token.contract.methods
+        .setDetails(aliceTokenId, 2, 1, ether(50), utf8ToHex('foo'), 'bar', 'buzz')
         .encodeABI();
 
       res = await controller.propose(changeAreaData, 'foo', { from: alice });
