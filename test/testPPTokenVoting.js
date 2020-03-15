@@ -12,10 +12,6 @@ const PPTokenVotingFactory = contract.fromArtifact('PPTokenVotingFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
-const MockPPToken = contract.fromArtifact('MockPPToken');
-const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
-const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
-const PPLocker = contract.fromArtifact('PPLocker');
 const galt = require('@galtproject/utils');
 const _ = require('lodash');
 
@@ -23,52 +19,19 @@ PPToken.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
 MintableErc20Token.numberFormat = 'String';
 
-const {
-  ether,
-  assertRevert,
-  evmIncreaseTime,
-  assertErc20BalanceChanged,
-  assertEthBalanceChanged,
-  numberToEvmWord,
-  getEventArg,
-  hex
-} = require('@galtproject/solidity-test-chest')(web3);
+const { ether, assertRevert } = require('@galtproject/solidity-test-chest')(web3);
 
-const { utf8ToHex, hexToUtf8 } = web3.utils;
+const { utf8ToHex } = web3.utils;
 
 const bytes32 = utf8ToHex;
 
 const ONE_HOUR = 60 * 60;
-const TWO_HOURS = 60 * 60 * 2;
-
-const ProposalStatus = {
-  NULL: 0,
-  PENDING: 1,
-  APPROVED: 2,
-  EXECUTED: 3,
-  REJECTED: 4,
-  CANCELLED: 5
-};
 
 describe('PPTokenVoting', () => {
-  const [
-    systemOwner,
-    registryOwner,
-    minter,
-    geoDataManager,
-    lockerFeeManager,
-    burner,
-    alice,
-    bob,
-    charlie,
-    dan
-  ] = accounts;
+  const [systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, charlie, dan] = accounts;
   const unknown = defaultSender;
 
   const galtFee = ether(20);
-
-  const initContour = ['qwerqwerqwer', 'ssdfssdfssdf', 'zxcvzxcvzxcv'];
-  const contour = initContour.map(galt.geohashToNumber).map(a => a.toString(10));
 
   beforeEach(async function() {
     this.galtToken = await MintableErc20Token.new();
@@ -95,20 +58,21 @@ describe('PPTokenVoting', () => {
     // ACL setup
     await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
 
-    let res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
+    const res = await this.ppTokenFactory.build('Buildings', 'BDL', 'dataLink', ONE_HOUR, [], [], utf8ToHex(''), {
       from: registryOwner
     });
     this.token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
     this.controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
   });
 
-  describe('change fee by voting', () => {
+  describe('voting progress', () => {
     let token;
     let voting;
     let controller;
     let res;
     let aliceTokenId;
     let bobTokenId;
+    let danTokenId;
 
     beforeEach(async function() {
       res = await this.ppTokenFactory.build(
@@ -126,12 +90,7 @@ describe('PPTokenVoting', () => {
       token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
       controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
 
-      res = await this.ppTokenVotingFactory.build(
-        token.address,
-        ether(0.51),
-        ether(0.51),
-        60
-      );
+      res = await this.ppTokenVotingFactory.build(token.address, ether(0.51), ether(0.51), 60);
       voting = await PPTokenVoting.at(_.find(res.logs, l => l.args.voting).args.voting);
 
       await controller.setMinter(minter, { from: registryOwner });
@@ -145,62 +104,127 @@ describe('PPTokenVoting', () => {
 
       const blockNumberBeforeAlice = await web3.eth.getBlockNumber();
 
-      await controller.setInitialDetails(
-        aliceTokenId,
-        2,
-        1,
-        100,
-        utf8ToHex('foo'),
-        'bar',
-        'buzz',
-        false,
-        { from: minter }
-      );
+      await controller.setInitialDetails(aliceTokenId, 2, 1, ether(100), utf8ToHex('foo'), 'bar', 'buzz', false, {
+        from: minter
+      });
 
       const blockNumberAfterAlice = await web3.eth.getBlockNumber();
-      assert.equal(await token.getAreaAt(aliceTokenId, blockNumberBeforeAlice), '0');
-      assert.equal((await token.getAreaAt(aliceTokenId, blockNumberAfterAlice)).toString(), '100');
+      assert.equal(await token.getAreaAt(aliceTokenId, blockNumberBeforeAlice), ether(0));
+      assert.equal(await token.getAreaAt(aliceTokenId, blockNumberAfterAlice), ether(100));
 
-      assert.equal((await token.getTotalAreaSupplyAt(blockNumberBeforeAlice)).toString(), '0');
-      assert.equal((await token.getTotalAreaSupplyAt(blockNumberAfterAlice)).toString(), '100');
+      assert.equal(await token.getTotalAreaSupplyAt(blockNumberBeforeAlice), ether(0));
+      assert.equal(await token.getTotalAreaSupplyAt(blockNumberAfterAlice), ether(100));
 
       res = await controller.mint(bob, { from: minter });
       bobTokenId = res.logs[0].args.tokenId;
 
       const blockNumberBeforeBob = await web3.eth.getBlockNumber();
 
-      await controller.setInitialDetails(
-        bobTokenId,
-        2,
-        1,
-        100,
-        utf8ToHex('foo'),
-        'bar',
-        'buzz',
-        false,
-        { from: minter }
-      );
+      await controller.setInitialDetails(bobTokenId, 2, 1, ether(100), utf8ToHex('foo'), 'bar', 'buzz', false, {
+        from: minter
+      });
 
       const blockNumberAfterBob = await web3.eth.getBlockNumber();
 
-      assert.equal(await token.getAreaAt(bobTokenId, blockNumberBeforeBob), '0');
-      assert.equal((await token.getAreaAt(bobTokenId, blockNumberAfterBob)).toString(), '100');
+      assert.equal(await token.getAreaAt(bobTokenId, blockNumberBeforeBob), ether(0));
+      assert.equal(await token.getAreaAt(bobTokenId, blockNumberAfterBob), ether(100));
 
-      assert.equal((await token.getTotalAreaSupplyAt(blockNumberBeforeBob)).toString(), '100');
-      assert.equal((await token.getTotalAreaSupplyAt(blockNumberAfterBob)).toString(), '200');
+      assert.equal(await token.getTotalAreaSupplyAt(blockNumberBeforeBob), ether(100));
+      assert.equal(await token.getTotalAreaSupplyAt(blockNumberAfterBob), ether(200));
     });
 
-    it.only('should remove data on burn', async function() {
-
+    it.only('change fee by voting', async function() {
       assert.equal(await controller.fees(await controller.PROPOSAL_ETH_FEE_KEY()), ether(0.1));
       const data = controller.contract.methods.setFee(await controller.PROPOSAL_ETH_FEE_KEY(), ether(0.5)).encodeABI();
 
-      await assertRevert(voting.newVote(controller.address, data, '', { from: minter }), 'SENDER_NOT_TOKEN_HOLDER');
-      await assertRevert(voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: minter }), 'SENDER_NOT_TOKEN_HOLDER');
-      await assertRevert(voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: alice }), 'SENDER_NOT_TOKEN_HOLDER');
+      await assertRevert(
+        voting.newVote(controller.address, data, '', { from: unknown }),
+        'VOTING_SENDER_NOT_TOKEN_HOLDER'
+      );
+      await assertRevert(
+        voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: unknown }),
+        'VOTING_SENDER_NOT_TOKEN_HOLDER'
+      );
+      await assertRevert(
+        voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: alice }),
+        'VOTING_SENDER_NOT_TOKEN_HOLDER'
+      );
 
       res = await voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: bob });
+      const voteId = _.find(res.logs, l => l.args.voteId).args.voteId;
 
+      await assertRevert(
+        voting.voteByTokens([bobTokenId], voteId, false, true, { from: alice }),
+        'VOTING_SENDER_NOT_TOKEN_HOLDER'
+      );
+
+      await assertRevert(
+        voting.vote(voteId, false, true, { from: dan }),
+        'VOTING_SENDER_NOT_TOKEN_HOLDER'
+      );
+
+      let voteData = await voting.getVote(voteId);
+      assert.equal(voteData.open, true);
+      assert.equal(voteData.executed, false);
+      assert.equal(voteData.votingPower, ether(200));
+      assert.equal(voteData.yea, ether(100));
+      assert.equal(voteData.nay, ether(0));
+
+      // try to vote by new token
+      res = await controller.mint(dan, { from: minter });
+      danTokenId = res.logs[0].args.tokenId;
+      await controller.setInitialDetails(danTokenId, 2, 1, ether(100), utf8ToHex('foo'), 'bar', 'buzz', false, {
+        from: minter
+      });
+
+      const blockNumberAfterDan = await web3.eth.getBlockNumber();
+
+      assert.equal(await token.totalAreaSupply(), ether(300));
+      assert.equal(await token.getTotalAreaSupplyAt(blockNumberAfterDan), ether(300));
+
+      await assertRevert(voting.voteByTokens([danTokenId], voteId, true, true, { from: dan }), 'VOTING_CAN_NOT_VOTE');
+
+      //change area and vote with previous area
+      let changeAreaData = token.contract.methods
+        .setDetails(
+          aliceTokenId,
+          2,
+          1,
+          ether(50),
+          utf8ToHex('foo'),
+          'bar',
+          'buzz'
+        )
+        .encodeABI();
+
+      res = await controller.propose(changeAreaData, 'foo', { from: alice });
+      const proposalId = res.logs[0].args.proposalId;
+      await controller.approve(proposalId, { from: geoDataManager });
+
+      assert.equal(await token.getArea(aliceTokenId), ether(50));
+
+      const blockNumberAfterAlice = await web3.eth.getBlockNumber();
+
+      assert.equal(await token.totalAreaSupply(), ether(250));
+      assert.equal(await token.getTotalAreaSupplyAt(blockNumberAfterAlice), ether(250));
+
+      await voting.vote(voteId, false, true, { from: alice });
+
+      voteData = await voting.getVote(voteId);
+      assert.equal(voteData.open, true);
+      assert.equal(voteData.executed, false);
+      assert.equal(voteData.yea, ether(100));
+      assert.equal(voteData.nay, ether(100));
+
+      await voting.vote(voteId, true, true, { from: alice });
+
+      voteData = await voting.getVote(voteId);
+      assert.equal(voteData.open, false);
+      assert.equal(voteData.executed, true);
+      assert.equal(voteData.yea, ether(200));
+      assert.equal(voteData.nay, ether(0));
+
+      assert.equal(await controller.fees(await controller.PROPOSAL_ETH_FEE_KEY()), ether(0.5));
     });
   });
 });

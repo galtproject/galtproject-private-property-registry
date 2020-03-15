@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPToken.sol";
 
+
 contract PPTokenVoting is Ownable {
   using SafeMath for uint256;
 
@@ -29,7 +30,7 @@ contract PPTokenVoting is Ownable {
   string private constant ERROR_INIT_SUPPORT_TOO_BIG = "VOTING_INIT_SUPPORT_TOO_BIG";
   string private constant ERROR_CHANGE_SUPPORT_TOO_BIG = "VOTING_CHANGE_SUPP_TOO_BIG";
   string private constant ERROR_CAN_NOT_VOTE = "VOTING_CAN_NOT_VOTE";
-  string private constant ERROR_NOT_TOKEN_HOLDER = "SENDER_NOT_TOKEN_HOLDER";
+  string private constant ERROR_NOT_TOKEN_HOLDER = "VOTING_SENDER_NOT_TOKEN_HOLDER";
   string private constant ERROR_CAN_NOT_EXECUTE = "VOTING_CAN_NOT_EXECUTE";
   string private constant ERROR_CAN_NOT_FORWARD = "VOTING_CAN_NOT_FORWARD";
   string private constant ERROR_NO_VOTING_POWER = "VOTING_NO_VOTING_POWER";
@@ -134,7 +135,13 @@ contract PPTokenVoting is Ownable {
   * @param _executesIfDecided Whether to also immediately execute newly created vote if decided
   * @return voteId id for newly created vote
   */
-  function newVote(address _destination, bytes calldata _executionScript, string calldata _metadata, bool _castVote, bool _executesIfDecided)
+  function newVote(
+    address _destination,
+    bytes calldata _executionScript,
+    string calldata _metadata,
+    bool _castVote,
+    bool _executesIfDecided
+  )
     external
     returns (uint256 voteId)
   {
@@ -149,7 +156,14 @@ contract PPTokenVoting is Ownable {
   * @param _executesIfDecided Whether to also immediately execute newly created vote if decided
   * @return voteId id for newly created vote
   */
-  function newVoteByTokens(uint256[] calldata _tokenIds, address _destination, bytes calldata _executionScript, string calldata _metadata, bool _castVote, bool _executesIfDecided)
+  function newVoteByTokens(
+    uint256[] calldata _tokenIds,
+    address _destination,
+    bytes calldata _executionScript,
+    string calldata _metadata,
+    bool _castVote,
+    bool _executesIfDecided
+  )
   external
   returns (uint256 voteId)
   {
@@ -168,7 +182,15 @@ contract PPTokenVoting is Ownable {
     _voteList(_voteId, _support, registry.tokensOfOwner(msg.sender), _executesIfDecided);
   }
 
-  function voteByTokens(uint256[] calldata _tokenIds, uint256 _voteId, bool _support, bool _executesIfDecided) external voteExists(_voteId) {
+  function voteByTokens(
+    uint256[] calldata _tokenIds,
+    uint256 _voteId,
+    bool _support,
+    bool _executesIfDecided
+  )
+    external
+    voteExists(_voteId)
+  {
     _voteList(_voteId, _support, _tokenIds, _executesIfDecided);
   }
 
@@ -264,7 +286,14 @@ contract PPTokenVoting is Ownable {
   * @dev Internal function to create a new vote
   * @return voteId id for newly created vote
   */
-  function _newVote(uint256[] memory _tokenIds, address _destination, bytes memory _executionScript, string memory _metadata, bool _castVote, bool _executesIfDecided)
+  function _newVote(
+    uint256[] memory _tokenIds,
+    address _destination,
+    bytes memory _executionScript,
+    string memory _metadata,
+    bool _castVote,
+    bool _executesIfDecided
+  )
     internal
     returns (uint256 voteId)
   {
@@ -295,6 +324,7 @@ contract PPTokenVoting is Ownable {
 
   function _voteList(uint256 _voteId, bool _support, uint256[] memory _tokenIds, bool _executesIfDecided) internal {
     uint256 len = _tokenIds.length;
+    require(len != 0, ERROR_NOT_TOKEN_HOLDER);
     for (uint256 i = 0; i < len; i++) {
       _vote(_voteId, _support, _tokenIds[i], _executesIfDecided);
     }
