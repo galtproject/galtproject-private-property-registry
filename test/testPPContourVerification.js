@@ -86,6 +86,19 @@ describe('PPContourVerification', () => {
    * @returns {number} tokenId
    */
   async function mintToken(contour, tokenType, highestPoint = -42, claimUniqueness = false, humanAddress = 'bar') {
+    const localTokenId = await mintTokenWithoutDeposit(contour, tokenType, highestPoint, claimUniqueness, humanAddress);
+    await hodler.deposit(await controllerX.tokenContract(), localTokenId, ether(42), { from: alice });
+
+    return parseInt(localTokenId, 10);
+  }
+
+  async function mintTokenWithoutDeposit(
+    contour,
+    tokenType,
+    highestPoint = -42,
+    claimUniqueness = false,
+    humanAddress = 'bar'
+  ) {
     const res = await controllerX.mint(charlie, { from: minter });
     const localTokenId = getEventArg(res, 'Mint', 'tokenId');
 
@@ -110,7 +123,6 @@ describe('PPContourVerification', () => {
     );
 
     await galtToken.approve(hodler.address, ether(42), { from: alice });
-    await hodler.deposit(await controllerX.tokenContract(), localTokenId, ether(42), { from: alice });
 
     return parseInt(localTokenId, 10);
   }
@@ -388,12 +400,30 @@ describe('PPContourVerification', () => {
       });
 
       // eslint-disable-next-line max-len
-      it("should deny reporting when an invalid token doesn't claim a contour uniqueness: true, true", async function() {
+      it('should allow reporting when tokens are land plots with claimUniqueness: true', async function() {
         const validToken = await mintToken(contour1, TokenType.LAND_PLOT, 0, true);
         await evmIncreaseTime(10);
         const invalidToken = await mintToken(contour2, TokenType.LAND_PLOT, 0, true);
 
         await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
+
+        assert.equal(await registryX.exists(invalidToken), false);
+      });
+
+      it('should allow reporting when minimalDeposit is 0', async function() {
+        await contourVerificationX.disableVerification();
+        await contourVerificationX.enableVerification(ether(0), 3600);
+        await evmIncreaseTime(3600);
+
+        const validToken = await mintTokenWithoutDeposit(contour1, TokenType.LAND_PLOT, 0, true);
+        await evmIncreaseTime(10);
+        const invalidToken = await mintTokenWithoutDeposit(contour2, TokenType.LAND_PLOT, 0, true);
+
+        const danBalanceBefore = await galtToken.balanceOf(dan);
+        await contourVerificationX.reportInclusion(validToken, invalidToken, contour1Contour2Point, { from: dan });
+        const danBalanceAfter = await galtToken.balanceOf(dan);
+
+        assert.equal(danBalanceBefore, danBalanceAfter);
 
         assert.equal(await registryX.exists(invalidToken), false);
       });
