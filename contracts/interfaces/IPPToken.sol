@@ -125,6 +125,8 @@ interface IPPToken {
   function getHighestPoint(uint256 _tokenId) external view returns (int256);
   function getHumanAddress(uint256 _tokenId) external view returns (string memory);
   function getArea(uint256 _tokenId) external view returns (uint256);
+  function getAreaAt(uint256 _tokenId, uint256 _block) external view returns (uint256);
+  function getTotalAreaSupplyAt(uint256 _block) external view returns (uint256);
   function getAreaSource(uint256 _tokenId) external view returns (AreaSource);
   function getLedgerIdentifier(uint256 _tokenId) external view returns (bytes32);
   function getDataLink(uint256 _tokenId) external view returns (string memory);
