@@ -9,6 +9,7 @@
 
 pragma solidity ^0.5.13;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/drafts/Strings.sol";
@@ -17,6 +18,7 @@ import "@galtproject/core/contracts/CheckpointableId.sol";
 
 
 contract PPToken is IPPToken, ERC721Full, Ownable, CheckpointableId {
+  using SafeMath for uint256;
 
   uint256 public constant VERSION = 2;
 
@@ -140,7 +142,11 @@ contract PPToken is IPPToken, ERC721Full, Ownable, CheckpointableId {
   function _setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) internal {
     int256 _areaDiff = int256(_area) - int256(properties[_tokenId].area);
 
-    totalAreaSupply += uint256(_areaDiff);
+    if (_areaDiff >= 0) {
+      totalAreaSupply = totalAreaSupply.add(uint256(_areaDiff));
+    } else {
+      totalAreaSupply = totalAreaSupply.sub(uint256(_areaDiff * -1));
+    }
 
     properties[_tokenId].area = _area;
     properties[_tokenId].areaSource = _areaSource;
