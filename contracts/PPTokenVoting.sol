@@ -12,9 +12,10 @@ pragma solidity ^0.5.13;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "./interfaces/IPPToken.sol";
+import "./interfaces/IPPTokenVoting.sol";
 
 
-contract PPTokenVoting is Ownable {
+contract PPTokenVoting is Ownable, IPPTokenVoting {
   using SafeMath for uint256;
 
   bytes32 public constant CREATE_VOTES_ROLE = keccak256("CREATE_VOTES_ROLE");
@@ -35,22 +36,6 @@ contract PPTokenVoting is Ownable {
   string private constant ERROR_CAN_NOT_FORWARD = "VOTING_CAN_NOT_FORWARD";
   string private constant ERROR_NO_VOTING_POWER = "VOTING_NO_VOTING_POWER";
 
-  enum VoterState { Absent, Yea, Nay }
-
-  struct Vote {
-    bool executed;
-    uint256 startDate;
-    uint256 snapshotBlock;
-    uint256 supportRequiredPct;
-    uint256 minAcceptQuorumPct;
-    uint256 yea;
-    uint256 nay;
-    uint256 votingPower;
-    address destination;
-    bytes executionScript;
-    mapping (uint256 => VoterState) voters;
-  }
-
   IPPToken public registry;
   uint256 public supportRequiredPct;
   uint256 public minAcceptQuorumPct;
@@ -59,12 +44,6 @@ contract PPTokenVoting is Ownable {
   // We are mimicing an array, we use a mapping instead to make app upgrade more graceful
   mapping (uint256 => Vote) internal votes;
   uint256 public votesLength;
-
-  event StartVote(uint256 indexed voteId, address indexed creator, uint256 indexed tokenId, string metadata);
-  event CastVote(uint256 indexed voteId, address indexed voter, uint256 indexed tokenId, bool support, uint256 stake);
-  event ExecuteVote(uint256 indexed voteId);
-  event ChangeSupportRequired(uint256 supportRequiredPct);
-  event ChangeMinQuorum(uint256 minAcceptQuorumPct);
 
   modifier voteExists(uint256 _voteId) {
     require(_voteId < votesLength, ERROR_NO_VOTE);
@@ -212,7 +191,7 @@ contract PPTokenVoting is Ownable {
   *      created via `newVote(),` which requires initialization
   * @return True if the given vote can be executed, false otherwise
   */
-  function canExecute(uint256 _voteId) public view voteExists(_voteId) returns (bool) {
+  function canExecute(uint256 _voteId) external view voteExists(_voteId) returns (bool) {
     return _canExecute(_voteId);
   }
 
@@ -222,7 +201,7 @@ contract PPTokenVoting is Ownable {
   *      created via `newVote(),` which requires initialization
   * @return True if the given voter can participate a certain vote, false otherwise
   */
-  function canVote(uint256 _voteId, uint256 _tokenId) public view voteExists(_voteId) returns (bool) {
+  function canVote(uint256 _voteId, uint256 _tokenId) external view voteExists(_voteId) returns (bool) {
     return _canVote(_voteId, _tokenId);
   }
 
@@ -241,7 +220,7 @@ contract PPTokenVoting is Ownable {
   * @return Vote script
   */
   function getVote(uint256 _voteId)
-    public
+    external
     view
     voteExists(_voteId)
     returns (
@@ -276,7 +255,7 @@ contract PPTokenVoting is Ownable {
   * @param _voteId Vote identifier
   * @return VoterState of the requested voter for a certain vote
   */
-  function getVoterState(uint256 _voteId, uint256 _tokenId) public view voteExists(_voteId) returns (VoterState) {
+  function getVoterState(uint256 _voteId, uint256 _tokenId) external view voteExists(_voteId) returns (VoterState) {
     return votes[_voteId].voters[_tokenId];
   }
 
