@@ -289,7 +289,14 @@ describe('PPTokenVoting', () => {
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
 
       res = await locker.vote(hackVoting.address, voteId, true, true, { from: alice, gas: 8000000 });
-      console.log('res.logs', res.logs);
+
+      // await token.transferFrom(locker.address, hackVoting.address, aliceTokenId);
+
+      console.log('manualData', token.contract.methods.transferFrom(locker.address, hackVoting.address, aliceTokenId).encodeABI());
+
+      const receipt = await web3.eth.getTransactionReceipt(res.tx);
+      const logs = HackVotingMock.decodeLogs(receipt.logs);
+      console.log('locker.address', locker.address, 'aliceTokenId', aliceTokenId, 'logs', logs);
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
     });
