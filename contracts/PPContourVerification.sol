@@ -133,10 +133,11 @@ contract PPContourVerification is Ownable {
       revert("Inclusion not found");
     }
 
+    controller.reportCVMisbehaviour(_invalidTokenId);
+
     if (minimalDeposit > 0) {
       _depositHolder().payout(address(tokenContract), _invalidTokenId, msg.sender);
     }
-    controller.reportCVMisbehaviour(_invalidTokenId);
 
     emit ReportInclusion(msg.sender, _validTokenId, _invalidTokenId);
   }
