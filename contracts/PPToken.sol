@@ -141,9 +141,9 @@ contract PPToken is IPPToken, ERC721Full, Ownable, CheckpointableId {
 
   function _setArea(uint256 _tokenId, uint256 _area, AreaSource _areaSource) internal {
     if (_area >= properties[_tokenId].area) {
-      totalAreaSupply = totalAreaSupply.add(_area - properties[_tokenId].area);
+      totalAreaSupply = totalAreaSupply.add(_area.sub(properties[_tokenId].area));
     } else {
-      totalAreaSupply = totalAreaSupply.sub(properties[_tokenId].area - _area);
+      totalAreaSupply = totalAreaSupply.sub(properties[_tokenId].area.sub(_area));
     }
 
     properties[_tokenId].area = _area;
