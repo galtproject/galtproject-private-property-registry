@@ -12,9 +12,10 @@ pragma solidity ^0.5.13;
 import "./BasicMediator.sol";
 import "./interfaces/IForeignMediator.sol";
 import "../bridged/interfaces/IPPBridgedToken.sol";
+import "./interfaces/IHomeMediator.sol";
 
 
-contract PPHomeMediator is BasicMediator {
+contract PPHomeMediator is IHomeMediator, BasicMediator {
   function passMessage(address _from, uint256 _tokenId, bytes memory/* ignoring metadata */) internal {
     bytes4 methodSelector = IForeignMediator(0).handleBridgedTokens.selector;
     bytes memory data = abi.encodeWithSelector(methodSelector, _from, _tokenId, nonce);
@@ -37,6 +38,13 @@ contract PPHomeMediator is BasicMediator {
     require(bridgeContract.messageSender() == mediatorContractOnOtherSide, "Invalid contract on other side");
 
     mintToken(_recipient, _tokenId, _metadata);
+  }
+
+  function handleBurnedToken(uint256 _tokenId) external {
+    require(msg.sender == address(bridgeContract), "Only bridge allowed");
+    require(bridgeContract.messageSender() == mediatorContractOnOtherSide, "Invalid contract on other side");
+
+    IPPBridgedToken(erc721Token).burn(_tokenId);
   }
 
   function mintToken(address _recipient, uint256 _tokenId, bytes memory _metadata) internal {
