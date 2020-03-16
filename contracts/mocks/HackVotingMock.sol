@@ -2,6 +2,7 @@ pragma solidity ^0.5.13;
 
 import "../interfaces/IPPToken.sol";
 
+
 contract HackVotingMock {
   event PreCall(bytes data);
   event Result(bool status, bytes response);

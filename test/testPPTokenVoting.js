@@ -263,14 +263,14 @@ describe('PPTokenVoting', () => {
       assert.equal(await controller.fees(await controller.PROPOSAL_ETH_FEE_KEY()), ether(0.5));
     });
 
-    it.only('should prevent hack locker', async function() {
+    it('should prevent hack locker', async function() {
       assert.equal(await controller.fees(await controller.PROPOSAL_ETH_FEE_KEY()), ether(0.1));
       const data = controller.contract.methods.setFee(await controller.PROPOSAL_ETH_FEE_KEY(), ether(0.5)).encodeABI();
 
       res = await voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: bob });
       const voteId = _.find(res.logs, l => l.args.voteId).args.voteId;
 
-      let voteData = await voting.getVote(voteId);
+      const voteData = await voting.getVote(voteId);
       assert.equal(voteData.open, true);
       assert.equal(voteData.executed, false);
       assert.equal(voteData.yea, ether(100));
@@ -284,19 +284,11 @@ describe('PPTokenVoting', () => {
       await token.approve(locker.address, aliceTokenId, { from: alice });
       await locker.deposit(token.address, aliceTokenId, { from: alice });
 
-      let hackVoting = await HackVotingMock.new(token.address);
+      const hackVoting = await HackVotingMock.new(token.address);
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
 
       res = await locker.vote(hackVoting.address, voteId, true, true, { from: alice, gas: 8000000 });
-
-      // await token.transferFrom(locker.address, hackVoting.address, aliceTokenId);
-
-      console.log('manualData', token.contract.methods.transferFrom(locker.address, hackVoting.address, aliceTokenId).encodeABI());
-
-      const receipt = await web3.eth.getTransactionReceipt(res.tx);
-      const logs = HackVotingMock.decodeLogs(receipt.logs);
-      console.log('locker.address', locker.address, 'aliceTokenId', aliceTokenId, 'logs', logs);
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
     });

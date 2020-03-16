@@ -136,11 +136,15 @@ contract PPLocker is IPPLocker {
 
   function vote(IPPTokenVoting voting, uint256 voteId, bool _support, bool _executesIfDecided) external onlyOwner {
     require(address(voting.registry()) == address(tokenContract), "Registries does not match");
+    require(address(voting) != address(tokenContract), "Voting should not be token contract");
     require(tokenDeposited, "Token not deposited");
 
     uint256[] memory _tokensIds = new uint256[](1);
     _tokensIds[0] = tokenId;
     voting.voteByTokens(_tokensIds, voteId, _support, _executesIfDecided);
+
+    require(tokenContract.getApproved(tokenId) == address(0), "Token approval appeared");
+    require(tokenContract.ownerOf(tokenId) == address(this), "Token owner changed");
   }
 
   // GETTERS
