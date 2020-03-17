@@ -8,6 +8,7 @@ const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
 const PPACL = contract.fromArtifact('PPACL');
 const PPToken = contract.fromArtifact('PPToken');
 const PPTokenVoting = contract.fromArtifact('PPTokenVoting');
+const HackVotingMock = contract.fromArtifact('HackVotingMock');
 const PPTokenVotingFactory = contract.fromArtifact('PPTokenVotingFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
@@ -260,6 +261,36 @@ describe('PPTokenVoting', () => {
       assert.equal(voteData.nay, ether(0));
 
       assert.equal(await controller.fees(await controller.PROPOSAL_ETH_FEE_KEY()), ether(0.5));
+    });
+
+    it('should prevent hack locker', async function() {
+      assert.equal(await controller.fees(await controller.PROPOSAL_ETH_FEE_KEY()), ether(0.1));
+      const data = controller.contract.methods.setFee(await controller.PROPOSAL_ETH_FEE_KEY(), ether(0.5)).encodeABI();
+
+      res = await voting.newVoteByTokens([bobTokenId], controller.address, data, '', true, true, { from: bob });
+      const voteId = _.find(res.logs, l => l.args.voteId).args.voteId;
+
+      const voteData = await voting.getVote(voteId);
+      assert.equal(voteData.open, true);
+      assert.equal(voteData.executed, false);
+      assert.equal(voteData.yea, ether(100));
+      assert.equal(voteData.nay, ether(0));
+
+      res = await this.ppLockerFactory.build({ from: alice, value: ethFee });
+      const lockerAddress = res.logs[0].args.locker;
+      const locker = await PPLocker.at(lockerAddress);
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+      await locker.deposit(token.address, aliceTokenId, { from: alice });
+
+      const hackVoting = await HackVotingMock.new(token.address);
+
+      assert.equal(await token.ownerOf(aliceTokenId), locker.address);
+
+      res = await locker.vote(hackVoting.address, voteId, true, true, { from: alice, gas: 8000000 });
+
+      assert.equal(await token.ownerOf(aliceTokenId), locker.address);
     });
   });
 });
