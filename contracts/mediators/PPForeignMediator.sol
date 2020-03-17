@@ -12,6 +12,7 @@ pragma solidity ^0.5.13;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./BasicMediator.sol";
 import "./interfaces/IHomeMediator.sol";
+import "../interfaces/IPPToken.sol";
 
 
 contract PPForeignMediator is BasicMediator {
@@ -26,6 +27,22 @@ contract PPForeignMediator is BasicMediator {
     bytes32 dataHash = keccak256(data);
     setMessageHashTokenId(dataHash, _tokenId);
     setMessageHashRecipient(dataHash, _from);
+    setNonce(dataHash);
+
+    bridgeContract.requireToPassMessage(mediatorContractOnOtherSide, data, requestGasLimit);
+  }
+
+  /**
+   * @dev Send burn request to the home mediator if the token doesn't exists (burned) on foreign network.
+   * @param _tokenId to sync
+   */
+  function syncBurnedToken(uint256 _tokenId) external {
+    require(IPPToken(erc721Token).exists(_tokenId) == false, "Token should not exist");
+
+    bytes4 methodSelector = IHomeMediator(0).handleBurnedToken.selector;
+    bytes memory data = abi.encodeWithSelector(methodSelector, _tokenId);
+
+    bytes32 dataHash = keccak256(data);
     setNonce(dataHash);
 
     bridgeContract.requireToPassMessage(mediatorContractOnOtherSide, data, requestGasLimit);
