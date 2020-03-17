@@ -142,9 +142,6 @@ contract PPLocker is IPPLocker {
     uint256[] memory _tokensIds = new uint256[](1);
     _tokensIds[0] = tokenId;
     voting.voteByTokens(_tokensIds, voteId, _support, _executesIfDecided);
-
-    require(tokenContract.getApproved(tokenId) == address(0), "Token approval appeared");
-    require(tokenContract.ownerOf(tokenId) == address(this), "Token owner changed");
   }
 
   // GETTERS
