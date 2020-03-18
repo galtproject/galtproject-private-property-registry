@@ -15,6 +15,7 @@ import "../interfaces/IPPGlobalRegistry.sol";
 import "../interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPBridgedToken.sol";
 import "./interfaces/IPPBridgedLocker.sol";
+import "../interfaces/IPPTokenVoting.sol";
 
 
 contract PPBridgedLocker is IPPBridgedLocker {
@@ -107,6 +108,15 @@ contract PPBridgedLocker is IPPBridgedLocker {
     traSet.remove(address(_tra));
 
     emit ReputationBurn(address(_tra));
+  }
+
+  function vote(IPPTokenVoting voting, uint256 voteId, bool _support, bool _executesIfDecided) external onlyOwner {
+    require(address(voting) != address(tokenContract), "Voting should not be token contract");
+    require(tokenDeposited, "Token not deposited");
+
+    uint256[] memory _tokensIds = new uint256[](1);
+    _tokensIds[0] = tokenId;
+    voting.voteByTokens(_tokensIds, voteId, _support, _executesIfDecided);
   }
 
   // GETTERS
