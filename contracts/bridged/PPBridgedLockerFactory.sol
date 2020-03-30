@@ -38,7 +38,7 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
 
     IPPBridgedLocker locker = new PPBridgedLocker(globalRegistry, msg.sender);
 
-    IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker));
+    IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker), bytes32("bridged"));
 
     emit NewPPLocker(msg.sender, address(locker));
 

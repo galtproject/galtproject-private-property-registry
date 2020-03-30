@@ -86,7 +86,7 @@ contract PPBridgedTokenFactory is Ownable, ChargesFee {
 
     // registering token in registry
     IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress())
-      .addToken(ppTokenAddress);
+      .addToken(ppTokenAddress, bytes32("bridged"));
 
     emit NewPPBridgedToken(ppTokenAddress, ppMediatorAddress);
 

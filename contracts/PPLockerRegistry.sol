@@ -28,6 +28,7 @@ contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
   struct Details {
     bool active;
     address factory;
+    bytes32 contractType;
   }
 
   IPPGlobalRegistry public globalRegistry;
@@ -53,11 +54,12 @@ contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
 
   // FACTORY INTERFACE
 
-  function addLocker(address _locker) external onlyFactory {
+  function addLocker(address _locker, bytes32 _contractType) external onlyFactory {
     Details storage locker = lockers[_locker];
 
     locker.active = true;
     locker.factory = msg.sender;
+    locker.contractType = _contractType;
 
     lockersByOwner[IPPLocker(_locker).owner()].add(_locker);
 
