@@ -23,6 +23,8 @@ import "./interfaces/IPPGlobalRegistry.sol";
 contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
   using ArraySet for ArraySet.AddressSet;
 
+  uint256 public constant VERSION = 2;
+
   bytes32 public constant ROLE_LOCKER_REGISTRAR = bytes32("LOCKER_REGISTRAR");
 
   struct Details {

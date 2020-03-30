@@ -21,6 +21,8 @@ import "./interfaces/IPPGlobalRegistry.sol";
  */
 contract PPTokenRegistry is IPPTokenRegistry, OwnableAndInitializable {
 
+  uint256 public constant VERSION = 2;
+
   bytes32 public constant ROLE_TOKEN_REGISTRAR = bytes32("TOKEN_REGISTRAR");
 
   struct Details {
