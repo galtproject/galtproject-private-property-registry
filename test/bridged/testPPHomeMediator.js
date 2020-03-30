@@ -254,6 +254,11 @@ describe('Mediators', () => {
       assert.equal(await tokenX.ownerOf(token1), bob);
     });
 
+    it('#syncBurndedToken() should allow anyone sending sync tx to a home chain', async function() {
+      // burn token, 123 - a non-existent token
+      await foreignMediator.syncBurnedToken(123, { from: anywhere });
+    });
+
     function decodeErrorReason(bytesInput) {
       return web3.eth.abi.decodeParameter('string', bytesInput.slice(0, 2) + bytesInput.slice(10));
     }
@@ -381,6 +386,25 @@ describe('Mediators', () => {
 
       assert.equal(await bridgedTokenX.totalSupply(), 0);
       await assertRevert(bridgedTokenX.ownerOf(token1), 'ERC721: owner query for nonexistent token');
+    });
+
+    it('#handleBurnedToken() should allow anyone sending sync tx to a home chain', async function() {
+      let data = await homeMediator.contract.methods.handleBridgedTokens(bob, token1, bridgedData, nonce).encodeABI();
+
+      await bridge.executeMessageCall(homeMediator.address, foreignMediator.address, data, exampleTxHash, 2000000);
+
+      assert.equal(await bridgedTokenX.totalSupply(), 1);
+      assert.equal(await bridgedTokenX.ownerOf(token1), bob);
+      assert.equal(await bridgedTokenX.exists(token1), true);
+
+      // handleBurnedToken token1 request
+      data = await homeMediator.contract.methods.handleBurnedToken(token1).encodeABI();
+
+      const anotherTxHash = '0xf308b922ab9f8a7128d9d7bc9bce22cd88b2c05c8213f0e2d8104d78e0a9ecee';
+      await bridge.executeMessageCall(homeMediator.address, foreignMediator.address, data, anotherTxHash, 2000000);
+
+      assert.equal(await bridge.messageCallStatus(exampleTxHash), true);
+      assert.equal(await bridgedTokenX.exists(token1), false);
     });
 
     function decodeErrorReason(bytesInput) {
