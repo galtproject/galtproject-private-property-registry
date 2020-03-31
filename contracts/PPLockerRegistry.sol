@@ -23,11 +23,14 @@ import "./interfaces/IPPGlobalRegistry.sol";
 contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
   using ArraySet for ArraySet.AddressSet;
 
+  uint256 public constant VERSION = 2;
+
   bytes32 public constant ROLE_LOCKER_REGISTRAR = bytes32("LOCKER_REGISTRAR");
 
   struct Details {
     bool active;
     address factory;
+    bytes32 contractType;
   }
 
   IPPGlobalRegistry public globalRegistry;
@@ -53,11 +56,12 @@ contract PPLockerRegistry is IPPLockerRegistry, OwnableAndInitializable {
 
   // FACTORY INTERFACE
 
-  function addLocker(address _locker) external onlyFactory {
+  function addLocker(address _locker, bytes32 _contractType) external onlyFactory {
     Details storage locker = lockers[_locker];
 
     locker.active = true;
     locker.factory = msg.sender;
+    locker.contractType = _contractType;
 
     lockersByOwner[IPPLocker(_locker).owner()].add(_locker);
 

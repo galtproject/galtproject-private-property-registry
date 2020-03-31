@@ -10,6 +10,7 @@ const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 const PPLocker = contract.fromArtifact('PPLocker');
 const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const PPBridgedLockerFactory = contract.fromArtifact('PPBridgedLockerFactory');
 const PPACL = contract.fromArtifact('PPACL');
 const MockRA = contract.fromArtifact('MockRA');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
@@ -184,6 +185,13 @@ describe('PPLockers', () => {
         locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(3) }),
         'Invalid ETH fee'
       );
+
+      const ra = await MockRA.new('MockRA');
+      await assertRevert(
+        locker.depositAndApproveMint(token.address, aliceTokenId, ra.address, { from: alice, value: ether(3) }),
+        'Invalid ETH fee'
+      );
+
       await locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(4) });
     });
 
@@ -262,6 +270,62 @@ describe('PPLockers', () => {
 
       assert.equal(await this.galtToken.balanceOf(controller.address), ether(4));
       assert.equal(await this.galtToken.balanceOf(anotherController.address), ether(42));
+    });
+
+    it('should correctly deposit to locker by depositAndApproveMint', async function() {
+      await controller.setInitialDetails(
+        aliceTokenId,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        false,
+        { from: minter }
+      );
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+      const ra = await MockRA.new('MockRA');
+      await assertRevert(
+        locker.depositAndApproveMint(token.address, aliceTokenId, ra.address, { from: minter }),
+        'Not the locker owner'
+      );
+      await locker.depositAndApproveMint(token.address, aliceTokenId, ra.address, { from: alice });
+
+      assert.equal(await token.ownerOf(aliceTokenId), locker.address);
+      assert.equal(await locker.tokenContract(), token.address);
+      assert.equal(await locker.tokenId(), aliceTokenId);
+      assert.equal(await locker.tokenDeposited(), true);
+      assert.equal(await locker.owner(), alice);
+      assert.equal(await locker.reputation(), 123);
+
+      await assertRevert(locker.withdraw({ from: alice }), 'RAs counter should be 0');
+
+      assert.sameMembers(await locker.getTras(), [ra.address]);
+
+      await ra.setMinted(token.address, aliceTokenId, true);
+      await assertRevert(locker.burn(ra.address, { from: alice }), 'Reputation not completely burned');
+      await ra.setMinted(token.address, aliceTokenId, false);
+
+      // burn reputation and withdraw token back
+      await locker.burn(ra.address, { from: alice });
+      await locker.withdraw({ from: alice });
+
+      assert.equal(await token.ownerOf(aliceTokenId), alice);
+    });
+
+    it('should prevent use bridged locker for regular token', async function() {
+      const ppBridgedLockerFactory = await PPBridgedLockerFactory.new(this.ppgr.address, 1, 1);
+      await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), ppBridgedLockerFactory.address, true);
+
+      res = await ppBridgedLockerFactory.build({ from: alice, value: 1 });
+      const bridgedLockerAddress = res.logs[0].args.locker;
+      const bridgedLocker = await PPLocker.at(bridgedLockerAddress);
+
+      await token.approve(bridgedLocker.address, aliceTokenId, { from: alice });
+      await assertRevert(bridgedLocker.deposit(token.address, aliceTokenId, { from: alice }), 'Token type is invalid');
     });
   });
 });

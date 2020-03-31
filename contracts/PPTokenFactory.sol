@@ -87,7 +87,7 @@ contract PPTokenFactory is Ownable, ChargesFee {
     ppToken.transferOwnership(msg.sender);
 
     IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress())
-      .addToken(address(ppToken));
+      .addToken(address(ppToken), bytes32("regular"));
 
     emit Build(address(ppToken), address(ppTokenController));
 

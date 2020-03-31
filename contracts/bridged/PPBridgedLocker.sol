@@ -21,6 +21,8 @@ import "../interfaces/IPPTokenVoting.sol";
 contract PPBridgedLocker is IPPBridgedLocker {
   using ArraySet for ArraySet.AddressSet;
 
+  uint256 public constant VERSION = 2;
+
   event ReputationMint(address indexed sra);
   event ReputationBurn(address indexed sra);
   event Deposit(uint256 reputation);
@@ -45,7 +47,10 @@ contract PPBridgedLocker is IPPBridgedLocker {
   }
 
   modifier onlyValidTokenContract(IPPBridgedToken _tokenContract) {
-    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress()).requireValidToken(address(_tokenContract));
+    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress())
+      .requireValidToken(address(_tokenContract));
+    IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress())
+      .requireTokenType(address(_tokenContract), bytes32("bridged"));
     _;
   }
 
@@ -58,7 +63,7 @@ contract PPBridgedLocker is IPPBridgedLocker {
     IPPBridgedToken _tokenContract,
     uint256 _tokenId
   )
-    external
+    public
     payable
     onlyOwner
     onlyValidTokenContract(_tokenContract)
@@ -92,13 +97,22 @@ contract PPBridgedLocker is IPPBridgedLocker {
     emit Withdrawal(reputation);
   }
 
-  function approveMint(IPPRA _tra) external onlyOwner {
+  function approveMint(IPPRA _tra) public onlyOwner {
     require(!traSet.has(address(_tra)), "Already minted to this RA");
     require(_tra.ping() == bytes32("pong"), "Handshake failed");
 
     traSet.add(address(_tra));
 
     emit ReputationMint(address(_tra));
+  }
+
+  function depositAndApproveMint(IPPBridgedToken _tokenContract, uint256 _tokenId, IPPRA _tra)
+    external
+    payable
+    onlyOwner
+  {
+    deposit(_tokenContract, _tokenId);
+    approveMint(_tra);
   }
 
   function burn(IPPRA _tra) external onlyOwner {

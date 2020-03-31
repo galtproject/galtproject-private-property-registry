@@ -23,6 +23,8 @@ import "./interfaces/IPPTokenVoting.sol";
 contract PPLocker is IPPLocker {
   using ArraySet for ArraySet.AddressSet;
 
+  uint256 public constant VERSION = 2;
+
   event ReputationMint(address indexed sra);
   event ReputationBurn(address indexed sra);
   event Deposit(uint256 reputation);
@@ -62,7 +64,7 @@ contract PPLocker is IPPLocker {
     IPPToken _tokenContract,
     uint256 _tokenId
   )
-    external
+    public
     payable
     onlyOwner
     onlyValidTokenContract(_tokenContract)
@@ -112,13 +114,22 @@ contract PPLocker is IPPLocker {
     emit Withdrawal(reputation);
   }
 
-  function approveMint(IPPRA _tra) external onlyOwner {
+  function approveMint(IPPRA _tra) public onlyOwner {
     require(!traSet.has(address(_tra)), "Already minted to this RA");
     require(_tra.ping() == bytes32("pong"), "Handshake failed");
 
     traSet.add(address(_tra));
 
     emit ReputationMint(address(_tra));
+  }
+
+  function depositAndApproveMint(IPPToken _tokenContract, uint256 _tokenId, IPPRA _tra)
+    external
+    payable
+    onlyOwner
+  {
+    deposit(_tokenContract, _tokenId);
+    approveMint(_tra);
   }
 
   function burn(IPPRA _tra) external onlyOwner {

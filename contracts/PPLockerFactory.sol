@@ -37,7 +37,7 @@ contract PPLockerFactory is Ownable, ChargesFee {
 
     IPPLocker locker = new PPLocker(globalRegistry, msg.sender);
 
-    IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker));
+    IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker), bytes32("regular"));
 
     emit NewPPLocker(msg.sender, address(locker));
 

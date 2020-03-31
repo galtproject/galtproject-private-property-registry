@@ -21,11 +21,14 @@ import "./interfaces/IPPGlobalRegistry.sol";
  */
 contract PPTokenRegistry is IPPTokenRegistry, OwnableAndInitializable {
 
+  uint256 public constant VERSION = 2;
+
   bytes32 public constant ROLE_TOKEN_REGISTRAR = bytes32("TOKEN_REGISTRAR");
 
   struct Details {
     bool active;
     address factory;
+    bytes32 contractType;
   }
 
   IPPGlobalRegistry public globalRegistry;
@@ -50,11 +53,12 @@ contract PPTokenRegistry is IPPTokenRegistry, OwnableAndInitializable {
 
   // FACTORY INTERFACE
 
-  function addToken(address _token) external onlyFactory {
+  function addToken(address _token, bytes32 _contractType) external onlyFactory {
     Details storage token = tokens[_token];
 
     token.active = true;
     token.factory = msg.sender;
+    token.contractType = _contractType;
 
     tokenList.push(_token);
 
@@ -64,6 +68,10 @@ contract PPTokenRegistry is IPPTokenRegistry, OwnableAndInitializable {
   // REQUIRES
   function requireValidToken(address _token) external view {
     require(tokens[_token].active == true, "Token address is invalid");
+  }
+
+  function requireTokenType(address _token, bytes32 _contractType) external view {
+    require(tokens[_token].contractType == _contractType, "Token type is invalid");
   }
 
   // GETTERS

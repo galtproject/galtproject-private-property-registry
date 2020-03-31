@@ -14,7 +14,7 @@ interface IPPLockerRegistry {
   event AddLocker(address indexed locker, address indexed owner, address indexed factory);
   event SetFactory(address factory);
 
-  function addLocker(address _locker) external;
+  function addLocker(address _locker, bytes32 _contractType) external;
   function requireValidLocker(address _locker) external view;
   function isValid(address _locker) external view returns (bool);
 }

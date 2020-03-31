@@ -18,6 +18,7 @@ interface IPPTokenRegistry {
   function tokenList(uint256 _index) external view returns (address);
   function isValid(address _tokenContract) external view returns (bool);
   function requireValidToken(address _token) external view;
-  function addToken(address _privatePropertyToken) external;
+  function requireTokenType(address _token, bytes32 _contractType) external view;
+  function addToken(address _privatePropertyToken, bytes32 _contractType) external;
   function getAllTokens() external view returns (address[] memory);
 }
