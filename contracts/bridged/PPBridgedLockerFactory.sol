@@ -34,10 +34,10 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
   }
 
   function build() external payable returns (IPPBridgedLocker) {
-    return build(msg.sender);
+    return buildForOwner(msg.sender);
   }
 
-  function build(address _lockerOwner) public payable returns (IPPBridgedLocker) {
+  function buildForOwner(address _lockerOwner) public payable returns (IPPBridgedLocker) {
     _acceptPayment();
 
     IPPBridgedLocker locker = new PPBridgedLocker(globalRegistry, _lockerOwner);
