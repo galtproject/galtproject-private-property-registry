@@ -9,15 +9,15 @@
 
 pragma solidity ^0.5.13;
 
-import "../../interfaces/IPPRA.sol";
 import "./IPPBridgedToken.sol";
+import "./IPPBridgedRA.sol";
 
 
 interface IPPBridgedLocker {
   function deposit(IPPBridgedToken _tokenContract, uint256 _tokenId) external payable;
   function withdraw() external;
-  function approveMint(IPPRA _tra) external;
-  function burn(IPPRA _tra) external;
+  function approveMint(IPPBridgedRA _tra) external;
+  function burn(IPPBridgedRA _tra) external;
   function isMinted(address _tra) external view returns (bool);
   function getTras() external view returns (address[] memory);
   function getTrasCount() external view returns (uint256);
