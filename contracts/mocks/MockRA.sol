@@ -33,4 +33,8 @@ contract MockRA is IPPRA {
   function ping() external pure returns (bytes32) {
     return bytes32("pong");
   }
+
+  function mint(IPPLocker _tokenLocker) external {
+    require(false, "Not implemented");
+  }
 }

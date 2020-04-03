@@ -33,9 +33,13 @@ contract PPLockerFactory is Ownable, ChargesFee {
   }
 
   function build() external payable returns (IPPLocker) {
+    return build(msg.sender);
+  }
+
+  function build(address _lockerOwner) public payable returns (IPPLocker) {
     _acceptPayment();
 
-    IPPLocker locker = new PPLocker(globalRegistry, msg.sender);
+    IPPLocker locker = new PPLocker(globalRegistry, _lockerOwner);
 
     IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker), bytes32("regular"));
 
