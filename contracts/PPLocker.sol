@@ -132,6 +132,16 @@ contract PPLocker is IPPLocker {
     approveMint(_tra);
   }
 
+  function depositAndMint(IPPToken _tokenContract, uint256 _tokenId, IPPRA _tra)
+    external
+    payable
+    onlyOwner
+  {
+    deposit(_tokenContract, _tokenId);
+    approveMint(_tra);
+    _tra.mint(this);
+  }
+
   function burn(IPPRA _tra) external onlyOwner {
     require(traSet.has(address(_tra)), "Not minted to the RA");
     require(_tra.reputationMinted(address(tokenContract), tokenId) == false, "Reputation not completely burned");
