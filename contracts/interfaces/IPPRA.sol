@@ -8,11 +8,12 @@
  */
 
 pragma solidity ^0.5.13;
+
 import "./IPPLocker.sol";
 
 
 interface IPPRA {
-  function mint(IPPLocker _tokenLocker) public;
+  function mint(IPPLocker _tokenLocker) external;
 
   // ERC20 compatible
   function balanceOf(address _owner) external view returns (uint256);
