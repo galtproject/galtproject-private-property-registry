@@ -14,6 +14,7 @@ import "./IPPBridgedLocker.sol";
 
 interface IPPBridgedRA {
   function mint(IPPBridgedLocker _tokenLocker) external;
+  function approveBurn(IPPBridgedLocker _tokenLocker) external;
 
   // ERC20 compatible
   function balanceOf(address _owner) external view returns (uint256);

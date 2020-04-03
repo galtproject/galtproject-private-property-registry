@@ -131,13 +131,18 @@ contract PPBridgedLocker is IPPBridgedLocker {
     _tra.mint(this);
   }
 
-  function burn(IPPBridgedRA _tra) external onlyOwner {
+  function burn(IPPBridgedRA _tra) public onlyOwner {
     require(traSet.has(address(_tra)), "Not minted to the RA");
     require(_tra.reputationMinted(address(tokenContract), tokenId) == false, "Reputation not completely burned");
 
     traSet.remove(address(_tra));
 
     emit ReputationBurn(address(_tra));
+  }
+
+  function burnWithReputation(IPPBridgedRA _tra) external onlyOwner {
+    _tra.approveBurn(this);
+    burn(_tra);
   }
 
   function vote(IPPTokenVoting voting, uint256 voteId, bool _support, bool _executesIfDecided) external onlyOwner {

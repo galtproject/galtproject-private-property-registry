@@ -14,6 +14,7 @@ import "./IPPLocker.sol";
 
 interface IPPRA {
   function mint(IPPLocker _tokenLocker) external;
+  function approveBurn(IPPLocker _tokenLocker) external;
 
   // ERC20 compatible
   function balanceOf(address _owner) external view returns (uint256);
