@@ -37,4 +37,8 @@ contract MockRA is IPPRA {
   function mint(IPPLocker _tokenLocker) external {
     require(false, "Not implemented");
   }
+
+  function approveBurn(IPPLocker _tokenLocker) external {
+    require(false, "Not implemented");
+  }
 }
