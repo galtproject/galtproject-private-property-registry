@@ -16,6 +16,7 @@ import "../interfaces/IPPTokenRegistry.sol";
 import "./interfaces/IPPBridgedToken.sol";
 import "./interfaces/IPPBridgedLocker.sol";
 import "../interfaces/IPPTokenVoting.sol";
+import "./interfaces/IPPBridgedRA.sol";
 
 
 contract PPBridgedLocker is IPPBridgedLocker {
@@ -97,7 +98,7 @@ contract PPBridgedLocker is IPPBridgedLocker {
     emit Withdrawal(reputation);
   }
 
-  function approveMint(IPPRA _tra) public onlyOwner {
+  function approveMint(IPPBridgedRA _tra) public onlyOwner {
     require(!traSet.has(address(_tra)), "Already minted to this RA");
     require(_tra.ping() == bytes32("pong"), "Handshake failed");
 
@@ -106,7 +107,7 @@ contract PPBridgedLocker is IPPBridgedLocker {
     emit ReputationMint(address(_tra));
   }
 
-  function depositAndApproveMint(IPPBridgedToken _tokenContract, uint256 _tokenId, IPPRA _tra)
+  function depositAndApproveMint(IPPBridgedToken _tokenContract, uint256 _tokenId, IPPBridgedRA _tra)
     external
     payable
     onlyOwner
@@ -115,13 +116,33 @@ contract PPBridgedLocker is IPPBridgedLocker {
     approveMint(_tra);
   }
 
-  function burn(IPPRA _tra) external onlyOwner {
+  function depositAndMint(IPPBridgedToken _tokenContract, uint256 _tokenId, IPPBridgedRA _tra)
+    external
+    payable
+    onlyOwner
+  {
+    deposit(_tokenContract, _tokenId);
+    approveMint(_tra);
+    _tra.mint(this);
+  }
+
+  function approveAndMint(IPPBridgedRA _tra) external onlyOwner {
+    approveMint(_tra);
+    _tra.mint(this);
+  }
+
+  function burn(IPPBridgedRA _tra) public onlyOwner {
     require(traSet.has(address(_tra)), "Not minted to the RA");
     require(_tra.reputationMinted(address(tokenContract), tokenId) == false, "Reputation not completely burned");
 
     traSet.remove(address(_tra));
 
     emit ReputationBurn(address(_tra));
+  }
+
+  function burnWithReputation(IPPBridgedRA _tra) external onlyOwner {
+    _tra.approveBurn(this);
+    burn(_tra);
   }
 
   function vote(IPPTokenVoting voting, uint256 voteId, bool _support, bool _executesIfDecided) external onlyOwner {
