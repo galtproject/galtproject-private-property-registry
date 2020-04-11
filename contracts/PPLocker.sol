@@ -19,16 +19,18 @@ import "./interfaces/IPPGlobalRegistry.sol";
 import "./interfaces/IPPRA.sol";
 import "./interfaces/IPPTokenVoting.sol";
 
+import "@galtproject/core/contracts/reputation/AbstractProposalManager.sol";
 
-contract PPLocker is IPPLocker {
+
+contract PPLocker is IPPLocker, AbstractProposalManager {
   using ArraySet for ArraySet.AddressSet;
 
   uint256 public constant VERSION = 2;
 
   event ReputationMint(address indexed sra);
   event ReputationBurn(address indexed sra);
-  event Deposit(uint256 reputation);
-  event Withdrawal(uint256 reputation);
+  event Deposit(uint256 totalReputation);
+  event Withdrawal(uint256 totalReputation);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
   bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
@@ -36,17 +38,34 @@ contract PPLocker is IPPLocker {
 
   IPPGlobalRegistry public globalRegistry;
 
-  address public owner;
   uint256 public tokenId;
   uint256 public reputation;
   bool public tokenDeposited;
   IPPToken public tokenContract;
 
+  address public depositManager;
+
+  uint256 public totalShares;
+  address[] public owners;
+  uint256[] public shares;
+  mapping(address => uint256) public reputationByOwner;
+  mapping(address => uint256) public shareByOwner;
+
   // Token Reputation Accounting Contracts
   ArraySet.AddressSet internal traSet;
 
   modifier onlyOwner() {
-    require(isOwner(), "Not the locker owner");
+    require(reputationByOwner[msg.sender] > 0, "Not the locker owner");
+    _;
+  }
+
+  modifier onlyDepositManager() {
+    require(msg.sender == depositManager, "Not the deposit manager");
+    _;
+  }
+
+  modifier onlyProposalManager() {
+    require(msg.sender == address(this), "Not the proposal manager");
     _;
   }
 
@@ -55,19 +74,22 @@ contract PPLocker is IPPLocker {
     _;
   }
 
-  constructor(IPPGlobalRegistry _globalRegistry, address _owner) public {
+  constructor(IPPGlobalRegistry _globalRegistry, address _depositManager) public {
     globalRegistry = _globalRegistry;
-    owner = _owner;
+    depositManager = _depositManager;
   }
 
   function deposit(
     IPPToken _tokenContract,
-    uint256 _tokenId
+    uint256 _tokenId,
+    address[] memory _owners,
+    uint256[] memory _shares,
+    uint256 _totalShares
   )
     public
     payable
-    onlyOwner
     onlyValidTokenContract(_tokenContract)
+    onlyDepositManager
   {
     require(!tokenDeposited, "Token already deposited");
     _acceptPayment(_tokenContract);
@@ -76,6 +98,21 @@ contract PPLocker is IPPLocker {
     tokenId = _tokenId;
     reputation = _tokenContract.getArea(_tokenId);
     tokenDeposited = true;
+
+    owners = _owners;
+    shares = _shares;
+    totalShares = _totalShares;
+
+    uint256 len = _owners.length;
+    require(len == _shares.length, "Owners and shares length does not match");
+
+    uint256 _calcTotalShares = 0;
+    for(uint256 i = 0; i < len; i++) {
+      require(_shares[i] > 0, "Share can not be 0");
+      reputationByOwner[_owners[i]] = (_shares[i] * reputation) / _totalShares;
+      _calcTotalShares += _shares[i];
+    }
+    require(_calcTotalShares == _totalShares, "Calculated shares and total shares does not equal");
 
     _tokenContract.transferFrom(msg.sender, address(this), _tokenId);
 
@@ -97,9 +134,11 @@ contract PPLocker is IPPLocker {
     }
   }
 
-  function withdraw() external onlyOwner {
+  function withdraw(address _newOwner, address _newDepositManager) external onlyProposalManager {
     require(tokenDeposited, "Token not deposited");
     require(traSet.size() == 0, "RAs counter should be 0");
+
+    depositManager = _newDepositManager;
 
     IPPToken previousTokenContract = tokenContract;
     uint256 previousTokenId = tokenId;
@@ -109,12 +148,21 @@ contract PPLocker is IPPLocker {
     reputation = 0;
     tokenDeposited = false;
 
-    previousTokenContract.transferFrom(address(this), msg.sender, previousTokenId);
+    uint256 len = owners.length;
+    for(uint256 i = 0; i < len; i++) {
+      reputationByOwner[owners[i]] = 0;
+      shareByOwner[owners[i]] = 0;
+    }
+
+    owners = new address[](0);
+    totalShares = 0;
+
+    previousTokenContract.transferFrom(address(this), _newOwner, previousTokenId);
 
     emit Withdrawal(reputation);
   }
 
-  function approveMint(IPPRA _tra) public onlyOwner {
+  function approveMint(IPPRA _tra) public onlyProposalManager {
     require(!traSet.has(address(_tra)), "Already minted to this RA");
     require(_tra.ping() == bytes32("pong"), "Handshake failed");
 
@@ -123,31 +171,45 @@ contract PPLocker is IPPLocker {
     emit ReputationMint(address(_tra));
   }
 
-  function depositAndApproveMint(IPPToken _tokenContract, uint256 _tokenId, IPPRA _tra)
+  function depositAndApproveMint(
+    IPPToken _tokenContract,
+    uint256 _tokenId,
+    address[] calldata _owners,
+    uint256[] calldata _shares,
+    uint256 _totalShares,
+    IPPRA _tra
+  )
     external
     payable
-    onlyOwner
+    onlyDepositManager
   {
-    deposit(_tokenContract, _tokenId);
+    deposit(_tokenContract, _tokenId, _owners, _shares, _totalShares);
     approveMint(_tra);
   }
 
-  function depositAndMint(IPPToken _tokenContract, uint256 _tokenId, IPPRA _tra)
+  function depositAndMint(
+    IPPToken _tokenContract,
+    uint256 _tokenId,
+    address[] calldata _owners,
+    uint256[] calldata _shares,
+    uint256 _totalShares,
+    IPPRA _tra
+  )
     external
     payable
-    onlyOwner
+    onlyDepositManager
   {
-    deposit(_tokenContract, _tokenId);
+    deposit(_tokenContract, _tokenId, _owners, _shares, _totalShares);
     approveMint(_tra);
     _tra.mint(this);
   }
 
-  function approveAndMint(IPPRA _tra) external onlyOwner {
+  function approveAndMint(IPPRA _tra) external onlyProposalManager {
     approveMint(_tra);
     _tra.mint(this);
   }
 
-  function burn(IPPRA _tra) public onlyOwner {
+  function burn(IPPRA _tra) public onlyProposalManager {
     require(traSet.has(address(_tra)), "Not minted to the RA");
     require(_tra.reputationMinted(address(tokenContract), tokenId) == false, "Reputation not completely burned");
 
@@ -156,44 +218,55 @@ contract PPLocker is IPPLocker {
     emit ReputationBurn(address(_tra));
   }
 
-  function burnWithReputation(IPPRA _tra) external onlyOwner {
+  function burnWithReputation(IPPRA _tra) external onlyProposalManager {
     _tra.approveBurn(this);
     burn(_tra);
   }
 
-  function cancelTokenBurn() external onlyOwner {
-    IPPTokenController(tokenContract.controller()).cancelTokenBurn(tokenId);
-  }
-
-  function vote(IPPTokenVoting voting, uint256 voteId, bool _support, bool _executesIfDecided) external onlyOwner {
-    require(address(voting.registry()) == address(tokenContract), "Registries does not match");
-    require(address(voting) != address(tokenContract), "Voting should not be token contract");
+  function propose(
+    address _destination,
+    uint256 _value,
+    bool _castVote,
+    bool _executesIfDecided,
+    bytes calldata _data,
+    string calldata _dataLink
+  )
+    external
+    payable
+    onlyOwner
+  {
     require(tokenDeposited, "Token not deposited");
-
-    uint256[] memory _tokensIds = new uint256[](1);
-    _tokensIds[0] = tokenId;
-    voting.voteByTokens(_tokensIds, voteId, _support, _executesIfDecided);
+    require(_destination != address(tokenContract), "Destination can not be the tokenContract");
+    _propose(_destination, _value, _castVote, _executesIfDecided, _data, _dataLink);
   }
 
   // GETTERS
-
-  function isOwner() public view returns (bool) {
-    return msg.sender == owner;
-  }
 
   function getTokenInfo()
     public
     view
     returns (
-      address _owner,
+      address[] memory _owners,
+      uint256[] memory _ownersReputation,
+      uint256[] memory _shares,
+      uint256 _totalShares,
       uint256 _tokenId,
       uint256 _reputation,
       bool _tokenDeposited,
       address _tokenContract
     )
   {
+    uint256 len = owners.length;
+    uint256[] memory ownersReputation = new uint256[](len);
+    for(uint256 i = 0; i < len; i++) {
+      ownersReputation[i] = reputationByOwner[owners[i]];
+    }
+
     return (
-      owner,
+      owners,
+      ownersReputation,
+      shares,
+      totalShares,
       tokenId,
       reputation,
       tokenDeposited,

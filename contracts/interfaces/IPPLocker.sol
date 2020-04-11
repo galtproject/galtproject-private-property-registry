@@ -14,16 +14,35 @@ import "./IPPRA.sol";
 
 
 interface IPPLocker {
-  function deposit(IPPToken _tokenContract, uint256 _tokenId) external payable;
-  function withdraw() external;
+  function deposit(
+    IPPToken _tokenContract,
+    uint256 _tokenId,
+    address[] calldata _owners,
+    uint256[] calldata _shares,
+    uint256 _totalShares
+  ) external payable;
+  function withdraw(address _newOwner, address _newDepositManager) external;
   function approveMint(IPPRA _tra) external;
   function burn(IPPRA _tra) external;
   function isMinted(address _tra) external view returns (bool);
   function getTras() external view returns (address[] memory);
   function getTrasCount() external view returns (uint256);
-  function isOwner() external view returns (bool);
-  function owner() external view returns(address);
+  function depositManager() external view returns(address);
   function tokenId() external view returns(uint256);
   function reputation() external view returns(uint256);
   function tokenContract() external view returns(IPPToken);
+
+  function getTokenInfo()
+  external
+    view
+    returns (
+      address[] memory _owners,
+      uint256[] memory _ownersReputation,
+      uint256[] memory _shares,
+      uint256 _totalShares,
+      uint256 _tokenId,
+      uint256 _reputation,
+      bool _tokenDeposited,
+      address _tokenContract
+    );
 }
