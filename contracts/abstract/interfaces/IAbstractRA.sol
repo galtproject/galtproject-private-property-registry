@@ -23,7 +23,7 @@ interface IAbstractRA {
   function totalSupply() external view returns (uint256);
 
   // Private Property specific getter
-  function reputationMinted(address _tokenContract, uint256 _tokenId) external view returns (bool);
+  function tokenReputationMinted(address _tokenContract, uint256 _tokenId) external view returns (uint256);
 
   // Ping-Pong Handshake
   function ping() external pure returns (bytes32);
