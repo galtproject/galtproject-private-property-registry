@@ -38,11 +38,11 @@ interface IAbstractLocker {
     returns (
       address[] memory _owners,
       uint256[] memory _ownersReputation,
-      uint256[] memory _shares,
-      uint256 _totalShares,
+      address _tokenContract,
       uint256 _tokenId,
-      uint256 _reputation,
+      uint256 _totalReputation,
       bool _tokenDeposited,
-      address _tokenContract
+      uint256[] memory _shares,
+      uint256 _totalShares
     );
 }
