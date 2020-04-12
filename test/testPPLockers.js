@@ -160,14 +160,14 @@ describe('PPLockers', () => {
 
     assert.sameMembers(await locker.getTras(), [ra.address]);
 
-    await ra.setMinted(token.address, aliceTokenId, true);
+    await ra.setMinted(token.address, aliceTokenId, '1');
     await assertRevert(locker.burn(ra.address, { from: alice }), 'Not the proposal manager');
     const burnProposalId = await this.burnLockerProposal(locker, ra.address, { from: alice });
     const burnProposal = await locker.proposals(burnProposalId);
     assert.equal(burnProposal.status, '1');
     const burnResult = await locker.executeProposal(burnProposalId, '0');
     assert.equal(hexToAscii(burnResult.logs[0].args.response).indexOf('Reputation not completely burned') > -1, true);
-    await ra.setMinted(token.address, aliceTokenId, false);
+    await ra.setMinted(token.address, aliceTokenId, '0');
 
     // burn reputation and withdraw token back
     await this.burnLockerProposal(locker, ra.address, { from: alice });

@@ -202,7 +202,7 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
 
   function burn(IAbstractRA _tra) public onlyProposalManager {
     require(traSet.has(address(_tra)), "Not minted to the RA");
-    require(_tra.reputationMinted(address(tokenContract), tokenId) == false, "Reputation not completely burned");
+    require(_tra.tokenReputationMinted(address(tokenContract), tokenId) == 0, "Reputation not completely burned");
 
     traSet.remove(address(_tra));
 
