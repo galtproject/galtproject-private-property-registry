@@ -9,10 +9,10 @@
 
 pragma solidity ^0.5.13;
 
-import "../interfaces/IPPRA.sol";
+import "../abstract/interfaces/IAbstractRA.sol";
 
 
-contract MockRA is IPPRA {
+contract MockRA is IAbstractRA {
   // registry => (tokenId => isMinted)
   mapping(address => mapping(uint256 => bool)) public reputationMinted;
 
@@ -34,11 +34,11 @@ contract MockRA is IPPRA {
     return bytes32("pong");
   }
 
-  function mint(IPPLocker _tokenLocker) external {
+  function mint(IAbstractLocker _tokenLocker) external {
     require(false, "Not implemented");
   }
 
-  function approveBurn(IPPLocker _tokenLocker) external {
+  function approveBurn(IAbstractLocker _tokenLocker) external {
     require(false, "Not implemented");
   }
 }

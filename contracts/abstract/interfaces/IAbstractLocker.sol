@@ -9,31 +9,31 @@
 
 pragma solidity ^0.5.13;
 
-import "./IPPToken.sol";
-import "./IPPRA.sol";
+import "./IAbstractToken.sol";
+import "./IAbstractRA.sol";
 
 
-interface IPPLocker {
+interface IAbstractLocker {
   function deposit(
-    IPPToken _tokenContract,
+    IAbstractToken _tokenContract,
     uint256 _tokenId,
     address[] calldata _owners,
     uint256[] calldata _shares,
     uint256 _totalShares
   ) external payable;
   function withdraw(address _newOwner, address _newDepositManager) external;
-  function approveMint(IPPRA _tra) external;
-  function burn(IPPRA _tra) external;
+  function approveMint(IAbstractRA _tra) external;
+  function burn(IAbstractRA _tra) external;
   function isMinted(address _tra) external view returns (bool);
   function getTras() external view returns (address[] memory);
   function getTrasCount() external view returns (uint256);
   function depositManager() external view returns(address);
   function tokenId() external view returns(uint256);
-  function reputation() external view returns(uint256);
-  function tokenContract() external view returns(IPPToken);
+  function totalReputation() external view returns(uint256);
+  function tokenContract() external view returns(IAbstractToken);
 
-  function getTokenInfo()
-  external
+  function getLockerInfo()
+    external
     view
     returns (
       address[] memory _owners,

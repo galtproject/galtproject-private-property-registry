@@ -103,7 +103,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
     SaleOrder storage saleOrder = saleOrders[_orderId];
     SaleOrderDetails storage details = saleOrderDetails[_orderId];
 
-    IPPToken propertyToken = IPPToken(details.propertyToken);
+    IAbstractToken propertyToken = IAbstractToken(details.propertyToken);
 
     uint256 len = details.propertyTokenIds.length;
 
@@ -137,7 +137,7 @@ contract PPMarket is Marketable, Ownable, ChargesFee {
 
     for (uint256 i = 0; i < len; i++) {
       tokenId = _propertyTokenIds[i];
-      require(IPPToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
+      require(IAbstractToken(_propertyToken).exists(tokenId), "Property token with the given ID doesn't exist");
       require(IERC721(_propertyToken).ownerOf(tokenId) == msg.sender, "Sender should own the token");
     }
   }

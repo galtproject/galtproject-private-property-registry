@@ -15,9 +15,10 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/drafts/Strings.sol";
 import "./interfaces/IPPToken.sol";
 import "@galtproject/core/contracts/CheckpointableId.sol";
+import "./abstract/interfaces/IAbstractToken.sol";
 
 
-contract PPToken is IPPToken, ERC721Full, Ownable, CheckpointableId {
+contract PPToken is IPPToken, IAbstractToken, ERC721Full, Ownable, CheckpointableId {
   using SafeMath for uint256;
 
   uint256 public constant VERSION = 2;

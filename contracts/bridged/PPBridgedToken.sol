@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/drafts/Strings.sol";
 import "./interfaces/IPPBridgedToken.sol";
 
 
-contract PPBridgedToken is IPPBridgedToken, ERC721Full, Ownable {
+contract PPBridgedToken is IPPBridgedToken, IAbstractToken, ERC721Full, Ownable {
   bytes32 public constant TYPE = bytes32("BRIDGED");
 
   uint256 public constant VERSION = 1;

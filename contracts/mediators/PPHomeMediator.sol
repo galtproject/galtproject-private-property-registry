@@ -44,12 +44,12 @@ contract PPHomeMediator is IHomeMediator, BasicMediator {
     require(msg.sender == address(bridgeContract), "Only bridge allowed");
     require(bridgeContract.messageSender() == mediatorContractOnOtherSide, "Invalid contract on other side");
 
-    IPPBridgedToken(erc721Token).burn(_tokenId);
+    IAbstractToken(erc721Token).burn(_tokenId);
   }
 
   function mintToken(address _recipient, uint256 _tokenId, bytes memory _metadata) internal {
-    IPPBridgedToken.TokenType _tokenType;
-    IPPBridgedToken.AreaSource _areaSource;
+    IAbstractToken.TokenType _tokenType;
+    IAbstractToken.AreaSource _areaSource;
     uint256 _area;
     bytes32 _ledgerIdentifier;
     string memory _humanAddress;
@@ -69,12 +69,12 @@ contract PPHomeMediator is IHomeMediator, BasicMediator {
       ,
       ,
     ) = abi.decode(_metadata, (
-      IPPBridgedToken.TokenType,
+      IAbstractToken.TokenType,
       // contour
       uint256[],
       // highestPoint
       int256,
-      IPPBridgedToken.AreaSource,
+      IAbstractToken.AreaSource,
       // area
       uint256,
       // ledgerIdentifier
@@ -113,7 +113,7 @@ contract PPHomeMediator is IHomeMediator, BasicMediator {
   function bridgeSpecificActionsOnTokenTransfer(address _from, uint256 _tokenId) internal {
     bytes memory metadata = getMetadata(_tokenId);
 
-    IPPBridgedToken(erc721Token).burn(_tokenId);
+    IAbstractToken(erc721Token).burn(_tokenId);
 
     passMessage(_from, _tokenId, metadata);
   }

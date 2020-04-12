@@ -11,7 +11,6 @@ pragma solidity ^0.5.13;
 
 import "@galtproject/libs/contracts/traits/OwnableAndInitializable.sol";
 import "./interfaces/IPPLockerRegistry.sol";
-import "./interfaces/IPPLocker.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
 
 

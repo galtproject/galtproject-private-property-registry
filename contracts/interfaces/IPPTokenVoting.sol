@@ -10,7 +10,6 @@
 pragma solidity ^0.5.13;
 
 import "./IPPToken.sol";
-import "./IPPRA.sol";
 
 
 interface IPPTokenVoting {
