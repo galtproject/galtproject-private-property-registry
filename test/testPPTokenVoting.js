@@ -282,13 +282,16 @@ describe('PPTokenVoting', () => {
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
-      await locker.deposit(token.address, aliceTokenId, { from: alice });
-
-      const hackVoting = await HackVotingMock.new(token.address);
+      await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice });
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
 
-      res = await locker.vote(hackVoting.address, voteId, true, true, { from: alice, gas: 8000000 });
+      const hackVoting = await HackVotingMock.new(token.address);
+      const proposalData = hackVoting.contract.methods.voteByTokens([aliceTokenId], '0', true, true).encodeABI();
+      res = await locker.propose(hackVoting.address, '0', true, true, proposalData, '', { from: alice });
+      const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
+      const proposal = await locker.proposals(proposalId);
+      await assert.equal(proposal.status, '2');
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
     });

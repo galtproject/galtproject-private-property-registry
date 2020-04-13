@@ -22,6 +22,7 @@ const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const galt = require('@galtproject/utils');
+const _ = require('lodash');
 
 PPForeignMediator.numberFormat = 'String';
 PPToken.numberFormat = 'String';
@@ -502,11 +503,15 @@ describe('Mediators', () => {
 
       // deposit token
       await bridgedTokenX.approve(locker.address, token1, { from: bob });
-      await locker.deposit(bridgedTokenX.address, token1, [alice], ['1'], '1', { from: bob });
+      await locker.deposit(bridgedTokenX.address, token1, [bob], ['1'], '1', { from: bob });
 
       const hackVoting = await HackVotingMock.new(bridgedTokenX.address);
 
-      await locker.vote(hackVoting.address, 0, true, true, { from: bob });
+      const proposalData = hackVoting.contract.methods.voteByTokens([token1], '0', true, true).encodeABI();
+      res = await locker.propose(hackVoting.address, '0', true, true, proposalData, '', { from: bob });
+      const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
+      const proposal = await locker.proposals(proposalId);
+      await assert.equal(proposal.status, '2');
     });
   });
 });
