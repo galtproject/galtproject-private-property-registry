@@ -25,7 +25,7 @@ contract PPTokenControllerFactory {
 
   function build(
     IPPGlobalRegistry _globalRegistry,
-    IPPToken _tokenContract,
+    IAbstractToken _tokenContract,
     uint256 _defaultBurnTimeoutDuration
   )
     external

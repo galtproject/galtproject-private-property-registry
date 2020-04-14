@@ -22,7 +22,7 @@ contract PPTokenVotingFactory {
   // USER INTERFACE
 
   function build(
-    IPPToken _registry,
+    IAbstractToken _registry,
     uint256 _supportRequiredPct,
     uint256 _minAcceptQuorumPct,
     uint256 _voteTime

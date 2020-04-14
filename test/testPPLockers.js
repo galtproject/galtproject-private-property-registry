@@ -23,13 +23,13 @@ PPTokenController.numberFormat = 'String';
 
 const { ether, assertRevert, zeroAddress } = require('@galtproject/solidity-test-chest')(web3);
 
-const { utf8ToHex } = web3.utils;
+const { utf8ToHex, hexToAscii } = web3.utils;
 const bytes32 = utf8ToHex;
 
 const ONE_HOUR = 60 * 60;
 
 describe('PPLockers', () => {
-  const [alice, registryOwner, minter, lockerFeeManager] = accounts;
+  const [alice, bob, dan, registryOwner, minter, lockerFeeManager] = accounts;
   const owner = defaultSender;
 
   const ethFee = ether(10);
@@ -73,6 +73,24 @@ describe('PPLockers', () => {
     await this.ppLockerFactory.setFeeManager(lockerFeeManager);
     await this.ppLockerFactory.setEthFee(ethFee, { from: lockerFeeManager });
     await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
+
+    this.withdrawFromLockerProposal = async (locker, _newOwner, _newDepositManager, options) => {
+      const proposalData = locker.contract.methods.withdraw(_newOwner, _newDepositManager).encodeABI();
+      const res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
+      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
+    };
+
+    this.approveMintLockerProposal = async (locker, _traAddress, options) => {
+      const proposalData = locker.contract.methods.approveMint(_traAddress).encodeABI();
+      const res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
+      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
+    };
+
+    this.burnLockerProposal = async (locker, _traAddress, options) => {
+      const proposalData = locker.contract.methods.burn(_traAddress).encodeABI();
+      const res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
+      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
+    };
   });
 
   it('should correctly build a locker with no fee', async function() {
@@ -106,36 +124,66 @@ describe('PPLockers', () => {
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
-    assert.sameMembers(await this.ppLockerRegistry.getLockerListByOwner(alice), [lockerAddress]);
+
+    const blockNumberBeforeDeposit = await web3.eth.getBlockNumber();
 
     // deposit token
     await token.approve(locker.address, aliceTokenId, { from: alice });
-    await locker.deposit(token.address, aliceTokenId, { from: alice });
+    await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice });
+
+    const blockNumberAfterDeposit = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), 123);
 
     assert.equal(await token.ownerOf(aliceTokenId), locker.address);
     assert.equal(await locker.tokenContract(), token.address);
     assert.equal(await locker.tokenId(), aliceTokenId);
     assert.equal(await locker.tokenDeposited(), true);
-    assert.equal(await locker.owner(), alice);
-    assert.equal(await locker.reputation(), 123);
+    assert.equal(await locker.reputationOf(alice), 123);
+    assert.equal(await locker.totalReputation(), 123);
+    const lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [alice]);
+    assert.sameMembers(lockerInfo._ownersReputation, ['123']);
 
     // create fake RA contract and mint reputation to it
     const ra = await MockRA.new('MockRA');
-    await locker.approveMint(ra.address, { from: alice });
+    await this.approveMintLockerProposal(locker, ra.address, { from: alice });
 
-    await assertRevert(locker.withdraw({ from: alice }), 'RAs counter should be 0');
+    await assertRevert(locker.withdraw(alice, alice, { from: alice }), 'Not the proposal manager');
+
+    const withdrawProposalId = await this.withdrawFromLockerProposal(locker, bob, dan, { from: alice });
+    const withdrawProposal = await locker.proposals(withdrawProposalId);
+    assert.equal(withdrawProposal.status, '1');
+    const executeResult = await locker.executeProposal(withdrawProposalId, '0');
+    assert.equal(hexToAscii(executeResult.logs[0].args.response).indexOf('RAs counter should be 0') > -1, true);
 
     assert.sameMembers(await locker.getTras(), [ra.address]);
 
-    await ra.setMinted(token.address, aliceTokenId, true);
-    await assertRevert(locker.burn(ra.address, { from: alice }), 'Reputation not completely burned');
-    await ra.setMinted(token.address, aliceTokenId, false);
+    await ra.setMinted(token.address, aliceTokenId, '1');
+    await assertRevert(locker.burn(ra.address, { from: alice }), 'Not the proposal manager');
+    const burnProposalId = await this.burnLockerProposal(locker, ra.address, { from: alice });
+    const burnProposal = await locker.proposals(burnProposalId);
+    assert.equal(burnProposal.status, '1');
+    const burnResult = await locker.executeProposal(burnProposalId, '0');
+    assert.equal(hexToAscii(burnResult.logs[0].args.response).indexOf('Reputation not completely burned') > -1, true);
+    await ra.setMinted(token.address, aliceTokenId, '0');
 
     // burn reputation and withdraw token back
-    await locker.burn(ra.address, { from: alice });
-    await locker.withdraw({ from: alice });
+    await this.burnLockerProposal(locker, ra.address, { from: alice });
+    await this.withdrawFromLockerProposal(locker, bob, dan, { from: alice });
 
-    assert.equal(await token.ownerOf(aliceTokenId), alice);
+    const blockNumberAfterBurn = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), 123);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterBurn), 0);
+
+    assert.equal(await locker.reputationOf(alice), 0);
+    assert.equal(await locker.totalReputation(), 0);
+
+    assert.equal(await token.ownerOf(aliceTokenId), bob);
+    assert.equal(await locker.depositManager(), dan);
   });
 
   describe('deposit commission', () => {
@@ -168,6 +216,10 @@ describe('PPLockers', () => {
       res = await controller.mint(alice, { from: minter });
       aliceTokenId = res.logs[0].args.tokenId;
 
+      await controller.setInitialDetails(aliceTokenId, 2, 1, 123, utf8ToHex('foo'), 'bar', 'buzz', false, {
+        from: minter
+      });
+
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
       lockerAddress = res.logs[0].args.locker;
       locker = await PPLocker.at(lockerAddress);
@@ -180,19 +232,25 @@ describe('PPLockers', () => {
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
 
-      await assertRevert(locker.deposit(token.address, aliceTokenId, { from: alice }), 'GALT_TOKEN not set');
       await assertRevert(
-        locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(3) }),
+        locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
+        'GALT_TOKEN not set'
+      );
+      await assertRevert(
+        locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice, value: ether(3) }),
         'Invalid ETH fee'
       );
 
       const ra = await MockRA.new('MockRA');
       await assertRevert(
-        locker.depositAndApproveMint(token.address, aliceTokenId, ra.address, { from: alice, value: ether(3) }),
+        locker.depositAndApproveMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, {
+          from: alice,
+          value: ether(3)
+        }),
         'Invalid ETH fee'
       );
 
-      await locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(4) });
+      await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice, value: ether(4) });
     });
 
     it('could accept only GALT payments', async function() {
@@ -202,16 +260,16 @@ describe('PPLockers', () => {
       await token.approve(locker.address, aliceTokenId, { from: alice });
 
       await assertRevert(
-        locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(123123) }),
+        locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice, value: ether(123123) }),
         'Invalid ETH fee'
       );
       await assertRevert(
-        locker.deposit(token.address, aliceTokenId, { from: alice }),
+        locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
         'ERC20: transfer amount exceeds allowance'
       );
 
       await this.galtToken.approve(locker.address, ether(4), { from: alice });
-      await locker.deposit(token.address, aliceTokenId, { from: alice });
+      await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice });
     });
 
     it('should require another ETH payment for another registry after withdrawal', async function() {
@@ -221,20 +279,38 @@ describe('PPLockers', () => {
       res = await anotherController.mint(alice, { from: minter });
       const anotherAliceTokenId = res.logs[0].args.tokenId;
 
+      await anotherController.setInitialDetails(
+        anotherAliceTokenId,
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        false,
+        { from: minter }
+      );
+
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
 
-      await locker.deposit(token.address, aliceTokenId, { from: alice, value: ether(4) });
+      await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice, value: ether(4) });
 
-      await locker.withdraw({ from: alice });
+      await this.withdrawFromLockerProposal(locker, alice, alice, { from: alice });
 
       await anotherToken.approve(locker.address, anotherAliceTokenId, { from: alice });
       await assertRevert(
-        locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice, value: ether(4) }),
+        locker.deposit(anotherToken.address, anotherAliceTokenId, [alice], ['1'], '1', {
+          from: alice,
+          value: ether(4)
+        }),
         'Invalid ETH fee'
       );
 
-      await locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice, value: ether(42) });
+      await locker.deposit(anotherToken.address, anotherAliceTokenId, [alice], ['1'], '1', {
+        from: alice,
+        value: ether(42)
+      });
 
       assert.equal(await web3.eth.getBalance(controller.address), ether(4));
       assert.equal(await web3.eth.getBalance(anotherController.address), ether(42));
@@ -248,34 +324,8 @@ describe('PPLockers', () => {
       res = await anotherController.mint(alice, { from: minter });
       const anotherAliceTokenId = res.logs[0].args.tokenId;
 
-      // deposit token
-      await token.approve(locker.address, aliceTokenId, { from: alice });
-
-      await this.galtToken.approve(locker.address, ether(4), { from: alice });
-      await locker.deposit(token.address, aliceTokenId, { from: alice });
-
-      await locker.withdraw({ from: alice });
-
-      await this.galtToken.mint(alice, ether(42));
-
-      await anotherToken.approve(locker.address, anotherAliceTokenId, { from: alice });
-      await this.galtToken.approve(locker.address, ether(4), { from: alice });
-      await assertRevert(
-        locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice }),
-        'ERC20: transfer amount exceeds allowance'
-      );
-
-      await this.galtToken.approve(locker.address, ether(42), { from: alice });
-      await locker.deposit(anotherToken.address, anotherAliceTokenId, { from: alice });
-
-      assert.equal(await this.galtToken.balanceOf(controller.address), ether(4));
-      assert.equal(await this.galtToken.balanceOf(anotherController.address), ether(42));
-    });
-
-    it('should correctly deposit to locker by depositAndApproveMint', async function() {
-      await controller.setInitialDetails(
-        aliceTokenId,
-        // tokenType
+      await anotherController.setInitialDetails(
+        anotherAliceTokenId,
         2,
         1,
         123,
@@ -285,33 +335,56 @@ describe('PPLockers', () => {
         false,
         { from: minter }
       );
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+
+      await this.galtToken.approve(locker.address, ether(4), { from: alice });
+      await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice });
+
+      await this.withdrawFromLockerProposal(locker, alice, alice, { from: alice });
+
+      await this.galtToken.mint(alice, ether(42));
+
+      await anotherToken.approve(locker.address, anotherAliceTokenId, { from: alice });
+      await this.galtToken.approve(locker.address, ether(4), { from: alice });
+      await assertRevert(
+        locker.deposit(anotherToken.address, anotherAliceTokenId, [alice], ['1'], '1', { from: alice }),
+        'ERC20: transfer amount exceeds allowance'
+      );
+
+      await this.galtToken.approve(locker.address, ether(42), { from: alice });
+      await locker.deposit(anotherToken.address, anotherAliceTokenId, [alice], ['1'], '1', { from: alice });
+
+      assert.equal(await this.galtToken.balanceOf(controller.address), ether(4));
+      assert.equal(await this.galtToken.balanceOf(anotherController.address), ether(42));
+    });
+
+    it('should correctly deposit to locker by depositAndApproveMint', async function() {
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
       const ra = await MockRA.new('MockRA');
       await assertRevert(
-        locker.depositAndApproveMint(token.address, aliceTokenId, ra.address, { from: minter }),
-        'Not the locker owner'
+        locker.depositAndApproveMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, { from: minter }),
+        'Not the deposit manager'
       );
-      await locker.depositAndApproveMint(token.address, aliceTokenId, ra.address, { from: alice });
+      await locker.depositAndApproveMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, { from: alice });
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
       assert.equal(await locker.tokenContract(), token.address);
       assert.equal(await locker.tokenId(), aliceTokenId);
       assert.equal(await locker.tokenDeposited(), true);
-      assert.equal(await locker.owner(), alice);
-      assert.equal(await locker.reputation(), 123);
+      assert.equal(await locker.totalReputation(), 123);
 
-      await assertRevert(locker.withdraw({ from: alice }), 'RAs counter should be 0');
+      const lockerInfo = await locker.getLockerInfo();
+      assert.sameMembers(lockerInfo._owners, [alice]);
+      assert.sameMembers(lockerInfo._ownersReputation, ['123']);
 
       assert.sameMembers(await locker.getTras(), [ra.address]);
 
-      await ra.setMinted(token.address, aliceTokenId, true);
-      await assertRevert(locker.burn(ra.address, { from: alice }), 'Reputation not completely burned');
-      await ra.setMinted(token.address, aliceTokenId, false);
-
       // burn reputation and withdraw token back
-      await locker.burn(ra.address, { from: alice });
-      await locker.withdraw({ from: alice });
+      await this.burnLockerProposal(locker, ra.address, { from: alice });
+      await this.withdrawFromLockerProposal(locker, alice, alice, { from: alice });
 
       assert.equal(await token.ownerOf(aliceTokenId), alice);
     });
@@ -325,7 +398,10 @@ describe('PPLockers', () => {
       const bridgedLocker = await PPLocker.at(bridgedLockerAddress);
 
       await token.approve(bridgedLocker.address, aliceTokenId, { from: alice });
-      await assertRevert(bridgedLocker.deposit(token.address, aliceTokenId, { from: alice }), 'Token type is invalid');
+      await assertRevert(
+        bridgedLocker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
+        'Token type is invalid'
+      );
     });
   });
 });

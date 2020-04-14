@@ -21,7 +21,7 @@ contract HackVotingMock {
   )
    external
   {
-    bytes4 methodSelector = IPPToken(0).transferFrom.selector;
+    bytes4 methodSelector = IAbstractToken(0).transferFrom.selector;
     bytes memory _data = abi.encodeWithSelector(methodSelector, msg.sender, address(this), _tokenIds[0]);
     emit PreCall(_data);
     (bool status, bytes memory response) = registry.delegatecall(_data);

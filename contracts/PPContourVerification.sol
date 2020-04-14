@@ -13,7 +13,6 @@ import "@galtproject/geodesic/contracts/utils/GeohashUtils.sol";
 import "@galtproject/geodesic/contracts/utils/SegmentUtils.sol";
 import "@galtproject/geodesic/contracts/utils/LandUtils.sol";
 import "@galtproject/geodesic/contracts/utils/PolygonUtils.sol";
-import "./interfaces/IPPToken.sol";
 import "./libs/PPContourVerificationPublicLib.sol";
 import "./interfaces/IPPDepositHolder.sol";
 import "./PPTokenController.sol";
@@ -114,7 +113,7 @@ contract PPContourVerification is Ownable {
   {
     _ensureInvalidity(_validTokenId, _invalidTokenId);
 
-    IPPToken tokenContract = _tokenContract();
+    IAbstractToken tokenContract = _tokenContract();
 
     uint256[] memory validContour = tokenContract.getContour(_validTokenId);
     uint256[] memory invalidContour = tokenContract.getContour(_invalidTokenId);
@@ -122,7 +121,7 @@ contract PPContourVerification is Ownable {
     bool isInside = lib.pointInsideContour(validContour, invalidContour, _includingPoint);
 
     if (isInside == true) {
-      if (tokenContract.getType(_validTokenId) == IPPToken.TokenType.ROOM) {
+      if (tokenContract.getType(_validTokenId) == IAbstractToken.TokenType.ROOM) {
         bool uniquenessValidToken = controller.getClaimUniquenessFlag(_validTokenId);
         bool uniquenessInvalidToken = controller.getClaimUniquenessFlag(_invalidTokenId);
         if (!uniquenessValidToken || !uniquenessInvalidToken) {
@@ -144,7 +143,7 @@ contract PPContourVerification is Ownable {
 
   // INTERNAL
 
-  function _tokenContract() internal returns (IPPToken) {
+  function _tokenContract() internal returns (IAbstractToken) {
     return controller.tokenContract();
   }
 
@@ -160,7 +159,7 @@ contract PPContourVerification is Ownable {
   )
     internal
   {
-    IPPToken tokenContract = controller.tokenContract();
+    IAbstractToken tokenContract = controller.tokenContract();
 
     require(
       lib.checkForRoomVerticalIntersection(
@@ -174,12 +173,12 @@ contract PPContourVerification is Ownable {
   }
 
   function _ensureInvalidity(uint256 _validToken, uint256 _invalidToken) internal {
-    IPPToken tokenContract = controller.tokenContract();
+    IAbstractToken tokenContract = controller.tokenContract();
 
     require(tokenContract.exists(_validToken) == true, "Valid token doesn't exist");
     require(tokenContract.exists(_invalidToken) == true, "Invalid token doesn't exist");
 
-    IPPToken.TokenType validTokenType = tokenContract.getType(_validToken);
+    IAbstractToken.TokenType validTokenType = tokenContract.getType(_validToken);
     require(
       validTokenType == tokenContract.getType(_invalidToken),
       "Tokens type mismatch"
@@ -188,7 +187,7 @@ contract PPContourVerification is Ownable {
     bool uniquenessValidToken = controller.getClaimUniquenessFlag(_validToken);
     bool uniquenessInvalidToken = controller.getClaimUniquenessFlag(_invalidToken);
 
-    if (uniquenessValidToken && uniquenessInvalidToken && validTokenType == IPPToken.TokenType.ROOM) {
+    if (uniquenessValidToken && uniquenessInvalidToken && validTokenType == IAbstractToken.TokenType.ROOM) {
       bytes32 validHumanAddressHash = keccak256(abi.encodePacked(tokenContract.getHumanAddress(_validToken)));
       bytes32 invalidHumanAddressHash = keccak256(abi.encodePacked(tokenContract.getHumanAddress(_invalidToken)));
       require(validHumanAddressHash == invalidHumanAddressHash, "Both tokens have uniqueness flag and different human addresses");

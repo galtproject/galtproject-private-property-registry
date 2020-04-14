@@ -36,7 +36,7 @@ contract PPTokenVoting is Ownable, IPPTokenVoting {
   string private constant ERROR_CAN_NOT_FORWARD = "VOTING_CAN_NOT_FORWARD";
   string private constant ERROR_NO_VOTING_POWER = "VOTING_NO_VOTING_POWER";
 
-  IPPToken public registry;
+  IAbstractToken public registry;
   uint256 public supportRequiredPct;
   uint256 public minAcceptQuorumPct;
   uint256 public voteTime;
@@ -57,7 +57,7 @@ contract PPTokenVoting is Ownable, IPPTokenVoting {
   * @param _minAcceptQuorumPct Percentage of yeas in total possible votes for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
   * @param _voteTime Seconds that a vote will be open for token holders to vote (unless enough yeas or nays have been cast to make an early decision)
   */
-  constructor(IPPToken _registry, uint256 _supportRequiredPct, uint256 _minAcceptQuorumPct, uint256 _voteTime) public {
+  constructor(IAbstractToken _registry, uint256 _supportRequiredPct, uint256 _minAcceptQuorumPct, uint256 _voteTime) public {
     require(_minAcceptQuorumPct <= _supportRequiredPct, ERROR_INIT_PCTS);
     require(_supportRequiredPct < PCT_BASE, ERROR_INIT_SUPPORT_TOO_BIG);
 
@@ -280,7 +280,7 @@ contract PPTokenVoting is Ownable, IPPTokenVoting {
     require(_isTokenHolder(_tokenIds[0]), ERROR_NOT_TOKEN_HOLDER);
 
     uint256 snapshotBlock = block.number - 1; // avoid double voting in this very block
-    uint256 votingPower = registry.getTotalAreaSupplyAt(snapshotBlock);
+    uint256 votingPower = IPPToken(address(registry)).getTotalAreaSupplyAt(snapshotBlock);
     require(votingPower > 0, ERROR_NO_VOTING_POWER);
 
     voteId = votesLength++;
@@ -319,7 +319,7 @@ contract PPTokenVoting is Ownable, IPPTokenVoting {
     Vote storage vote_ = votes[_voteId];
 
     // This could re-enter, though we can assume the governance token is not malicious
-    uint256 voterStake = registry.getAreaAt(_tokenId, vote_.snapshotBlock);
+    uint256 voterStake = IPPToken(address(registry)).getAreaAt(_tokenId, vote_.snapshotBlock);
     VoterState state = vote_.voters[_tokenId];
 
     // If voter had previously voted, decrease count
@@ -403,7 +403,7 @@ contract PPTokenVoting is Ownable, IPPTokenVoting {
   */
   function _canVote(uint256 _voteId, uint256 _tokenId) internal view returns (bool) {
     Vote storage vote_ = votes[_voteId];
-    return _isVoteOpen(vote_) && registry.getAreaAt(_tokenId, vote_.snapshotBlock) > 0;
+    return _isVoteOpen(vote_) && IPPToken(address(registry)).getAreaAt(_tokenId, vote_.snapshotBlock) > 0;
   }
 
   /**

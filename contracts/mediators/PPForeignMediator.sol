@@ -37,7 +37,7 @@ contract PPForeignMediator is BasicMediator {
    * @param _tokenId to sync
    */
   function syncBurnedToken(uint256 _tokenId) external {
-    require(IPPToken(erc721Token).exists(_tokenId) == false, "Token should not exist");
+    require(IAbstractToken(erc721Token).exists(_tokenId) == false, "Token should not exist");
 
     bytes4 methodSelector = IHomeMediator(0).handleBurnedToken.selector;
     bytes memory data = abi.encodeWithSelector(methodSelector, _tokenId);

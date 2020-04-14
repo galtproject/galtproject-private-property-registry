@@ -13,7 +13,6 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "../traits/ChargesFee.sol";
 import "../interfaces/IPPGlobalRegistry.sol";
 import "../interfaces/IPPLockerRegistry.sol";
-import "./interfaces/IPPBridgedLocker.sol";
 import "./PPBridgedLocker.sol";
 
 
@@ -33,20 +32,20 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
     globalRegistry = _globalRegistry;
   }
 
-  function build() external payable returns (IPPBridgedLocker) {
+  function build() external payable returns (IAbstractLocker) {
     return buildForOwner(msg.sender);
   }
 
-  function buildForOwner(address _lockerOwner) public payable returns (IPPBridgedLocker) {
+  function buildForOwner(address _lockerOwner) public payable returns (IAbstractLocker) {
     _acceptPayment();
 
-    IPPBridgedLocker locker = new PPBridgedLocker(globalRegistry, _lockerOwner);
+    IAbstractLocker locker = new PPBridgedLocker(globalRegistry, _lockerOwner);
 
     IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker), bytes32("bridged"));
 
     emit NewPPLocker(msg.sender, address(locker));
 
-    return IPPBridgedLocker(locker);
+    return IAbstractLocker(locker);
   }
 
   // INTERNAL

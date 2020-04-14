@@ -35,6 +35,7 @@
     "no-continue": "off",
     "no-await-in-loop": "off",
     "func-names": "off",
+    "no-underscore-dangle": "off",
     "prettier/prettier": [
       "error",
       {

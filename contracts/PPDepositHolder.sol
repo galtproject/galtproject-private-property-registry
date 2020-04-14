@@ -41,7 +41,7 @@ contract PPDepositHolder is IPPDepositHolder {
     external
     onlyValidTokenContract(_tokenContract)
   {
-    require(IPPToken(_tokenContract).exists(_tokenId) == true, "Token doesn't exists");
+    require(IAbstractToken(_tokenContract).exists(_tokenId) == true, "Token doesn't exists");
 
     // deposits[_tokenContract][_tokenId] += _amount;
     deposits[_tokenContract][_tokenId] = deposits[_tokenContract][_tokenId].add(_amount);
@@ -54,7 +54,7 @@ contract PPDepositHolder is IPPDepositHolder {
 
   // @dev user withdraws his deposit back, withdraws total amount
   function withdraw(address _tokenContract, uint256 _tokenId) external {
-    require(msg.sender == IPPToken(_tokenContract).ownerOf(_tokenId), "Not the token owner");
+    require(msg.sender == IAbstractToken(_tokenContract).ownerOf(_tokenId), "Not the token owner");
 
     uint256 balance = deposits[_tokenContract][_tokenId];
 

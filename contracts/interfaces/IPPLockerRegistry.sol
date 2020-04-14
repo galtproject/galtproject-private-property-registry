@@ -11,7 +11,7 @@ pragma solidity ^0.5.13;
 
 
 interface IPPLockerRegistry {
-  event AddLocker(address indexed locker, address indexed owner, address indexed factory);
+  event AddLocker(address indexed locker, address indexed factory);
   event SetFactory(address factory);
 
   function addLocker(address _locker, bytes32 _contractType) external;

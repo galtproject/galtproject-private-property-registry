@@ -13,9 +13,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "./interfaces/IPPToken.sol";
 import "./interfaces/IPPTokenController.sol";
 import "./interfaces/IPPGlobalRegistry.sol";
+import "./interfaces/IPPToken.sol";
+import "./abstract/interfaces/IAbstractToken.sol";
 
 
 contract PPTokenController is IPPTokenController, Ownable {
@@ -54,7 +55,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   }
 
   IPPGlobalRegistry public globalRegistry;
-  IPPToken public tokenContract;
+  IAbstractToken public tokenContract;
   address public contourVerificationManager;
   address public geoDataManager;
   address public feeManager;
@@ -84,7 +85,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     _;
   }
 
-  constructor(IPPGlobalRegistry _globalRegistry, IPPToken _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
+  constructor(IPPGlobalRegistry _globalRegistry, IAbstractToken _tokenContract, uint256 _defaultBurnTimeoutDuration) public {
     require(_defaultBurnTimeoutDuration > 0, "Invalid burn timeout duration");
 
     defaultBurnTimeoutDuration = _defaultBurnTimeoutDuration;
@@ -180,7 +181,7 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   // MINTER INTERFACE
   function mint(address _to) external onlyMinter {
-    uint256 _tokenId = tokenContract.mint(_to);
+    uint256 _tokenId = IPPToken(address(tokenContract)).mint(_to);
 
     emit Mint(_to, _tokenId);
   }
@@ -197,8 +198,8 @@ contract PPTokenController is IPPTokenController, Ownable {
 
   function setInitialDetails(
     uint256 _privatePropertyId,
-    IPPToken.TokenType _tokenType,
-    IPPToken.AreaSource _areaSource,
+    IAbstractToken.TokenType _tokenType,
+    IAbstractToken.AreaSource _areaSource,
     uint256 _area,
     bytes32 _ledgerIdentifier,
     string calldata _humanAddress,
@@ -211,16 +212,18 @@ contract PPTokenController is IPPTokenController, Ownable {
     // Will REVERT if there is no owner assigned to the token
     tokenContract.ownerOf(_privatePropertyId);
 
-    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
+    IPPToken ippTokenContract = IPPToken(address(tokenContract));
+
+    uint256 setupStage = ippTokenContract.getSetupStage(_privatePropertyId);
     require(setupStage == uint256(PropertyInitialSetupStage.PENDING), "Requires PENDING setup stage");
 
-    tokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
+    ippTokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
 
-    tokenContract.incrementSetupStage(_privatePropertyId);
+    ippTokenContract.incrementSetupStage(_privatePropertyId);
 
     _updateDetailsUpdatedAt(_privatePropertyId);
 
-    tokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, bytes32(uint256(_claimUniqueness ? 1 : 0)));
+    ippTokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, bytes32(uint256(_claimUniqueness ? 1 : 0)));
   }
 
   function setInitialContour(
@@ -231,13 +234,15 @@ contract PPTokenController is IPPTokenController, Ownable {
     external
     onlyMinter
   {
-    uint256 setupStage = tokenContract.getSetupStage(_privatePropertyId);
+    IPPToken ippTokenContract = IPPToken(address(tokenContract));
+
+    uint256 setupStage = ippTokenContract.getSetupStage(_privatePropertyId);
 
     require(setupStage == uint256(PropertyInitialSetupStage.DETAILS), "Requires DETAILS setup stage");
 
-    tokenContract.setContour(_privatePropertyId, _contour, _highestPoint);
+    ippTokenContract.setContour(_privatePropertyId, _contour, _highestPoint);
 
-    tokenContract.incrementSetupStage(_privatePropertyId);
+    ippTokenContract.incrementSetupStage(_privatePropertyId);
 
     _updateContourUpdatedAt(_privatePropertyId);
   }
@@ -438,7 +443,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   function _updateDetailsUpdatedAt(uint256 _tokenId) internal {
     bytes32 value = bytes32(now);
 
-    tokenContract.setPropertyExtraData(_tokenId, DETAILS_UPDATED_EXTRA_KEY, value);
+    IPPToken(address(tokenContract)).setPropertyExtraData(_tokenId, DETAILS_UPDATED_EXTRA_KEY, value);
 
     emit UpdateDetailsUpdatedAt(_tokenId, now);
   }
@@ -446,7 +451,7 @@ contract PPTokenController is IPPTokenController, Ownable {
   function _updateContourUpdatedAt(uint256 _tokenId) internal {
     bytes32 value = bytes32(now);
 
-    tokenContract.setPropertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY, value);
+    IPPToken(address(tokenContract)).setPropertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY, value);
 
     emit UpdateDetailsUpdatedAt(_tokenId, now);
   }
@@ -454,14 +459,14 @@ contract PPTokenController is IPPTokenController, Ownable {
   // GETTERS
 
   function getDetailsUpdatedAt(uint256 _tokenId) public view returns (uint256) {
-    return uint256(tokenContract.propertyExtraData(_tokenId, DETAILS_UPDATED_EXTRA_KEY));
+    return uint256(IPPToken(address(tokenContract)).propertyExtraData(_tokenId, DETAILS_UPDATED_EXTRA_KEY));
   }
 
   function getContourUpdatedAt(uint256 _tokenId) public view returns (uint256) {
-    return uint256(tokenContract.propertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY));
+    return uint256(IPPToken(address(tokenContract)).propertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY));
   }
 
   function getClaimUniquenessFlag(uint256 _tokenId) public view returns (bool) {
-    return tokenContract.propertyExtraData(_tokenId, CLAIM_UNIQUENESS_KEY) != 0x0;
+    return IPPToken(address(tokenContract)).propertyExtraData(_tokenId, CLAIM_UNIQUENESS_KEY) != 0x0;
   }
 }
