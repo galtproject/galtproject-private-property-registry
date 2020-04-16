@@ -92,8 +92,8 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
 
     tokenContract = _tokenContract;
     tokenId = _tokenId;
-    totalReputation = _tokenContract.getArea(_tokenId);
-    require(totalReputation > 0, "Token area can not be 0");
+    uint256 tokenArea = _tokenContract.getArea(_tokenId);
+    require(tokenArea > 0, "Token area can not be 0");
     tokenDeposited = true;
 
     owners = _owners;
@@ -104,13 +104,17 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
     require(len == _shares.length, "Owners and shares length does not match");
 
     uint256 calcTotalShares = 0;
+    uint256 calcReputation = 0;
     for (uint256 i = 0; i < len; i++) {
       require(_shares[i] > 0, "Share can not be 0");
-      uint256 ownerReputation = (_shares[i] * totalReputation) / _totalShares;
+      uint256 ownerReputation = (_shares[i] * tokenArea) / _totalShares;
       reputationByOwner[_owners[i]] = ownerReputation;
       _updateValueAtNow(_cachedBalances[_owners[i]], ownerReputation);
       calcTotalShares += _shares[i];
+      calcReputation += ownerReputation;
     }
+    totalReputation = calcReputation;
+
     _updateValueAtNow(_cachedTotalSupply, totalReputation);
     require(calcTotalShares == _totalShares, "Calculated shares and total shares does not equal");
 
