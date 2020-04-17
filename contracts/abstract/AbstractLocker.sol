@@ -24,12 +24,14 @@ import "@galtproject/core/contracts/reputation/AbstractProposalManager.sol";
 contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointable {
   using ArraySet for ArraySet.AddressSet;
 
-  uint256 public constant VERSION = 2;
+  uint256 public constant VERSION = 3;
 
   event ReputationMint(address indexed sra);
   event ReputationBurn(address indexed sra);
   event Deposit(uint256 totalReputation);
   event Withdrawal(uint256 totalReputation);
+
+  event ChangeOwners();
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
 
@@ -66,16 +68,40 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
     _;
   }
 
+  modifier onlyProposalConfigManager() {
+    require(msg.sender == address(this), "Not the proposal manager");
+    _;
+  }
+
+  modifier onlyProposalDefaultConfigManager() {
+    require(msg.sender == address(this), "Not the proposal manager");
+    _;
+  }
+
   modifier onlyValidTokenContract(IAbstractToken _tokenContract) {
     IPPTokenRegistry(globalRegistry.getPPTokenRegistryAddress()).requireValidToken(address(_tokenContract));
     _;
   }
 
-  constructor(IPPGlobalRegistry _globalRegistry, address _depositManager) public {
-    globalRegistry = _globalRegistry;
+  constructor(
+    address _globalRegistry,
+    address _depositManager,
+    address _feeManager,
+    uint256 _defaultSupport,
+    uint256 _defaultMinAcceptQuorum,
+    uint256 _defaultTimeout
+  ) public {
+    globalRegistry = IPPGlobalRegistry(_globalRegistry);
     depositManager = _depositManager;
+
+    _validateVotingConfig(_defaultSupport, _defaultMinAcceptQuorum, _defaultTimeout);
+
+    defaultVotingConfig.support = _defaultSupport;
+    defaultVotingConfig.minAcceptQuorum = _defaultMinAcceptQuorum;
+    defaultVotingConfig.timeout = _defaultTimeout;
   }
 
+  // DEPOSIT MANAGER INTERFACE
   function deposit(
     IAbstractToken _tokenContract,
     uint256 _tokenId,
@@ -92,37 +118,36 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
 
     tokenContract = _tokenContract;
     tokenId = _tokenId;
-    uint256 tokenArea = _tokenContract.getArea(_tokenId);
-    require(tokenArea > 0, "Token area can not be 0");
     tokenDeposited = true;
 
-    owners = _owners;
-    shares = _shares;
-    totalShares = _totalShares;
-
-    uint256 len = _owners.length;
-    require(len == _shares.length, "Owners and shares length does not match");
-
-    uint256 calcTotalShares = 0;
-    uint256 calcReputation = 0;
-    for (uint256 i = 0; i < len; i++) {
-      require(_shares[i] > 0, "Share can not be 0");
-      uint256 ownerReputation = (_shares[i] * tokenArea) / _totalShares;
-      reputationByOwner[_owners[i]] = ownerReputation;
-      _updateValueAtNow(_cachedBalances[_owners[i]], ownerReputation);
-      calcTotalShares += _shares[i];
-      calcReputation += ownerReputation;
-    }
-    totalReputation = calcReputation;
-
-    _updateValueAtNow(_cachedTotalSupply, totalReputation);
-    require(calcTotalShares == _totalShares, "Calculated shares and total shares does not equal");
+    _setOwners(_owners, _shares, _totalShares);
 
     _tokenContract.transferFrom(msg.sender, address(this), _tokenId);
 
     emit Deposit(totalReputation);
   }
 
+  function depositAndMint(
+    IAbstractToken _tokenContract,
+    uint256 _tokenId,
+    address[] calldata _owners,
+    uint256[] calldata _shares,
+    uint256 _totalShares,
+    IAbstractRA _tra,
+    bool _mintReputation
+  )
+    external
+    payable
+    onlyDepositManager
+  {
+    deposit(_tokenContract, _tokenId, _owners, _shares, _totalShares);
+    _approveMint(_tra);
+    if (_mintReputation) {
+      _tra.mint(this);
+    }
+  }
+
+  // PROPOSAL MANAGER INTERFACE
   function withdraw(address _newOwner, address _newDepositManager) external onlyProposalManager {
     require(tokenDeposited, "Token not deposited");
     require(traSet.size() == 0, "RAs counter should be 0");
@@ -157,48 +182,6 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
     _approveMint(_tra);
   }
 
-  function _approveMint(IAbstractRA _tra) internal {
-    require(!traSet.has(address(_tra)), "Already minted to this RA");
-    require(_tra.ping() == bytes32("pong"), "Handshake failed");
-
-    traSet.add(address(_tra));
-
-    emit ReputationMint(address(_tra));
-  }
-
-  function depositAndApproveMint(
-    IAbstractToken _tokenContract,
-    uint256 _tokenId,
-    address[] calldata _owners,
-    uint256[] calldata _shares,
-    uint256 _totalShares,
-    IAbstractRA _tra
-  )
-    external
-    payable
-    onlyDepositManager
-  {
-    deposit(_tokenContract, _tokenId, _owners, _shares, _totalShares);
-    _approveMint(_tra);
-  }
-
-  function depositAndMint(
-    IAbstractToken _tokenContract,
-    uint256 _tokenId,
-    address[] calldata _owners,
-    uint256[] calldata _shares,
-    uint256 _totalShares,
-    IAbstractRA _tra
-  )
-  external
-  payable
-  onlyDepositManager
-  {
-    deposit(_tokenContract, _tokenId, _owners, _shares, _totalShares);
-    _approveMint(_tra);
-    _tra.mint(this);
-  }
-
   function approveAndMint(IAbstractRA _tra) external onlyProposalManager {
     _approveMint(_tra);
     _tra.mint(this);
@@ -218,6 +201,23 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
     burn(_tra);
   }
 
+  function changeOwners(
+    address[] memory _owners,
+    uint256[] memory _shares,
+    uint256 _totalShares
+  )
+    public
+    payable
+    onlyProposalManager
+  {
+    require(tokenDeposited, "Token not deposited");
+
+    _setOwners(_owners, _shares, _totalShares);
+
+    emit ChangeOwners();
+  }
+
+  // OWNER INTERFACE
   function propose(
     address _destination,
     uint256 _value,
@@ -226,30 +226,67 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
     bytes calldata _data,
     string calldata _dataLink
   )
-  external
-  payable
-  onlyOwner
+    external
+    payable
+    onlyOwner
   {
     require(tokenDeposited, "Token not deposited");
     require(_destination != address(tokenContract), "Destination can not be the tokenContract");
     _propose(_destination, _value, _castVote, _executesIfDecided, _data, _dataLink);
   }
 
+  // INTERNAL
+  function _approveMint(IAbstractRA _tra) internal {
+    require(!traSet.has(address(_tra)), "Already minted to this RA");
+    require(_tra.ping() == bytes32("pong"), "Handshake failed");
+
+    traSet.add(address(_tra));
+
+    emit ReputationMint(address(_tra));
+  }
+
+  function _setOwners(address[] memory _owners, uint256[] memory _shares, uint256 _totalShares) internal {
+    uint256 tokenArea = tokenContract.getArea(tokenId);
+    require(tokenArea > 0, "Token area can not be 0");
+
+    owners = _owners;
+    shares = _shares;
+    totalShares = _totalShares;
+
+    uint256 len = _owners.length;
+    require(len == _shares.length, "Owners and shares length does not match");
+
+    uint256 calcTotalShares = 0;
+    uint256 calcReputation = 0;
+    for (uint256 i = 0; i < len; i++) {
+      require(_shares[i] > 0, "Share can not be 0");
+      uint256 ownerReputation = (_shares[i] * tokenArea) / _totalShares;
+      reputationByOwner[_owners[i]] = ownerReputation;
+      _updateValueAtNow(_cachedBalances[_owners[i]], ownerReputation);
+      calcTotalShares += _shares[i];
+      calcReputation += ownerReputation;
+    }
+    totalReputation = calcReputation;
+
+    _updateValueAtNow(_cachedTotalSupply, totalReputation);
+    require(calcTotalShares == _totalShares, "Calculated shares and total shares does not equal");
+  }
+
   // GETTERS
 
   function getLockerInfo()
-  public
-  view
-  returns (
-    address[] memory _owners,
-    uint256[] memory _ownersReputation,
-    address _tokenContract,
-    uint256 _tokenId,
-    uint256 _totalReputation,
-    bool _tokenDeposited,
-    uint256[] memory _shares,
-    uint256 _totalShares
-  )
+    public
+    view
+    returns (
+      address[] memory _owners,
+      uint256[] memory _ownersReputation,
+      address _tokenContract,
+      uint256 _tokenId,
+      uint256 _totalReputation,
+      bool _tokenDeposited,
+      uint256[] memory _shares,
+      uint256 _totalShares
+    )
   {
     uint256 len = owners.length;
     uint256[] memory ownersReputation = new uint256[](len);

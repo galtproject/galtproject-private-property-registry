@@ -11,6 +11,7 @@ const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 const PPLocker = contract.fromArtifact('PPLocker');
 const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
 const PPBridgedLockerFactory = contract.fromArtifact('PPBridgedLockerFactory');
+const PPLockerFactoryLib = contract.fromArtifact('PPLockerFactoryLib');
 const PPACL = contract.fromArtifact('PPACL');
 const MockRA = contract.fromArtifact('MockRA');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
@@ -53,6 +54,7 @@ describe('PPLockers', () => {
 
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
+
     this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, 0, 0);
 
     // PPGR setup
@@ -402,6 +404,49 @@ describe('PPLockers', () => {
         bridgedLocker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
         'Token type is invalid'
       );
+    });
+
+    it.only('proposal fee should work', async function() {
+      let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner,
+        value: ether(10)
+      });
+      const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+      await controller.setMinter(minter, { from: registryOwner });
+
+      res = await controller.mint(alice, { from: minter });
+      const aliceTokenId = res.logs[0].args.tokenId;
+
+      await controller.setInitialDetails(
+        aliceTokenId,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        false,
+        { from: minter }
+      );
+
+      await this.ppLockerFactory.setFeeManager(owner, {from: owner});
+
+      res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+      const lockerAddress = res.logs[0].args.locker;
+      const locker = await PPLocker.at(lockerAddress);
+
+      await locker.setEthFee(ether(0.1), {from: owner});
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+      await locker.deposit(token.address, aliceTokenId, [alice, bob], ['1', '1'], '2', { from: alice });
+
+      const proposalData = locker.contract.methods.withdraw(_newOwner, _newDepositManager).encodeABI();
+      res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
+      const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
     });
   });
 });

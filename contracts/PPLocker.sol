@@ -19,10 +19,16 @@ contract PPLocker is AbstractLocker {
   bytes32 public constant GALT_FEE_KEY = bytes32("LOCKER_GALT");
   bytes32 public constant ETH_FEE_KEY = bytes32("LOCKER_ETH");
 
-
-  constructor(IPPGlobalRegistry _globalRegistry, address _depositManager)
+  constructor(
+    address _globalRegistry,
+    address _depositManager,
+    address _feeManager,
+    uint256 _defaultSupport,
+    uint256 _defaultMinAcceptQuorum,
+    uint256 _timeout
+  )
     public
-    AbstractLocker(_globalRegistry, _depositManager)
+    AbstractLocker(_globalRegistry, _depositManager, _feeManager, _defaultSupport, _defaultMinAcceptQuorum, _timeout)
   {
 
   }
