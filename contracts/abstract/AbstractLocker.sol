@@ -21,7 +21,7 @@ import "@galtproject/core/contracts/Checkpointable.sol";
 import "@galtproject/core/contracts/reputation/AbstractProposalManager.sol";
 
 
-contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointable {
+contract AbstractLocker is IAbstractLocker, Checkpointable {
   using ArraySet for ArraySet.AddressSet;
 
   uint256 public constant VERSION = 3;
@@ -43,6 +43,7 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
   IAbstractToken public tokenContract;
 
   address public depositManager;
+  AbstractProposalManager public proposalManager;
 
   uint256 public totalShares;
   address[] public owners;
@@ -64,17 +65,7 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
   }
 
   modifier onlyProposalManager() {
-    require(msg.sender == address(this), "Not the proposal manager");
-    _;
-  }
-
-  modifier onlyProposalConfigManager() {
-    require(msg.sender == address(this), "Not the proposal manager");
-    _;
-  }
-
-  modifier onlyProposalDefaultConfigManager() {
-    require(msg.sender == address(this), "Not the proposal manager");
+    require(msg.sender == address(proposalManager), "Not the proposal manager");
     _;
   }
 
@@ -86,19 +77,11 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
   constructor(
     address _globalRegistry,
     address _depositManager,
-    address _feeManager,
-    uint256 _defaultSupport,
-    uint256 _defaultMinAcceptQuorum,
-    uint256 _defaultTimeout
+    address _proposalManager
   ) public {
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
     depositManager = _depositManager;
-
-    _validateVotingConfig(_defaultSupport, _defaultMinAcceptQuorum, _defaultTimeout);
-
-    defaultVotingConfig.support = _defaultSupport;
-    defaultVotingConfig.minAcceptQuorum = _defaultMinAcceptQuorum;
-    defaultVotingConfig.timeout = _defaultTimeout;
+    proposalManager = AbstractProposalManager(_proposalManager);
   }
 
   // DEPOSIT MANAGER INTERFACE
@@ -215,24 +198,6 @@ contract AbstractLocker is IAbstractLocker, AbstractProposalManager, Checkpointa
     _setOwners(_owners, _shares, _totalShares);
 
     emit ChangeOwners();
-  }
-
-  // OWNER INTERFACE
-  function propose(
-    address _destination,
-    uint256 _value,
-    bool _castVote,
-    bool _executesIfDecided,
-    bytes calldata _data,
-    string calldata _dataLink
-  )
-    external
-    payable
-    onlyOwner
-  {
-    require(tokenDeposited, "Token not deposited");
-    require(_destination != address(tokenContract), "Destination can not be the tokenContract");
-    _propose(_destination, _value, _castVote, _executesIfDecided, _data, _dataLink);
   }
 
   // INTERNAL

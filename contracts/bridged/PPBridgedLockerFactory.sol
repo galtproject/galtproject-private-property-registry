@@ -13,15 +13,19 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "../traits/ChargesFee.sol";
 import "./PPBridgedLocker.sol";
 import "../libs/PPLockerFactoryLib.sol";
+import "../interfaces/ILockerProposalManager.sol";
+import "../interfaces/ILockerProposalManagerFactory.sol";
 
 
 contract PPBridgedLockerFactory is Ownable, ChargesFee {
   event NewPPLocker(address indexed owner, address locker);
 
   address public globalRegistry;
+  ILockerProposalManagerFactory public lockerProposalManagerFactory;
 
   constructor(
     address _globalRegistry,
+    ILockerProposalManagerFactory _lockerProposalManagerFactory,
     uint256 _ethFee,
     uint256 _galtFee
   )
@@ -43,14 +47,19 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
   ) public payable returns (IAbstractLocker) {
     _acceptPayment();
 
-    address locker = address(new PPBridgedLocker(
-      globalRegistry,
-      _lockerOwner,
-      feeManager,
+    ILockerProposalManager proposalManager = lockerProposalManagerFactory.build(
       _defaultSupport,
       _defaultMinAcceptQuorum,
       _timeout
+    );
+
+    address locker = address(new PPBridgedLocker(
+      globalRegistry,
+      _lockerOwner,
+      address(proposalManager)
     ));
+
+    proposalManager.initialize(IAbstractLocker(locker), feeManager);
 
     PPLockerFactoryLib.addLockerToRegistry(globalRegistry, locker, bytes32("regular"));
 
