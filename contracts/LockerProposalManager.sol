@@ -45,7 +45,7 @@ contract LockerProposalManager is AbstractProposalManager {
     _;
   }
 
-  // OWNER INTERFACE
+  // solium-disable-next-line blank-lines
   function propose(
     address _destination,
     uint256 _value,

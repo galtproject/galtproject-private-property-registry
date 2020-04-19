@@ -21,6 +21,8 @@ const PPACL = contract.fromArtifact('PPACL');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
+const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
+const LockerProposalManager = contract.fromArtifact('LockerProposalManager');
 const galt = require('@galtproject/utils');
 const _ = require('lodash');
 
@@ -128,7 +130,13 @@ describe('Mediators', () => {
       this.bridgedACL = await PPACL.new();
       this.ppBridgedTokenRegistry = await PPTokenRegistry.new();
       this.ppBridgedLockerRegistry = await PPLockerRegistry.new();
-      this.ppBridgedLockerFactory = await PPBridgedLockerFactory.new(this.bridgedPPGR.address, 1, 1);
+      const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
+      this.ppBridgedLockerFactory = await PPBridgedLockerFactory.new(
+        this.bridgedPPGR.address,
+        lockerProposalManagerFactory.address,
+        1,
+        1
+      );
 
       await this.bridgedPPGR.initialize();
       await this.ppBridgedTokenRegistry.initialize(this.bridgedPPGR.address);
@@ -508,9 +516,10 @@ describe('Mediators', () => {
       const hackVoting = await HackVotingMock.new(bridgedTokenX.address);
 
       const proposalData = hackVoting.contract.methods.voteByTokens([token1], '0', true, true).encodeABI();
-      res = await locker.propose(hackVoting.address, '0', true, true, proposalData, '', { from: bob });
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      res = await proposalManager.propose(hackVoting.address, '0', true, true, proposalData, '', { from: bob });
       const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
-      const proposal = await locker.proposals(proposalId);
+      const proposal = await proposalManager.proposals(proposalId);
       await assert.equal(proposal.status, '2');
     });
   });

@@ -12,9 +12,9 @@ pragma solidity ^0.5.13;
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "../traits/ChargesFee.sol";
 import "./PPBridgedLocker.sol";
-import "../libs/PPLockerFactoryLib.sol";
 import "../interfaces/ILockerProposalManager.sol";
 import "../interfaces/ILockerProposalManagerFactory.sol";
+import "../interfaces/IPPLockerRegistry.sol";
 
 
 contract PPBridgedLockerFactory is Ownable, ChargesFee {
@@ -33,6 +33,7 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
     ChargesFee(_ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
+    lockerProposalManagerFactory = _lockerProposalManagerFactory;
   }
 
   function build() external payable returns (IAbstractLocker) {
@@ -44,7 +45,11 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
     uint256 _timeout
-  ) public payable returns (IAbstractLocker) {
+  )
+    public
+    payable
+    returns (IAbstractLocker)
+  {
     _acceptPayment();
 
     ILockerProposalManager proposalManager = lockerProposalManagerFactory.build(
@@ -53,15 +58,11 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
       _timeout
     );
 
-    address locker = address(new PPBridgedLocker(
-      globalRegistry,
-      _lockerOwner,
-      address(proposalManager)
-    ));
+    address locker = address(new PPBridgedLocker(globalRegistry, _lockerOwner, address(proposalManager)));
 
     proposalManager.initialize(IAbstractLocker(locker), feeManager);
 
-    PPLockerFactoryLib.addLockerToRegistry(globalRegistry, locker, bytes32("regular"));
+    IPPLockerRegistry(IPPGlobalRegistry(globalRegistry).getPPLockerRegistryAddress()).addLocker(locker, bytes32("bridged"));
 
     emit NewPPLocker(msg.sender, address(locker));
 
@@ -71,6 +72,6 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
   // INTERNAL
 
   function _galtToken() internal view returns (IERC20) {
-    return IERC20(PPLockerFactoryLib.getGaltToken(globalRegistry));
+    return IERC20(IPPGlobalRegistry(globalRegistry).getGaltTokenAddress());
   }
 }

@@ -14,8 +14,10 @@ const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 const PPLocker = contract.fromArtifact('PPLocker');
+const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
+const LockerProposalManager = contract.fromArtifact('LockerProposalManager');
 const _ = require('lodash');
 
 PPToken.numberFormat = 'String';
@@ -55,7 +57,8 @@ describe('PPTokenVoting', () => {
     this.ppTokenVotingFactory = await PPTokenVotingFactory.new();
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
-    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, 0, 0);
+    const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
+    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
@@ -288,9 +291,10 @@ describe('PPTokenVoting', () => {
 
       const hackVoting = await HackVotingMock.new(token.address);
       const proposalData = hackVoting.contract.methods.voteByTokens([aliceTokenId], '0', true, true).encodeABI();
-      res = await locker.propose(hackVoting.address, '0', true, true, proposalData, '', { from: alice });
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      res = await proposalManager.propose(hackVoting.address, '0', true, true, proposalData, '', { from: alice });
       const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
-      const proposal = await locker.proposals(proposalId);
+      const proposal = await proposalManager.proposals(proposalId);
       await assert.equal(proposal.status, '2');
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
