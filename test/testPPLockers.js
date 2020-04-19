@@ -9,21 +9,28 @@ const PPGlobalRegistry = contract.fromArtifact('PPGlobalRegistry');
 const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 const PPLocker = contract.fromArtifact('PPLocker');
+// const LockerProposalManager = contract.fromArtifact('LockerProposalManager');
 const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
 const PPBridgedLockerFactory = contract.fromArtifact('PPBridgedLockerFactory');
 const PPACL = contract.fromArtifact('PPACL');
 const MockRA = contract.fromArtifact('MockRA');
+const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const _ = require('lodash');
+const { ether, assertRevert, zeroAddress } = require('@galtproject/solidity-test-chest')(web3);
+const {
+  withdrawLockerProposal,
+  approveMintLockerProposal,
+  burnLockerProposal,
+  validateProposalError
+} = require('./proposalHelpers');
 
 PPToken.numberFormat = 'String';
 PPLocker.numberFormat = 'String';
 PPTokenController.numberFormat = 'String';
 
-const { ether, assertRevert, zeroAddress } = require('@galtproject/solidity-test-chest')(web3);
-
-const { utf8ToHex, hexToAscii } = web3.utils;
+const { utf8ToHex } = web3.utils;
 const bytes32 = utf8ToHex;
 
 const ONE_HOUR = 60 * 60;
@@ -53,7 +60,9 @@ describe('PPLockers', () => {
 
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
-    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, 0, 0);
+
+    const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
+    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
@@ -73,24 +82,6 @@ describe('PPLockers', () => {
     await this.ppLockerFactory.setFeeManager(lockerFeeManager);
     await this.ppLockerFactory.setEthFee(ethFee, { from: lockerFeeManager });
     await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
-
-    this.withdrawFromLockerProposal = async (locker, _newOwner, _newDepositManager, options) => {
-      const proposalData = locker.contract.methods.withdraw(_newOwner, _newDepositManager).encodeABI();
-      const res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
-      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
-    };
-
-    this.approveMintLockerProposal = async (locker, _traAddress, options) => {
-      const proposalData = locker.contract.methods.approveMint(_traAddress).encodeABI();
-      const res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
-      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
-    };
-
-    this.burnLockerProposal = async (locker, _traAddress, options) => {
-      const proposalData = locker.contract.methods.burn(_traAddress).encodeABI();
-      const res = await locker.propose(locker.address, '0', true, true, proposalData, '', options);
-      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
-    };
   });
 
   it('should correctly build a locker with no fee', async function() {
@@ -148,30 +139,24 @@ describe('PPLockers', () => {
 
     // create fake RA contract and mint reputation to it
     const ra = await MockRA.new('MockRA');
-    await this.approveMintLockerProposal(locker, ra.address, { from: alice });
+    await approveMintLockerProposal(locker, ra, { from: alice });
 
     await assertRevert(locker.withdraw(alice, alice, { from: alice }), 'Not the proposal manager');
 
-    const withdrawProposalId = await this.withdrawFromLockerProposal(locker, bob, dan, { from: alice });
-    const withdrawProposal = await locker.proposals(withdrawProposalId);
-    assert.equal(withdrawProposal.status, '1');
-    const executeResult = await locker.executeProposal(withdrawProposalId, '0');
-    assert.equal(hexToAscii(executeResult.logs[0].args.response).indexOf('RAs counter should be 0') > -1, true);
+    const withdrawProposalId = await withdrawLockerProposal(locker, bob, dan, { from: alice });
+    await validateProposalError(locker, withdrawProposalId, 'RAs counter should be 0');
 
     assert.sameMembers(await locker.getTras(), [ra.address]);
 
     await ra.setMinted(token.address, aliceTokenId, '1');
     await assertRevert(locker.burn(ra.address, { from: alice }), 'Not the proposal manager');
-    const burnProposalId = await this.burnLockerProposal(locker, ra.address, { from: alice });
-    const burnProposal = await locker.proposals(burnProposalId);
-    assert.equal(burnProposal.status, '1');
-    const burnResult = await locker.executeProposal(burnProposalId, '0');
-    assert.equal(hexToAscii(burnResult.logs[0].args.response).indexOf('Reputation not completely burned') > -1, true);
+    const burnProposalId = await burnLockerProposal(locker, ra, { from: alice });
+    await validateProposalError(locker, burnProposalId, 'Reputation not completely burned');
     await ra.setMinted(token.address, aliceTokenId, '0');
 
     // burn reputation and withdraw token back
-    await this.burnLockerProposal(locker, ra.address, { from: alice });
-    await this.withdrawFromLockerProposal(locker, bob, dan, { from: alice });
+    await burnLockerProposal(locker, ra, { from: alice });
+    await withdrawLockerProposal(locker, bob, dan, { from: alice });
 
     const blockNumberAfterBurn = await web3.eth.getBlockNumber();
 
@@ -243,7 +228,7 @@ describe('PPLockers', () => {
 
       const ra = await MockRA.new('MockRA');
       await assertRevert(
-        locker.depositAndApproveMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, {
+        locker.depositAndMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, false, {
           from: alice,
           value: ether(3)
         }),
@@ -296,7 +281,7 @@ describe('PPLockers', () => {
 
       await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice, value: ether(4) });
 
-      await this.withdrawFromLockerProposal(locker, alice, alice, { from: alice });
+      await withdrawLockerProposal(locker, alice, alice, { from: alice });
 
       await anotherToken.approve(locker.address, anotherAliceTokenId, { from: alice });
       await assertRevert(
@@ -342,7 +327,7 @@ describe('PPLockers', () => {
       await this.galtToken.approve(locker.address, ether(4), { from: alice });
       await locker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice });
 
-      await this.withdrawFromLockerProposal(locker, alice, alice, { from: alice });
+      await withdrawLockerProposal(locker, alice, alice, { from: alice });
 
       await this.galtToken.mint(alice, ether(42));
 
@@ -360,15 +345,15 @@ describe('PPLockers', () => {
       assert.equal(await this.galtToken.balanceOf(anotherController.address), ether(42));
     });
 
-    it('should correctly deposit to locker by depositAndApproveMint', async function() {
+    it('should correctly deposit to locker by depositAndMint', async function() {
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
       const ra = await MockRA.new('MockRA');
       await assertRevert(
-        locker.depositAndApproveMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, { from: minter }),
+        locker.depositAndMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, false, { from: minter }),
         'Not the deposit manager'
       );
-      await locker.depositAndApproveMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, { from: alice });
+      await locker.depositAndMint(token.address, aliceTokenId, [alice], ['1'], '1', ra.address, false, { from: alice });
 
       assert.equal(await token.ownerOf(aliceTokenId), locker.address);
       assert.equal(await locker.tokenContract(), token.address);
@@ -383,14 +368,20 @@ describe('PPLockers', () => {
       assert.sameMembers(await locker.getTras(), [ra.address]);
 
       // burn reputation and withdraw token back
-      await this.burnLockerProposal(locker, ra.address, { from: alice });
-      await this.withdrawFromLockerProposal(locker, alice, alice, { from: alice });
+      await burnLockerProposal(locker, ra, { from: alice });
+      await withdrawLockerProposal(locker, alice, alice, { from: alice });
 
       assert.equal(await token.ownerOf(aliceTokenId), alice);
     });
 
     it('should prevent use bridged locker for regular token', async function() {
-      const ppBridgedLockerFactory = await PPBridgedLockerFactory.new(this.ppgr.address, 1, 1);
+      const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
+      const ppBridgedLockerFactory = await PPBridgedLockerFactory.new(
+        this.ppgr.address,
+        lockerProposalManagerFactory.address,
+        1,
+        1
+      );
       await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), ppBridgedLockerFactory.address, true);
 
       res = await ppBridgedLockerFactory.build({ from: alice, value: 1 });
@@ -402,6 +393,50 @@ describe('PPLockers', () => {
         bridgedLocker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
         'Token type is invalid'
       );
+    });
+
+    it.skip('proposal fee should work', async function() {
+      res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+        from: registryOwner,
+        value: ether(10)
+      });
+      token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+      controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+      await controller.setMinter(minter, { from: registryOwner });
+
+      res = await controller.mint(alice, { from: minter });
+      aliceTokenId = res.logs[0].args.tokenId;
+
+      await controller.setInitialDetails(
+        aliceTokenId,
+        // tokenType
+        2,
+        1,
+        123,
+        utf8ToHex('foo'),
+        'bar',
+        'buzz',
+        false,
+        { from: minter }
+      );
+
+      await this.ppLockerFactory.setFeeManager(owner, { from: owner });
+
+      res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+      lockerAddress = res.logs[0].args.locker;
+      locker = await PPLocker.at(lockerAddress);
+
+      await locker.setEthFee(ether(0.1), { from: owner });
+
+      // deposit token
+      await token.approve(locker.address, aliceTokenId, { from: alice });
+      await locker.deposit(token.address, aliceTokenId, [alice, bob], ['1', '1'], '2', { from: alice });
+
+      // const proposalData = locker.contract.methods.withdraw(_newOwner, _newDepositManager).encodeABI();
+      // const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      // res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', options);
+      // const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
     });
   });
 });

@@ -14,6 +14,7 @@ const MockPPToken = contract.fromArtifact('MockPPToken');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
 const PPLocker = contract.fromArtifact('PPLocker');
+const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
 const galt = require('@galtproject/utils');
 const _ = require('lodash');
 
@@ -607,7 +608,8 @@ describe('PPToken and PPTokenController', () => {
 
       this.ppLockerRegistry = await PPLockerRegistry.new();
       await this.ppLockerRegistry.initialize(this.ppgr.address);
-      this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, 0, 0);
+      const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
+      this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
       await this.ppgr.setContract(await this.ppgr.PPGR_LOCKER_REGISTRY(), this.ppLockerRegistry.address);
       await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), this.ppLockerFactory.address, true);
 

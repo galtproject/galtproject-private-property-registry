@@ -31,6 +31,11 @@ interface IAbstractLocker {
   function tokenId() external view returns(uint256);
   function totalReputation() external view returns(uint256);
   function tokenContract() external view returns(IAbstractToken);
+  function tokenDeposited() external view returns(bool);
+
+  function reputationOf(address _address) external view returns (uint256);
+  function reputationOfAt(address _address, uint256 _blockNumber) external view returns (uint256);
+  function totalReputationSupplyAt(uint256 _blockNumber) external view returns (uint256);
 
   function getLockerInfo()
     external

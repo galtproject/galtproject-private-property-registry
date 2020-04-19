@@ -10,19 +10,21 @@
 pragma solidity ^0.5.13;
 
 import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "./interfaces/IPPLockerRegistry.sol";
 import "./PPLocker.sol";
 import "./traits/ChargesFee.sol";
-import "./interfaces/IPPGlobalRegistry.sol";
+import "./interfaces/ILockerProposalManagerFactory.sol";
+import "./interfaces/IPPLockerRegistry.sol";
 
 
 contract PPLockerFactory is Ownable, ChargesFee {
   event NewPPLocker(address indexed owner, address locker);
 
-  IPPGlobalRegistry public globalRegistry;
+  address public globalRegistry;
+  ILockerProposalManagerFactory public lockerProposalManagerFactory;
 
   constructor(
-    IPPGlobalRegistry _globalRegistry,
+    address _globalRegistry,
+    ILockerProposalManagerFactory _lockerProposalManagerFactory,
     uint256 _ethFee,
     uint256 _galtFee
   )
@@ -30,20 +32,38 @@ contract PPLockerFactory is Ownable, ChargesFee {
     ChargesFee(_ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
+    lockerProposalManagerFactory = _lockerProposalManagerFactory;
   }
 
   function build() external payable returns (IAbstractLocker) {
-    return buildForOwner(msg.sender);
+    return buildForOwner(msg.sender, 100 ether, 100 ether, 60 * 60 * 24 * 7);
   }
 
-  function buildForOwner(address _lockerOwner) public payable returns (IAbstractLocker) {
+  function buildForOwner(
+    address _lockerOwner,
+    uint256 _defaultSupport,
+    uint256 _defaultMinAcceptQuorum,
+    uint256 _timeout
+  )
+    public
+    payable
+    returns (IAbstractLocker)
+  {
     _acceptPayment();
 
-    IAbstractLocker locker = new PPLocker(globalRegistry, _lockerOwner);
+    ILockerProposalManager proposalManager = lockerProposalManagerFactory.build(
+      _defaultSupport,
+      _defaultMinAcceptQuorum,
+      _timeout
+    );
 
-    IPPLockerRegistry(globalRegistry.getPPLockerRegistryAddress()).addLocker(address(locker), bytes32("regular"));
+    address locker = address(new PPLocker(globalRegistry, _lockerOwner, address(proposalManager)));
 
-    emit NewPPLocker(msg.sender, address(locker));
+    proposalManager.initialize(IAbstractLocker(locker), feeManager);
+
+    IPPLockerRegistry(IPPGlobalRegistry(globalRegistry).getPPLockerRegistryAddress()).addLocker(locker, bytes32("regular"));
+
+    emit NewPPLocker(msg.sender, locker);
 
     return IAbstractLocker(locker);
   }
@@ -51,6 +71,6 @@ contract PPLockerFactory is Ownable, ChargesFee {
   // INTERNAL
 
   function _galtToken() internal view returns (IERC20) {
-    return IERC20(globalRegistry.getGaltTokenAddress());
+    return IERC20(IPPGlobalRegistry(globalRegistry).getGaltTokenAddress());
   }
 }
