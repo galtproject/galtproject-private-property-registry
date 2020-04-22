@@ -47,6 +47,10 @@ module.exports = contract => {
       const res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', options);
       return _.find(res.logs, l => l.args.proposalId).args.proposalId;
     },
+    async getLockerProposal(locker, proposalId) {
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      return proposalManager.proposals(proposalId);
+    },
     async validateProposalSuccess(locker, proposalId) {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       const proposal = await proposalManager.proposals(proposalId);
