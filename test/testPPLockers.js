@@ -447,16 +447,16 @@ describe('PPLockers', () => {
         proposalManager.propose(locker.address, '0', true, true, proposalData, '', { from: alice }),
         'Fee and msg.value not equal'
       );
-      res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', { from: alice, value: ether(0.1) });
+      res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', {
+        from: alice,
+        value: ether(0.1)
+      });
 
       const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
       let proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 1);
 
-      await assertRevert(
-        proposalManager.aye(proposalId, true, { from: bob }),
-        'Fee and msg.value not equal'
-      );
+      await assertRevert(proposalManager.aye(proposalId, true, { from: bob }), 'Fee and msg.value not equal');
       await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1), gas: 1000000 });
       proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 2);

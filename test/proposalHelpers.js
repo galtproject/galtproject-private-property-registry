@@ -2,8 +2,7 @@ const _ = require('lodash');
 const { assert } = require('chai');
 const { hexToAscii } = require('web3-utils');
 
-
-module.exports = (contract) => {
+module.exports = contract => {
   const LockerProposalManager = contract.fromArtifact('LockerProposalManager');
   return {
     async withdrawLockerProposal(locker, newOwner, depositManager, options) {
