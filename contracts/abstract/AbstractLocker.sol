@@ -31,6 +31,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   event Withdrawal(uint256 totalReputation);
 
   event ChangeOwners();
+  event TransferShare(address indexed oldOwner, address indexed newOwner);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
 
@@ -193,10 +194,41 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
     onlyProposalManager
   {
     require(tokenDeposited, "Token not deposited");
+    require(traSet.size() == 0, "RAs counter should be 0");
 
     _setOwners(_owners, _shares, _totalShares);
 
     emit ChangeOwners();
+  }
+
+  function transferShare(address _newShareOwner) public payable onlyOwner {
+    require(tokenDeposited, "Token not deposited");
+    require(traSet.size() == 0, "RAs counter should be 0");
+
+    address[] memory lastOwners = owners;
+    uint256[] memory lastShares = shares;
+    uint256 lastTotalShares = totalShares;
+
+    uint256 shareOfOwner = shareByOwner[msg.sender];
+    uint256 shareOfNewOwner = shareByOwner[_newShareOwner];
+
+    _clearOwnersShareAndReputation();
+
+    owners.push(_newShareOwner);
+    shares.push(shareOfOwner + shareOfNewOwner);
+
+    uint256 len = lastOwners.length;
+    for (uint256 i = 0; i < len; i++) {
+      if (lastOwners[i] == msg.sender || lastOwners[i] == _newShareOwner) {
+        continue;
+      }
+      owners.push(lastOwners[i]);
+      shares.push(lastShares[i]);
+    }
+
+    _setOwners(lastOwners, lastShares, lastTotalShares);
+
+    emit TransferShare(msg.sender, _newShareOwner);
   }
 
   // INTERNAL
@@ -209,9 +241,24 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
     emit ReputationMint(address(_tra));
   }
 
+  function _clearOwnersShareAndReputation() internal {
+    uint256 len = owners.length;
+    for (uint256 i = 0; i < len; i++) {
+      reputationByOwner[owners[i]] = 0;
+      shareByOwner[owners[i]] = 0;
+      _updateValueAtNow(_cachedBalances[owners[i]], 0);
+    }
+
+    owners = new address[](0);
+    shares = new uint256[](0);
+    totalShares = 0;
+  }
+
   function _setOwners(address[] memory _owners, uint256[] memory _shares, uint256 _totalShares) internal {
     uint256 tokenArea = tokenContract.getArea(tokenId);
     require(tokenArea > 0, "Token area can not be 0");
+
+    _clearOwnersShareAndReputation();
 
     owners = _owners;
     shares = _shares;
@@ -226,6 +273,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
       require(_shares[i] > 0, "Share can not be 0");
       uint256 ownerReputation = (_shares[i] * tokenArea) / _totalShares;
       reputationByOwner[_owners[i]] = ownerReputation;
+      shareByOwner[owners[i]] = _shares[i];
       _updateValueAtNow(_cachedBalances[_owners[i]], ownerReputation);
       calcTotalShares += _shares[i];
       calcReputation += ownerReputation;
