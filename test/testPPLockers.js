@@ -1,5 +1,6 @@
 const { accounts, defaultSender, contract, web3 } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
+const { BN } = require('web3-utils');
 
 const PPTokenFactory = contract.fromArtifact('PPTokenFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
@@ -15,6 +16,7 @@ const PPBridgedLockerFactory = contract.fromArtifact('PPBridgedLockerFactory');
 const PPACL = contract.fromArtifact('PPACL');
 const MockRA = contract.fromArtifact('MockRA');
 const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
+const LockerProposalManager = contract.fromArtifact('LockerProposalManager');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const _ = require('lodash');
@@ -23,8 +25,11 @@ const {
   withdrawLockerProposal,
   approveMintLockerProposal,
   burnLockerProposal,
-  validateProposalError
-} = require('./proposalHelpers');
+  validateProposalError,
+  validateProposalSuccess,
+  ayeLockerProposal,
+  changeOwnersLockerProposal
+} = require('./proposalHelpers')(contract);
 
 PPToken.numberFormat = 'String';
 PPLocker.numberFormat = 'String';
@@ -36,7 +41,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPLockers', () => {
-  const [alice, bob, dan, registryOwner, minter, lockerFeeManager] = accounts;
+  const [alice, bob, dan, lola, registryOwner, minter, lockerFeeManager] = accounts;
   const owner = defaultSender;
 
   const ethFee = ether(10);
@@ -165,6 +170,364 @@ describe('PPLockers', () => {
     assert.equal(await locker.reputationOfAt(alice, blockNumberAfterBurn), 0);
 
     assert.equal(await locker.reputationOf(alice), 0);
+    assert.equal(await locker.totalReputation(), 0);
+
+    assert.equal(await token.ownerOf(aliceTokenId), bob);
+    assert.equal(await locker.depositManager(), dan);
+  });
+
+  it('should correctly change locker owners', async function() {
+    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+      from: registryOwner,
+      value: ether(10)
+    });
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+    const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+    await controller.setMinter(minter, { from: registryOwner });
+
+    res = await controller.mint(alice, { from: minter });
+    const aliceTokenId = res.logs[0].args.tokenId;
+
+    await controller.setInitialDetails(
+      aliceTokenId,
+      // tokenType
+      2,
+      1,
+      ether(100),
+      utf8ToHex('foo'),
+      'bar',
+      'buzz',
+      false,
+      { from: minter }
+    );
+
+    res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+    const lockerAddress = res.logs[0].args.locker;
+    const locker = await PPLocker.at(lockerAddress);
+
+    assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
+
+    const blockNumberBeforeDeposit = await web3.eth.getBlockNumber();
+
+    // deposit token
+    await token.approve(locker.address, aliceTokenId, { from: alice });
+    await locker.deposit(token.address, aliceTokenId, [alice, bob, dan], ['1', '1', '2'], '4', { from: alice });
+
+    const blockNumberAfterDeposit = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), ether(25));
+
+    assert.equal(await locker.reputationOfAt(bob, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterDeposit), ether(25));
+
+    assert.equal(await locker.reputationOfAt(dan, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterDeposit), ether(50));
+
+    assert.equal(await token.ownerOf(aliceTokenId), locker.address);
+    assert.equal(await locker.tokenContract(), token.address);
+    assert.equal(await locker.tokenId(), aliceTokenId);
+    assert.equal(await locker.tokenDeposited(), true);
+    assert.equal(await locker.reputationOf(alice), ether(25));
+    assert.equal(await locker.reputationOf(bob), ether(25));
+    assert.equal(await locker.reputationOf(dan), ether(50));
+    assert.equal(await locker.reputationOf(lola), 0);
+    assert.equal(await locker.totalReputation(), ether(100));
+
+    assert.equal(await locker.shareByOwner(alice), 1);
+    assert.equal(await locker.shareByOwner(bob), 1);
+    assert.equal(await locker.shareByOwner(lola), 0);
+    assert.equal(await locker.shareByOwner(dan), 2);
+    assert.equal(await locker.totalShares(), 4);
+
+    let lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [alice, bob, dan]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
+
+    // create fake RA contract and mint reputation to it
+    const ra = await MockRA.new('MockRA');
+    const approveMintProposalId = await approveMintLockerProposal(locker, ra, { from: alice });
+    await ayeLockerProposal(locker, approveMintProposalId, { from: bob });
+    await ayeLockerProposal(locker, approveMintProposalId, { from: dan });
+    assert.equal(await locker.getTrasCount(), 1);
+
+    let changeOwnersProposalId = await changeOwnersLockerProposal(locker, [alice, bob, lola], ['1', '1', '1'], '3', {
+      from: alice
+    });
+    await ayeLockerProposal(locker, changeOwnersProposalId, { from: bob });
+    await assertRevert(
+      ayeLockerProposal(locker, changeOwnersProposalId, { from: lola }),
+      "Can't vote with 0 reputation -- Reason given: Can't vote with 0 reputation."
+    );
+    await ayeLockerProposal(locker, changeOwnersProposalId, { from: dan });
+    await validateProposalError(locker, changeOwnersProposalId, 'RAs counter should be 0');
+
+    assert.sameMembers(await locker.getTras(), [ra.address]);
+    await ra.setMinted(token.address, aliceTokenId, '0');
+
+    // burn reputation and withdraw token back
+    const burnLockerProposalId = await burnLockerProposal(locker, ra, { from: alice });
+    await ayeLockerProposal(locker, burnLockerProposalId, { from: bob });
+    await ayeLockerProposal(locker, burnLockerProposalId, { from: dan });
+
+    changeOwnersProposalId = await changeOwnersLockerProposal(locker, [alice, bob, lola], ['1', '1', '1'], '3', {
+      from: alice
+    });
+    await ayeLockerProposal(locker, changeOwnersProposalId, { from: bob });
+    await ayeLockerProposal(locker, changeOwnersProposalId, { from: dan });
+    await validateProposalSuccess(locker, changeOwnersProposalId);
+
+    const blockNumberAfterChangeOwners = await web3.eth.getBlockNumber();
+
+    const ether33 = new BN(ether(100)).div(new BN(3)).toString(10);
+    const ether99 = new BN(ether(100))
+      .div(new BN(3))
+      .mul(new BN(3))
+      .toString(10);
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterDeposit), ether(50));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterChangeOwners), ether33);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterChangeOwners), ether33);
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterChangeOwners), ether33);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterChangeOwners), 0);
+
+    assert.equal(await locker.reputationOf(alice), ether33);
+    assert.equal(await locker.reputationOf(bob), ether33);
+    assert.equal(await locker.reputationOf(lola), ether33);
+    assert.equal(await locker.reputationOf(dan), 0);
+    assert.equal(await locker.totalReputation(), ether99);
+
+    assert.equal(await locker.shareByOwner(alice), 1);
+    assert.equal(await locker.shareByOwner(bob), 1);
+    assert.equal(await locker.shareByOwner(lola), 1);
+    assert.equal(await locker.shareByOwner(dan), 0);
+    assert.equal(await locker.totalShares(), 3);
+
+    lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [alice, bob, lola]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether33, ether33, ether33]);
+  });
+
+  it('should correctly transfer share of owner', async function() {
+    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+      from: registryOwner,
+      value: ether(10)
+    });
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+    const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+    await controller.setMinter(minter, { from: registryOwner });
+
+    res = await controller.mint(alice, { from: minter });
+    const aliceTokenId = res.logs[0].args.tokenId;
+
+    await controller.setInitialDetails(
+      aliceTokenId,
+      // tokenType
+      2,
+      1,
+      ether(100),
+      utf8ToHex('foo'),
+      'bar',
+      'buzz',
+      false,
+      { from: minter }
+    );
+
+    res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+    const lockerAddress = res.logs[0].args.locker;
+    const locker = await PPLocker.at(lockerAddress);
+
+    assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
+
+    const blockNumberBeforeDeposit = await web3.eth.getBlockNumber();
+
+    // deposit token
+    await token.approve(locker.address, aliceTokenId, { from: alice });
+    await locker.deposit(token.address, aliceTokenId, [alice, bob, dan], ['1', '1', '2'], '4', { from: alice });
+
+    const blockNumberAfterDeposit = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), ether(25));
+
+    assert.equal(await locker.reputationOfAt(bob, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterDeposit), ether(25));
+
+    assert.equal(await locker.reputationOfAt(dan, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterDeposit), ether(50));
+
+    assert.equal(await token.ownerOf(aliceTokenId), locker.address);
+    assert.equal(await locker.tokenContract(), token.address);
+    assert.equal(await locker.tokenId(), aliceTokenId);
+    assert.equal(await locker.tokenDeposited(), true);
+    assert.equal(await locker.reputationOf(alice), ether(25));
+    assert.equal(await locker.reputationOf(bob), ether(25));
+    assert.equal(await locker.reputationOf(dan), ether(50));
+    assert.equal(await locker.reputationOf(lola), 0);
+    assert.equal(await locker.totalReputation(), ether(100));
+
+    assert.equal(await locker.shareByOwner(alice), 1);
+    assert.equal(await locker.shareByOwner(bob), 1);
+    assert.equal(await locker.shareByOwner(lola), 0);
+    assert.equal(await locker.shareByOwner(dan), 2);
+    assert.equal(await locker.totalShares(), 4);
+
+    let lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [alice, bob, dan]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
+
+    // create fake RA contract and mint reputation to it
+    const ra = await MockRA.new('MockRA');
+    const approveMintProposalId = await approveMintLockerProposal(locker, ra, { from: alice });
+    await ayeLockerProposal(locker, approveMintProposalId, { from: bob });
+    await ayeLockerProposal(locker, approveMintProposalId, { from: dan });
+    assert.equal(await locker.getTrasCount(), 1);
+
+    await assertRevert(locker.transferShare(lola, { from: alice }), 'RAs counter should be 0');
+
+    assert.sameMembers(await locker.getTras(), [ra.address]);
+    await ra.setMinted(token.address, aliceTokenId, '0');
+
+    // burn reputation and withdraw token back
+    const burnLockerProposalId = await burnLockerProposal(locker, ra, { from: alice });
+    await ayeLockerProposal(locker, burnLockerProposalId, { from: bob });
+    await ayeLockerProposal(locker, burnLockerProposalId, { from: dan });
+
+    await locker.transferShare(lola, { from: alice });
+
+    const blockNumberAfterTransferShare = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterDeposit), ether(50));
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterTransferShare), ether(25));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterTransferShare), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterTransferShare), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterTransferShare), ether(50));
+
+    assert.equal(await locker.reputationOf(alice), 0);
+    assert.equal(await locker.reputationOf(bob), ether(25));
+    assert.equal(await locker.reputationOf(lola), ether(25));
+    assert.equal(await locker.reputationOf(dan), ether(50));
+    assert.equal(await locker.totalReputation(), ether(100));
+
+    assert.equal(await locker.shareByOwner(alice), 0);
+    assert.equal(await locker.shareByOwner(bob), 1);
+    assert.equal(await locker.shareByOwner(lola), 1);
+    assert.equal(await locker.shareByOwner(dan), 2);
+    assert.equal(await locker.totalShares(), 4);
+
+    lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [bob, lola, dan]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
+
+    await locker.transferShare(lola, { from: bob });
+
+    const blockNumberAfterSecondTransferShare = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberBeforeDeposit), 0);
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterDeposit), ether(50));
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterTransferShare), ether(25));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterTransferShare), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterTransferShare), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterTransferShare), ether(50));
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterSecondTransferShare), ether(50));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterSecondTransferShare), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterSecondTransferShare), ether(0));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterSecondTransferShare), ether(50));
+
+    assert.equal(await locker.reputationOf(alice), 0);
+    assert.equal(await locker.reputationOf(bob), ether(0));
+    assert.equal(await locker.reputationOf(lola), ether(50));
+    assert.equal(await locker.reputationOf(dan), ether(50));
+    assert.equal(await locker.totalReputation(), ether(100));
+
+    assert.equal(await locker.shareByOwner(alice), 0);
+    assert.equal(await locker.shareByOwner(bob), 0);
+    assert.equal(await locker.shareByOwner(lola), 2);
+    assert.equal(await locker.shareByOwner(dan), 2);
+    assert.equal(await locker.totalShares(), 4);
+
+    lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [lola, dan]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether(50), ether(50)]);
+
+    await locker.transferShare(lola, { from: dan });
+
+    const blockNumberAfterThirdTransferShare = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(alice, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(dan, blockNumberBeforeDeposit), 0);
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterDeposit), 0);
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterDeposit), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterDeposit), ether(50));
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterTransferShare), ether(25));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterTransferShare), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterTransferShare), ether(25));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterTransferShare), ether(50));
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterSecondTransferShare), ether(50));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterSecondTransferShare), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterSecondTransferShare), ether(0));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterSecondTransferShare), ether(50));
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterThirdTransferShare), ether(100));
+    assert.equal(await locker.reputationOfAt(alice, blockNumberAfterThirdTransferShare), 0);
+    assert.equal(await locker.reputationOfAt(bob, blockNumberAfterThirdTransferShare), ether(0));
+    assert.equal(await locker.reputationOfAt(dan, blockNumberAfterThirdTransferShare), ether(0));
+
+    assert.equal(await locker.reputationOf(alice), 0);
+    assert.equal(await locker.reputationOf(bob), ether(0));
+    assert.equal(await locker.reputationOf(lola), ether(100));
+    assert.equal(await locker.reputationOf(dan), ether(0));
+    assert.equal(await locker.totalReputation(), ether(100));
+
+    assert.equal(await locker.shareByOwner(alice), 0);
+    assert.equal(await locker.shareByOwner(bob), 0);
+    assert.equal(await locker.shareByOwner(lola), 4);
+    assert.equal(await locker.shareByOwner(dan), 0);
+    assert.equal(await locker.totalShares(), 4);
+
+    lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [lola]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether(100)]);
+
+    await assertRevert(withdrawLockerProposal(locker, bob, dan, { from: dan }), 'Not the locker owner');
+
+    await withdrawLockerProposal(locker, bob, dan, { from: lola });
+
+    const blockNumberAfterWithdraw = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOfAt(lola, blockNumberBeforeDeposit), 0);
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterDeposit), 0);
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterSecondTransferShare), ether(50));
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterThirdTransferShare), ether(100));
+    assert.equal(await locker.reputationOfAt(lola, blockNumberAfterWithdraw), 0);
+
+    assert.equal(await locker.reputationOf(lola), 0);
     assert.equal(await locker.totalReputation(), 0);
 
     assert.equal(await token.ownerOf(aliceTokenId), bob);
@@ -395,7 +758,7 @@ describe('PPLockers', () => {
       );
     });
 
-    it.skip('proposal fee should work', async function() {
+    it('proposal fee should work', async function() {
       res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
         from: registryOwner,
         value: ether(10)
@@ -413,7 +776,7 @@ describe('PPLockers', () => {
         // tokenType
         2,
         1,
-        123,
+        ether(100),
         utf8ToHex('foo'),
         'bar',
         'buzz',
@@ -426,17 +789,70 @@ describe('PPLockers', () => {
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
       lockerAddress = res.logs[0].args.locker;
       locker = await PPLocker.at(lockerAddress);
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
 
-      await locker.setEthFee(ether(0.1), { from: owner });
+      await proposalManager.setEthFee(ether(0.1), { from: owner });
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
       await locker.deposit(token.address, aliceTokenId, [alice, bob], ['1', '1'], '2', { from: alice });
 
-      // const proposalData = locker.contract.methods.withdraw(_newOwner, _newDepositManager).encodeABI();
-      // const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
-      // res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', options);
-      // const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
+      const blockBeforeWithdraw = await web3.eth.getBlockNumber();
+      assert.equal(await locker.reputationOf(alice), ether(50));
+      assert.equal(await locker.reputationOf(bob), ether(50));
+
+      assert.equal(await locker.reputationOfAt(alice, blockBeforeWithdraw), ether(50));
+      assert.equal(await locker.reputationOf(bob, blockBeforeWithdraw), ether(50));
+
+      const proposalData = locker.contract.methods.withdraw(dan, dan).encodeABI();
+      await assertRevert(
+        proposalManager.propose(locker.address, '0', true, true, proposalData, '', { from: alice }),
+        'Fee and msg.value not equal'
+      );
+      res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', {
+        from: alice,
+        value: ether(0.1)
+      });
+
+      const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
+      let proposal = await proposalManager.proposals(proposalId);
+      assert.equal(proposal.status, 1);
+
+      await assertRevert(proposalManager.aye(proposalId, true, { from: bob }), 'Fee and msg.value not equal');
+      await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1), gas: 1000000 });
+      proposal = await proposalManager.proposals(proposalId);
+      assert.equal(proposal.status, 2);
+
+      assert.equal(await token.ownerOf(aliceTokenId), dan);
+
+      const blockAfterWithdraw = await web3.eth.getBlockNumber();
+
+      assert.equal(await locker.reputationOfAt(alice, blockBeforeWithdraw), ether(50));
+      assert.equal(await locker.reputationOf(bob, blockBeforeWithdraw), ether(50));
+
+      assert.equal(await locker.reputationOfAt(alice, blockAfterWithdraw), ether(0));
+      assert.equal(await locker.reputationOf(bob, blockAfterWithdraw), ether(0));
+
+      await token.approve(locker.address, aliceTokenId, { from: dan });
+      await locker.deposit(token.address, aliceTokenId, [dan], ['1'], '1', { from: dan });
+
+      const blockAfterDeposit = await web3.eth.getBlockNumber();
+
+      assert.equal(await locker.reputationOf(alice), ether(0));
+      assert.equal(await locker.reputationOf(bob), ether(0));
+      assert.equal(await locker.reputationOf(dan), ether(100));
+
+      assert.equal(await locker.reputationOfAt(alice, blockBeforeWithdraw), ether(50));
+      assert.equal(await locker.reputationOf(bob, blockBeforeWithdraw), ether(50));
+      assert.equal(await locker.reputationOf(dan, blockBeforeWithdraw), ether(0));
+
+      assert.equal(await locker.reputationOfAt(alice, blockAfterWithdraw), ether(0));
+      assert.equal(await locker.reputationOf(bob, blockAfterWithdraw), ether(0));
+      assert.equal(await locker.reputationOf(dan, blockAfterWithdraw), ether(0));
+
+      assert.equal(await locker.reputationOfAt(alice, blockAfterDeposit), ether(0));
+      assert.equal(await locker.reputationOf(bob, blockAfterDeposit), ether(0));
+      assert.equal(await locker.reputationOf(dan, blockAfterDeposit), ether(100));
     });
   });
 });
