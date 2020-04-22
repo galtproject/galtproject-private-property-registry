@@ -51,6 +51,14 @@ module.exports = contract => {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       return proposalManager.aye(proposalId, true, options);
     },
+    async nayLockerProposal(locker, proposalId, options) {
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      return proposalManager.nay(proposalId, options);
+    },
+    async abstainLockerProposal(locker, proposalId, options) {
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      return proposalManager.abstain(proposalId, true, options);
+    },
     async getLockerProposal(locker, proposalId) {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       return proposalManager.proposals(proposalId);
