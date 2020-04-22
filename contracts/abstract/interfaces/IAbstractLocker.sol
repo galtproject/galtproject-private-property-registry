@@ -28,6 +28,7 @@ interface IAbstractLocker {
   function getTras() external view returns (address[] memory);
   function getTrasCount() external view returns (uint256);
   function depositManager() external view returns(address);
+  function proposalManager() external view returns(address);
   function tokenId() external view returns(uint256);
   function totalReputation() external view returns(uint256);
   function tokenContract() external view returns(IAbstractToken);

@@ -18,7 +18,6 @@ import "./interfaces/IAbstractRA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/core/contracts/Checkpointable.sol";
-import "@galtproject/core/contracts/reputation/AbstractProposalManager.sol";
 
 
 contract AbstractLocker is IAbstractLocker, Checkpointable {
@@ -43,7 +42,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   IAbstractToken public tokenContract;
 
   address public depositManager;
-  AbstractProposalManager public proposalManager;
+  address public proposalManager;
 
   uint256 public totalShares;
   address[] public owners;
@@ -65,7 +64,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   }
 
   modifier onlyProposalManager() {
-    require(msg.sender == address(proposalManager), "Not the proposal manager");
+    require(msg.sender == proposalManager, "Not the proposal manager");
     _;
   }
 
@@ -81,7 +80,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   ) public {
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
     depositManager = _depositManager;
-    proposalManager = AbstractProposalManager(_proposalManager);
+    proposalManager = _proposalManager;
   }
 
   // DEPOSIT MANAGER INTERFACE
