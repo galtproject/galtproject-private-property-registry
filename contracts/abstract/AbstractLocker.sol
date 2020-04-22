@@ -226,7 +226,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
       shares.push(lastShares[i]);
     }
 
-    _setOwners(lastOwners, lastShares, lastTotalShares);
+    _setOwners(owners, shares, lastTotalShares);
 
     emit TransferShare(msg.sender, _newShareOwner);
   }
