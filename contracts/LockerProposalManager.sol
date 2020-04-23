@@ -28,7 +28,9 @@ contract LockerProposalManager is AbstractProposalManager {
     uint256[] memory _supportList,
     uint256[] memory _quorumList,
     uint256[] memory _timeoutList
-  ) public {
+  )
+    public
+  {
     locker = _locker;
     initialize(_feeManager);
 
