@@ -57,7 +57,7 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
     uint256 _timeout,
-    bytes32[] memory _markerList,
+    bytes32[] memory _lockerMethodsList,
     uint256[] memory _supportList,
     uint256[] memory _quorumList,
     uint256[] memory _timeoutList
@@ -76,10 +76,16 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
 
     address locker = address(new PPBridgedLocker(globalRegistry, _lockerOwner, address(proposalManager)));
 
+    uint256 lockerMethodsLen = _lockerMethodsList.length;
+    bytes32[] memory markersList = new bytes32[](lockerMethodsLen);
+    for (uint256 i = 0; i < lockerMethodsLen; i++) {
+      markersList[i] = keccak256(abi.encode(locker, _lockerMethodsList[i]));
+    }
+
     proposalManager.initialize(
       IAbstractLocker(locker),
       feeManager,
-      _markerList,
+      markersList,
       _supportList,
       _quorumList,
       _timeoutList
