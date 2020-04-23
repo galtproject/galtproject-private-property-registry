@@ -18,16 +18,28 @@ contract LockerProposalManager is AbstractProposalManager {
   IAbstractLocker public locker;
 
   constructor(uint256 _defaultSupport, uint256 _defaultMinAcceptQuorum, uint256 _defaultTimeout) public {
-    _validateVotingConfig(_defaultSupport, _defaultMinAcceptQuorum, _defaultTimeout);
-
-    defaultVotingConfig.support = _defaultSupport;
-    defaultVotingConfig.minAcceptQuorum = _defaultMinAcceptQuorum;
-    defaultVotingConfig.timeout = _defaultTimeout;
+    _setDefaultProposalConfig(_defaultSupport, _defaultMinAcceptQuorum, _defaultTimeout);
   }
 
-  function initialize(IAbstractLocker _locker, address _feeManager) public {
+  function initialize(
+    IAbstractLocker _locker,
+    address _feeManager,
+    bytes32[] memory _markerList,
+    uint256[] memory _supportList,
+    uint256[] memory _quorumList,
+    uint256[] memory _timeoutList
+  ) public {
     locker = _locker;
     initialize(_feeManager);
+
+    uint256 markersLen = _markerList.length;
+    require(
+      markersLen == _supportList.length && markersLen == _quorumList.length && markersLen == _timeoutList.length,
+      "Marker configs length does not equal"
+    );
+    for (uint256 i = 0; i < markersLen; i++) {
+      _setProposalConfig(_markerList[i], _supportList[i], _quorumList[i], _timeoutList[i]);
+    }
   }
 
   modifier onlyProposalConfigManager() {
