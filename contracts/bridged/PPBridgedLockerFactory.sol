@@ -37,14 +37,30 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
   }
 
   function build() external payable returns (IAbstractLocker) {
-    return buildForOwner(msg.sender, 100 ether, 100 ether, 60 * 60 * 24 * 7);
+    bytes32[] memory bytes32List = new bytes32[](0);
+    uint256[] memory uint256List = new uint256[](0);
+
+    return buildForOwner(
+      msg.sender,
+      100 ether,
+      100 ether,
+      60 * 60 * 24 * 7,
+      bytes32List,
+      uint256List,
+      uint256List,
+      uint256List
+    );
   }
 
   function buildForOwner(
     address _lockerOwner,
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
-    uint256 _timeout
+    uint256 _timeout,
+    bytes32[] memory _lockerMethodsList,
+    uint256[] memory _supportList,
+    uint256[] memory _quorumList,
+    uint256[] memory _timeoutList
   )
     public
     payable
@@ -60,7 +76,20 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
 
     address locker = address(new PPBridgedLocker(globalRegistry, _lockerOwner, address(proposalManager)));
 
-    proposalManager.initialize(IAbstractLocker(locker), feeManager);
+    uint256 lockerMethodsLen = _lockerMethodsList.length;
+    bytes32[] memory markersList = new bytes32[](lockerMethodsLen);
+    for (uint256 i = 0; i < lockerMethodsLen; i++) {
+      markersList[i] = keccak256(abi.encode(locker, _lockerMethodsList[i]));
+    }
+
+    proposalManager.initialize(
+      IAbstractLocker(locker),
+      feeManager,
+      markersList,
+      _supportList,
+      _quorumList,
+      _timeoutList
+    );
 
     IPPLockerRegistry(IPPGlobalRegistry(globalRegistry).getPPLockerRegistryAddress()).addLocker(locker, bytes32("bridged"));
 

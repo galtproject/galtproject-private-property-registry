@@ -13,6 +13,13 @@ import "../abstract/interfaces/IAbstractLocker.sol";
 
 interface ILockerProposalManager {
 
-  function initialize(IAbstractLocker _locker, address _feeManager) external;
+  function initialize(
+    IAbstractLocker _locker,
+    address _feeManager,
+    bytes32[] calldata _markerList,
+    uint256[] calldata _supportList,
+    uint256[] calldata _quorumList,
+    uint256[] calldata _timeoutList
+  ) external;
 
 }

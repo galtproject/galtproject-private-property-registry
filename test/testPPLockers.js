@@ -28,7 +28,8 @@ const {
   validateProposalError,
   validateProposalSuccess,
   ayeLockerProposal,
-  changeOwnersLockerProposal
+  changeOwnersLockerProposal,
+  getLockerProposalVotingProgress
 } = require('./proposalHelpers')(contract);
 
 PPToken.numberFormat = 'String';
@@ -202,7 +203,17 @@ describe('PPLockers', () => {
       { from: minter }
     );
 
-    res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+    res = await this.ppLockerFactory.buildForOwner(
+      alice,
+      ether(100),
+      ether(100),
+      60 * 60 * 24 * 7,
+      ['0x0e801ee1'],
+      [ether(5)],
+      [ether(5)],
+      [60 * 60 * 24 * 7],
+      { from: alice, value: ether(10) }
+    );
     const lockerAddress = res.logs[0].args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
@@ -248,8 +259,9 @@ describe('PPLockers', () => {
     // create fake RA contract and mint reputation to it
     const ra = await MockRA.new('MockRA');
     const approveMintProposalId = await approveMintLockerProposal(locker, ra, { from: alice });
-    await ayeLockerProposal(locker, approveMintProposalId, { from: bob });
-    await ayeLockerProposal(locker, approveMintProposalId, { from: dan });
+    const approveMintProposal = await getLockerProposalVotingProgress(locker, approveMintProposalId);
+    assert.equal(approveMintProposal.requiredSupport, ether(5));
+    assert.equal(approveMintProposal.minAcceptQuorum, ether(5));
     assert.equal(await locker.getTrasCount(), 1);
 
     let changeOwnersProposalId = await changeOwnersLockerProposal(locker, [alice, bob, lola], ['1', '1', '1'], '3', {

@@ -69,6 +69,10 @@ module.exports = contract => {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       return proposalManager.proposals(proposalId);
     },
+    async getLockerProposalVotingProgress(locker, proposalId) {
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      return proposalManager.getProposalVotingProgress(proposalId);
+    },
     async validateProposalSuccess(locker, proposalId) {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       const proposal = await proposalManager.proposals(proposalId);
