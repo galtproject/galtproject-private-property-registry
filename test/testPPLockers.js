@@ -402,6 +402,14 @@ describe('PPLockers', () => {
     await ayeLockerProposal(locker, approveMintProposalId, { from: dan });
     assert.equal(await locker.getTrasCount(), 1);
 
+    await ra.setOwnerReputationMinted(alice, token.address, aliceTokenId, '100');
+
+    await assertRevert(locker.transferShare(lola, { from: alice }), 'Reputation should to be 0 in all communities');
+
+    await ra.setOwnerReputationMinted(alice, token.address, aliceTokenId, '0');
+
+    await ra.setOwnerReputationMinted(lola, token.address, aliceTokenId, '200');
+
     await locker.transferShare(lola, { from: alice });
 
     const blockNumberAfterTransferShare = await web3.eth.getBlockNumber();

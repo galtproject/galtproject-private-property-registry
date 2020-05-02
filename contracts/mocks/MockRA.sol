@@ -21,6 +21,17 @@ contract MockRA is IAbstractRA {
     tokenReputationMinted[_tokenContract][_tokenId] = _reputation;
   }
 
+  function setOwnerReputationMinted(
+    address _owner,
+    address _tokenContract,
+    uint256 _tokenId,
+    uint256 _reputation
+  )
+    external
+  {
+    ownerReputationMinted[_owner][_tokenContract][_tokenId] = _reputation;
+  }
+
   function balanceOf(address _address) external view returns (uint256) {
     // disables compilation warning ᕦ(ツ)ᕤ
     assert(_address == _address);
