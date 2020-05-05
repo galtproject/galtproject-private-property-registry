@@ -25,6 +25,9 @@ interface IAbstractRA {
   // Private Property specific getter
   function tokenReputationMinted(address _tokenContract, uint256 _tokenId) external view returns (uint256);
 
+  // Private Property specific getter
+  function ownerReputationMinted(address _owner, address _tokenContract, uint256 _tokenId) external view returns (uint256);
+
   // Ping-Pong Handshake
   function ping() external pure returns (bytes32);
 }

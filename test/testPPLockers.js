@@ -402,15 +402,13 @@ describe('PPLockers', () => {
     await ayeLockerProposal(locker, approveMintProposalId, { from: dan });
     assert.equal(await locker.getTrasCount(), 1);
 
-    await assertRevert(locker.transferShare(lola, { from: alice }), 'RAs counter should be 0');
+    await ra.setOwnerReputationMinted(alice, token.address, aliceTokenId, '100');
 
-    assert.sameMembers(await locker.getTras(), [ra.address]);
-    await ra.setMinted(token.address, aliceTokenId, '0');
+    await assertRevert(locker.transferShare(lola, { from: alice }), 'Reputation should to be 0 in all communities');
 
-    // burn reputation and withdraw token back
-    const burnLockerProposalId = await burnLockerProposal(locker, ra, { from: alice });
-    await ayeLockerProposal(locker, burnLockerProposalId, { from: bob });
-    await ayeLockerProposal(locker, burnLockerProposalId, { from: dan });
+    await ra.setOwnerReputationMinted(alice, token.address, aliceTokenId, '0');
+
+    await ra.setOwnerReputationMinted(lola, token.address, aliceTokenId, '200');
 
     await locker.transferShare(lola, { from: alice });
 
@@ -529,18 +527,22 @@ describe('PPLockers', () => {
 
     await assertRevert(withdrawLockerProposal(locker, bob, dan, { from: dan }), 'Not the locker owner');
 
+    const proposalId = await withdrawLockerProposal(locker, bob, dan, { from: lola });
+    await validateProposalError(locker, proposalId, 'RAs counter should be 0');
+    await burnLockerProposal(locker, ra, { from: lola });
+
     await withdrawLockerProposal(locker, bob, dan, { from: lola });
 
     const blockNumberAfterWithdraw = await web3.eth.getBlockNumber();
+
+    assert.equal(await locker.reputationOf(lola), 0);
+    assert.equal(await locker.totalReputation(), 0);
 
     assert.equal(await locker.reputationOfAt(lola, blockNumberBeforeDeposit), 0);
     assert.equal(await locker.reputationOfAt(lola, blockNumberAfterDeposit), 0);
     assert.equal(await locker.reputationOfAt(lola, blockNumberAfterSecondTransferShare), ether(50));
     assert.equal(await locker.reputationOfAt(lola, blockNumberAfterThirdTransferShare), ether(100));
     assert.equal(await locker.reputationOfAt(lola, blockNumberAfterWithdraw), 0);
-
-    assert.equal(await locker.reputationOf(lola), 0);
-    assert.equal(await locker.totalReputation(), 0);
 
     assert.equal(await token.ownerOf(aliceTokenId), bob);
     assert.equal(await locker.depositManager(), dan);

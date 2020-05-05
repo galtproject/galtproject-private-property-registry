@@ -203,7 +203,13 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
 
   function transferShare(address _newShareOwner) public payable onlyOwner {
     require(tokenDeposited, "Token not deposited");
-    require(traSet.size() == 0, "RAs counter should be 0");
+
+    uint256 traLen = traSet.size();
+    for (uint256 i = 0; i < traLen; i++) {
+      IAbstractRA tra = IAbstractRA(traSet.array[i]);
+
+      require(tra.ownerReputationMinted(msg.sender, address(tokenContract), tokenId) == 0, "Reputation should to be 0 in all communities");
+    }
 
     address[] memory lastOwners = owners;
     uint256[] memory lastShares = shares;

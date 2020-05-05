@@ -15,9 +15,21 @@ import "../abstract/interfaces/IAbstractRA.sol";
 contract MockRA is IAbstractRA {
   // registry => (tokenId => reputation)
   mapping(address => mapping(uint256 => uint256)) public tokenReputationMinted;
+  mapping(address => mapping(address => mapping(uint256 => uint256))) public ownerReputationMinted;
 
   function setMinted(address _tokenContract, uint256 _tokenId, uint256 _reputation) external {
     tokenReputationMinted[_tokenContract][_tokenId] = _reputation;
+  }
+
+  function setOwnerReputationMinted(
+    address _owner,
+    address _tokenContract,
+    uint256 _tokenId,
+    uint256 _reputation
+  )
+    external
+  {
+    ownerReputationMinted[_owner][_tokenContract][_tokenId] = _reputation;
   }
 
   function balanceOf(address _address) external view returns (uint256) {
