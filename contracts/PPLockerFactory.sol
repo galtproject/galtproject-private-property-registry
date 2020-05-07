@@ -73,7 +73,7 @@ contract PPLockerFactory is Ownable, ChargesFee {
       _timeout
     );
 
-    address locker = address(new PPLocker(globalRegistry, _lockerOwner, address(proposalManager)));
+    address locker = address(new PPLocker(globalRegistry, _lockerOwner, address(proposalManager), feeManager));
 
     uint256 lockerMethodsLen = _lockerMethodsList.length;
     bytes32[] memory markersList = new bytes32[](lockerMethodsLen);

@@ -442,7 +442,10 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._owners, [bob, lola, dan]);
     assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
 
-    await locker.transferShare(lola, { from: bob });
+    await locker.setEthFee(ether(0.1), { from: lockerFeeManager });
+
+    await assertRevert(locker.transferShare(lola, { from: bob }), 'Fee and msg.value not equal');
+    await locker.transferShare(lola, { from: bob, value: ether(0.1) });
 
     const blockNumberAfterSecondTransferShare = await web3.eth.getBlockNumber();
 
@@ -481,7 +484,7 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._owners, [lola, dan]);
     assert.sameMembers(lockerInfo._ownersReputation, [ether(50), ether(50)]);
 
-    await locker.transferShare(lola, { from: dan });
+    await locker.transferShare(lola, { from: dan, value: ether(0.1) });
 
     const blockNumberAfterThirdTransferShare = await web3.eth.getBlockNumber();
 

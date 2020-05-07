@@ -18,9 +18,10 @@ import "./interfaces/IAbstractRA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/core/contracts/Checkpointable.sol";
+import "@galtproject/core/contracts/traits/ChargesEthFee.sol";
 
 
-contract AbstractLocker is IAbstractLocker, Checkpointable {
+contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   using ArraySet for ArraySet.AddressSet;
 
   uint256 public constant VERSION = 3;
@@ -77,11 +78,13 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   constructor(
     address _globalRegistry,
     address _depositManager,
-    address _proposalManager
+    address _proposalManager,
+    address _feeManager
   ) public {
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
     depositManager = _depositManager;
     proposalManager = _proposalManager;
+    feeManager = _feeManager;
   }
 
   // DEPOSIT MANAGER INTERFACE
@@ -202,6 +205,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   }
 
   function transferShare(address _newShareOwner) public payable onlyOwner {
+    _acceptPayment();
     require(tokenDeposited, "Token not deposited");
 
     uint256 traLen = traSet.size();
