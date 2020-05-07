@@ -442,7 +442,7 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._owners, [bob, lola, dan]);
     assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
 
-    await locker.setEthFee(ether(0.1), { from: lockerFeeManager });
+    await locker.setEthFee(await locker.TRANSFER_SHARE_FEE_KEY(), ether(0.1), { from: lockerFeeManager });
 
     await assertRevert(locker.transferShare(lola, { from: bob }), 'Fee and msg.value not equal');
     await locker.transferShare(lola, { from: bob, value: ether(0.1) });
@@ -808,7 +808,7 @@ describe('PPLockers', () => {
       locker = await PPLocker.at(lockerAddress);
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
 
-      await proposalManager.setEthFee(ether(0.1), { from: owner });
+      await proposalManager.setEthFee(await proposalManager.VOTE_FEE_KEY(), ether(0.1), { from: owner });
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });

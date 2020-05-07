@@ -35,6 +35,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   event TransferShare(address indexed oldOwner, address indexed newOwner);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
+  bytes32 public constant TRANSFER_SHARE_FEE_KEY = bytes32("TRANSFER_SHARE");
 
   IPPGlobalRegistry public globalRegistry;
 
@@ -205,7 +206,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   }
 
   function transferShare(address _newShareOwner) public payable onlyOwner {
-    _acceptPayment();
+    _acceptPayment(TRANSFER_SHARE_FEE_KEY);
     require(tokenDeposited, "Token not deposited");
 
     uint256 traLen = traSet.size();
