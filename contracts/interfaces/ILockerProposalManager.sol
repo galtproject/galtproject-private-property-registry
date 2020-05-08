@@ -13,6 +13,8 @@ import "../abstract/interfaces/IAbstractLocker.sol";
 
 interface ILockerProposalManager {
 
+  function VOTE_FEE_KEY() external returns(bytes32);
+
   function initialize(
     IAbstractLocker _locker,
     address _feeManager,
@@ -22,4 +24,7 @@ interface ILockerProposalManager {
     uint256[] calldata _timeoutList
   ) external;
 
+  function setEthFee(bytes32 _key, uint256 _ethFee) external;
+  function setFeeManager(address _addr) external;
+  function setFeeCollector(address _addr) external;
 }

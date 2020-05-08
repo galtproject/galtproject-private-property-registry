@@ -609,7 +609,14 @@ describe('PPToken and PPTokenController', () => {
       this.ppLockerRegistry = await PPLockerRegistry.new();
       await this.ppLockerRegistry.initialize(this.ppgr.address);
       const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
-      this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
+      this.ppLockerFactory = await PPLockerFactory.new(
+        this.ppgr.address,
+        lockerProposalManagerFactory.address,
+        0,
+        0,
+        [],
+        []
+      );
       await this.ppgr.setContract(await this.ppgr.PPGR_LOCKER_REGISTRY(), this.ppLockerRegistry.address);
       await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), this.ppLockerFactory.address, true);
 
@@ -618,7 +625,7 @@ describe('PPToken and PPTokenController', () => {
       await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
 
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-      const lockerAddress = res.logs[0].args.locker;
+      const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       const locker = await PPLocker.at(lockerAddress);
 
       await token.approve(locker.address, aliceTokenId, { from: alice });

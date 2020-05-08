@@ -58,7 +58,14 @@ describe('PPTokenVoting', () => {
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
     const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
-    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
+    this.ppLockerFactory = await PPLockerFactory.new(
+      this.ppgr.address,
+      lockerProposalManagerFactory.address,
+      0,
+      0,
+      [],
+      []
+    );
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
@@ -246,7 +253,7 @@ describe('PPTokenVoting', () => {
       assert.equal(voteData.nay, ether(0));
 
       res = await this.ppLockerFactory.build({ from: alice, value: ethFee });
-      const lockerAddress = res.logs[0].args.locker;
+      const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       const locker = await PPLocker.at(lockerAddress);
 
       // deposit token
@@ -280,7 +287,7 @@ describe('PPTokenVoting', () => {
       assert.equal(voteData.nay, ether(0));
 
       res = await this.ppLockerFactory.build({ from: alice, value: ethFee });
-      const lockerAddress = res.logs[0].args.locker;
+      const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       const locker = await PPLocker.at(lockerAddress);
 
       // deposit token

@@ -42,7 +42,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPLockers', () => {
-  const [alice, bob, dan, lola, registryOwner, minter, lockerFeeManager] = accounts;
+  const [alice, bob, dan, lola, unauthorized, registryOwner, minter, lockerFeeManager, lockerFeeCollector] = accounts;
   const owner = defaultSender;
 
   const ethFee = ether(10);
@@ -68,7 +68,14 @@ describe('PPLockers', () => {
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
 
     const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
-    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
+    this.ppLockerFactory = await PPLockerFactory.new(
+      this.ppgr.address,
+      lockerProposalManagerFactory.address,
+      0,
+      0,
+      [],
+      []
+    );
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
@@ -82,10 +89,12 @@ describe('PPLockers', () => {
 
     // Fees setup
     await this.ppTokenFactory.setFeeManager(lockerFeeManager);
+    await this.ppTokenFactory.setFeeCollector(lockerFeeCollector);
     await this.ppTokenFactory.setEthFee(ethFee, { from: lockerFeeManager });
     await this.ppTokenFactory.setGaltFee(galtFee, { from: lockerFeeManager });
 
     await this.ppLockerFactory.setFeeManager(lockerFeeManager);
+    await this.ppLockerFactory.setFeeCollector(lockerFeeCollector);
     await this.ppLockerFactory.setEthFee(ethFee, { from: lockerFeeManager });
     await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
   });
@@ -117,7 +126,7 @@ describe('PPLockers', () => {
     );
 
     res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-    const lockerAddress = res.logs[0].args.locker;
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
@@ -214,7 +223,7 @@ describe('PPLockers', () => {
       [60 * 60 * 24 * 7],
       { from: alice, value: ether(10) }
     );
-    const lockerAddress = res.logs[0].args.locker;
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
@@ -353,7 +362,7 @@ describe('PPLockers', () => {
     );
 
     res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-    const lockerAddress = res.logs[0].args.locker;
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
@@ -443,9 +452,16 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
 
     await locker.setEthFee(await locker.TRANSFER_SHARE_FEE_KEY(), ether(0.1), { from: lockerFeeManager });
+    assert.equal(await locker.ethFeeByKey(utf8ToHex('TRANSFER_SHARE')), ether(0.1));
 
     await assertRevert(locker.transferShare(lola, { from: bob }), 'Fee and msg.value not equal');
     await locker.transferShare(lola, { from: bob, value: ether(0.1) });
+
+    const unauthorizedBalanceBefore = await web3.eth.getBalance(unauthorized);
+    await locker.withdrawEth(unauthorized, { from: lockerFeeCollector });
+    assert.equal(await web3.eth.getBalance(locker.address), '0');
+    const unauthorizedBalanceAfter = await web3.eth.getBalance(unauthorized);
+    assert.equal(new BN(unauthorizedBalanceAfter).sub(new BN(unauthorizedBalanceBefore)), ether(0.1));
 
     const blockNumberAfterSecondTransferShare = await web3.eth.getBlockNumber();
 
@@ -586,7 +602,7 @@ describe('PPLockers', () => {
       });
 
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-      lockerAddress = res.logs[0].args.locker;
+      lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       locker = await PPLocker.at(lockerAddress);
     });
 
@@ -760,12 +776,14 @@ describe('PPLockers', () => {
         this.ppgr.address,
         lockerProposalManagerFactory.address,
         1,
-        1
+        1,
+        [],
+        []
       );
       await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), ppBridgedLockerFactory.address, true);
 
       res = await ppBridgedLockerFactory.build({ from: alice, value: 1 });
-      const bridgedLockerAddress = res.logs[0].args.locker;
+      const bridgedLockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       const bridgedLocker = await PPLocker.at(bridgedLockerAddress);
 
       await token.approve(bridgedLocker.address, aliceTokenId, { from: alice });
@@ -773,6 +791,22 @@ describe('PPLockers', () => {
         bridgedLocker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
         'Token type is invalid'
       );
+    });
+
+    it('preset fee should work', async function() {
+      await this.ppLockerFactory.setLockerFees(
+        [utf8ToHex('VOTE_FEE'), utf8ToHex('TRANSFER_SHARE')],
+        [ether(0.01), ether(0.02)],
+        { from: owner }
+      );
+
+      res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
+      lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
+      locker = await PPLocker.at(lockerAddress);
+
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      assert.equal(await proposalManager.ethFeeByKey(utf8ToHex('VOTE_FEE')), ether(0.01));
+      assert.equal(await locker.ethFeeByKey(utf8ToHex('TRANSFER_SHARE')), ether(0.02));
     });
 
     it('proposal fee should work', async function() {
@@ -804,11 +838,12 @@ describe('PPLockers', () => {
       await this.ppLockerFactory.setFeeManager(owner, { from: owner });
 
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-      lockerAddress = res.logs[0].args.locker;
+      lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       locker = await PPLocker.at(lockerAddress);
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
 
       await proposalManager.setEthFee(await proposalManager.VOTE_FEE_KEY(), ether(0.1), { from: owner });
+      assert.equal(await proposalManager.ethFeeByKey(utf8ToHex('VOTE_FEE')), ether(0.1));
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
@@ -830,6 +865,12 @@ describe('PPLockers', () => {
         from: alice,
         value: ether(0.1)
       });
+
+      const unauthorizedBalanceBefore = await web3.eth.getBalance(unauthorized);
+      await proposalManager.withdrawEth(unauthorized, { from: lockerFeeCollector });
+      assert.equal(await web3.eth.getBalance(proposalManager.address), '0');
+      const unauthorizedBalanceAfter = await web3.eth.getBalance(unauthorized);
+      assert.equal(new BN(unauthorizedBalanceAfter).sub(new BN(unauthorizedBalanceBefore)), ether(0.1));
 
       const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
       let proposal = await proposalManager.proposals(proposalId);

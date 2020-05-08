@@ -51,4 +51,8 @@ interface IAbstractLocker {
       uint256[] memory _shares,
       uint256 _totalShares
     );
+
+  function setEthFee(bytes32 _key, uint256 _ethFee) external;
+  function setFeeManager(address _addr) external;
+  function setFeeCollector(address _addr) external;
 }

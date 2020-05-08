@@ -135,7 +135,9 @@ describe('Mediators', () => {
         this.bridgedPPGR.address,
         lockerProposalManagerFactory.address,
         1,
-        1
+        1,
+        [],
+        []
       );
 
       await this.bridgedPPGR.initialize();
@@ -506,7 +508,7 @@ describe('Mediators', () => {
       assert.equal(await bridgedTokenX.ownerOf(token1), bob);
 
       res = await this.ppBridgedLockerFactory.build({ from: bob, value: 1 });
-      const lockerAddress = res.logs[0].args.locker;
+      const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       const locker = await PPBridgedLocker.at(lockerAddress);
 
       // deposit token
