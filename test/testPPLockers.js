@@ -457,7 +457,7 @@ describe('PPLockers', () => {
 
     const unauthorizedBalanceBefore = await web3.eth.getBalance(unauthorized);
     await this.ppFeeRegistry.withdrawEth(unauthorized, { from: feeCollector });
-    assert.equal(await web3.eth.getBalance(locker.address), '0');
+    assert.equal(await web3.eth.getBalance(this.ppFeeRegistry.address), '0');
     const unauthorizedBalanceAfter = await web3.eth.getBalance(unauthorized);
     assert.equal(new BN(unauthorizedBalanceAfter).sub(new BN(unauthorizedBalanceBefore)), ether(0.1));
 
@@ -874,7 +874,7 @@ describe('PPLockers', () => {
 
       const unauthorizedBalanceBefore = await web3.eth.getBalance(unauthorized);
       await this.ppFeeRegistry.withdrawEth(unauthorized, { from: feeCollector });
-      assert.equal(await web3.eth.getBalance(proposalManager.address), '0');
+      assert.equal(await web3.eth.getBalance(this.ppFeeRegistry.address), '0');
       const unauthorizedBalanceAfter = await web3.eth.getBalance(unauthorized);
       assert.equal(new BN(unauthorizedBalanceAfter).sub(new BN(unauthorizedBalanceBefore)), ether(0.1));
 
