@@ -23,30 +23,17 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
   address public globalRegistry;
   ILockerProposalManagerFactory public lockerProposalManagerFactory;
 
-  bytes32[] public lockerFeeKeys;
-  uint256[] public lockerFeeValues;
-
   constructor(
     address _globalRegistry,
     ILockerProposalManagerFactory _lockerProposalManagerFactory,
     uint256 _ethFee,
-    uint256 _galtFee,
-    bytes32[] memory _lockerFeeKeys,
-    uint256[] memory _lockerFeeValues
+    uint256 _galtFee
   )
     public
     ChargesFee(_ethFee, _galtFee)
   {
     globalRegistry = _globalRegistry;
     lockerProposalManagerFactory = _lockerProposalManagerFactory;
-
-    lockerFeeKeys = _lockerFeeKeys;
-    lockerFeeValues = _lockerFeeValues;
-  }
-
-  function setLockerFees(bytes32[] calldata _lockerFeeKeys, uint256[] calldata _lockerFeeValues) external onlyOwner {
-    lockerFeeKeys = _lockerFeeKeys;
-    lockerFeeValues = _lockerFeeValues;
   }
 
   function build() external payable returns (IAbstractLocker) {
@@ -87,9 +74,7 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
       _timeout
     );
 
-    address locker = address(
-      new PPBridgedLocker(globalRegistry, _lockerOwner, address(proposalManager), address(this))
-    );
+    address locker = address(new PPBridgedLocker(globalRegistry, _lockerOwner, address(proposalManager)));
 
     uint256 lockerMethodsLen = _lockerMethodsList.length;
     bytes32[] memory markersList = new bytes32[](lockerMethodsLen);
@@ -99,27 +84,12 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
 
     proposalManager.initialize(
       IAbstractLocker(locker),
-      address(this),
+      globalRegistry,
       markersList,
       _supportList,
       _quorumList,
       _timeoutList
     );
-
-    uint256 lockerFeeLen = lockerFeeKeys.length;
-    for (uint256 i = 0; i < lockerFeeLen; i++) {
-      if (proposalManager.VOTE_FEE_KEY() == lockerFeeKeys[i]) {
-        proposalManager.setEthFee(lockerFeeKeys[i], lockerFeeValues[i]);
-      } else {
-        IAbstractLocker(locker).setEthFee(lockerFeeKeys[i], lockerFeeValues[i]);
-      }
-    }
-
-    IAbstractLocker(locker).setFeeCollector(feeCollector);
-    IAbstractLocker(locker).setFeeManager(feeManager);
-
-    proposalManager.setFeeCollector(feeCollector);
-    proposalManager.setFeeManager(feeManager);
 
     IPPLockerRegistry(IPPGlobalRegistry(globalRegistry).getPPLockerRegistryAddress()).addLocker(locker, bytes32("bridged"));
 

@@ -19,6 +19,7 @@ const PPToken = contract.fromArtifact('PPToken');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPACL = contract.fromArtifact('PPACL');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
+const EthFeeRegistry = contract.fromArtifact('EthFeeRegistry');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
 const MintableErc20Token = contract.fromArtifact('ERC20Mintable');
 const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
@@ -76,9 +77,11 @@ describe('Mediators', () => {
       this.ppgr = await PPGlobalRegistry.new();
       this.acl = await PPACL.new();
       this.ppTokenRegistry = await PPTokenRegistry.new();
+      this.ppFeeRegistry = await EthFeeRegistry.new();
 
       await this.ppgr.initialize();
       await this.ppTokenRegistry.initialize(this.ppgr.address);
+      await this.ppFeeRegistry.initialize(geoDataManager, geoDataManager, [], []);
 
       // token factories
       this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
@@ -88,6 +91,7 @@ describe('Mediators', () => {
       await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
       await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), this.galtToken.address);
       await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
+      await this.ppgr.setContract(await this.ppgr.PPGR_FEE_REGISTRY(), this.ppFeeRegistry.address);
 
       // ACL setup
       await this.acl.setRole(bytes32('TOKEN_REGISTRAR'), this.ppTokenFactory.address, true);
@@ -135,9 +139,7 @@ describe('Mediators', () => {
         this.bridgedPPGR.address,
         lockerProposalManagerFactory.address,
         1,
-        1,
-        [],
-        []
+        1
       );
 
       await this.bridgedPPGR.initialize();
@@ -169,6 +171,7 @@ describe('Mediators', () => {
         await this.bridgedPPGR.PPGR_LOCKER_REGISTRY(),
         this.ppBridgedLockerRegistry.address
       );
+      await this.bridgedPPGR.setContract(await this.bridgedPPGR.PPGR_FEE_REGISTRY(), this.ppFeeRegistry.address);
 
       // ACL setup
       await this.bridgedACL.setRole(bytes32('TOKEN_REGISTRAR'), this.ppBridgedTokenFactory.address, true);

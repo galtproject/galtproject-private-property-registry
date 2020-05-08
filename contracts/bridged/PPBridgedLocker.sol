@@ -25,11 +25,10 @@ contract PPBridgedLocker is AbstractLocker {
   constructor(
     address _globalRegistry,
     address _depositManager,
-    address _proposalManager,
-    address _feeManager
+    address _proposalManager
   )
     public
-    AbstractLocker(_globalRegistry, _depositManager, _proposalManager, _feeManager)
+    AbstractLocker(_globalRegistry, _depositManager, _proposalManager)
   {
 
   }

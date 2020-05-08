@@ -35,7 +35,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   event TransferShare(address indexed oldOwner, address indexed newOwner);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
-  bytes32 public constant TRANSFER_SHARE_FEE_KEY = bytes32("TRANSFER_SHARE");
+  bytes32 public constant TRANSFER_SHARE_FEE_KEY = bytes32("LOCKER_TRANSFER_SHARE");
 
   IPPGlobalRegistry public globalRegistry;
 
@@ -79,13 +79,11 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   constructor(
     address _globalRegistry,
     address _depositManager,
-    address _proposalManager,
-    address _feeManager
+    address _proposalManager
   ) public {
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
     depositManager = _depositManager;
     proposalManager = _proposalManager;
-    feeManager = _feeManager;
   }
 
   // DEPOSIT MANAGER INTERFACE
@@ -296,6 +294,10 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   }
 
   // GETTERS
+
+  function feeRegistry() public returns(address) {
+    return globalRegistry.getPPFeeRegistryAddress();
+  }
 
   function getLockerInfo()
     public

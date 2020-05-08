@@ -13,6 +13,7 @@ const PPTokenVotingFactory = contract.fromArtifact('PPTokenVotingFactory');
 const PPTokenController = contract.fromArtifact('PPTokenController');
 const PPLockerFactory = contract.fromArtifact('PPLockerFactory');
 const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
+const EthFeeRegistry = contract.fromArtifact('EthFeeRegistry');
 const PPLocker = contract.fromArtifact('PPLocker');
 const LockerProposalManagerFactory = contract.fromArtifact('LockerProposalManagerFactory');
 // 'openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable'
@@ -49,29 +50,25 @@ describe('PPTokenVoting', () => {
     this.acl = await PPACL.new();
     this.ppTokenRegistry = await PPTokenRegistry.new();
     this.ppLockerRegistry = await PPLockerRegistry.new();
+    this.ppFeeRegistry = await EthFeeRegistry.new();
 
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
     await this.ppLockerRegistry.initialize(this.ppgr.address);
+    await this.ppFeeRegistry.initialize(registryOwner, registryOwner, [], []);
 
     this.ppTokenVotingFactory = await PPTokenVotingFactory.new();
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
     const lockerProposalManagerFactory = await LockerProposalManagerFactory.new();
-    this.ppLockerFactory = await PPLockerFactory.new(
-      this.ppgr.address,
-      lockerProposalManagerFactory.address,
-      0,
-      0,
-      [],
-      []
-    );
+    this.ppLockerFactory = await PPLockerFactory.new(this.ppgr.address, lockerProposalManagerFactory.address, 0, 0);
 
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), this.galtToken.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_LOCKER_REGISTRY(), this.ppLockerRegistry.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_FEE_REGISTRY(), this.ppFeeRegistry.address);
 
     await this.ppLockerFactory.setFeeManager(geoDataManager);
     await this.ppLockerFactory.setEthFee(ethFee, { from: geoDataManager });
