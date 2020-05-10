@@ -842,10 +842,6 @@ describe('PPLockers', () => {
       locker = await PPLocker.at(lockerAddress);
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
 
-      await this.ppFeeRegistry.setEthFeeKeysAndValues([await proposalManager.VOTE_FEE_KEY()], [ether(0.1)], {
-        from: feeManager
-      });
-
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
       await locker.deposit(token.address, aliceTokenId, [alice, bob], ['1', '1'], '2', { from: alice });
@@ -856,6 +852,10 @@ describe('PPLockers', () => {
 
       assert.equal(await locker.reputationOfAt(alice, blockBeforeWithdraw), ether(50));
       assert.equal(await locker.reputationOf(bob, blockBeforeWithdraw), ether(50));
+
+      await this.ppFeeRegistry.setEthFeeKeysAndValues([await proposalManager.VOTE_FEE_KEY()], [ether(0.1)], {
+        from: feeManager
+      });
 
       const proposalData = locker.contract.methods.withdraw(dan, dan).encodeABI();
       await assertRevert(
@@ -882,8 +882,12 @@ describe('PPLockers', () => {
       let proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 1);
 
-      await assertRevert(proposalManager.aye(proposalId, true, { from: bob }), 'Fee and msg.value not equal');
-      await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1), gas: 1000000 });
+      await this.ppFeeRegistry.setContractEthFeeKeysAndValues(proposalManager.address, [await proposalManager.VOTE_FEE_KEY()], [ether(0.2)], {
+        from: feeManager
+      });
+
+      await assertRevert(proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1) }), 'Fee and msg.value not equal');
+      await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.2), gas: 1000000 });
       proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 2);
 
