@@ -882,11 +882,19 @@ describe('PPLockers', () => {
       let proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 1);
 
-      await this.ppFeeRegistry.setContractEthFeeKeysAndValues(proposalManager.address, [await proposalManager.VOTE_FEE_KEY()], [ether(0.2)], {
-        from: feeManager
-      });
+      await this.ppFeeRegistry.setContractEthFeeKeysAndValues(
+        proposalManager.address,
+        [await proposalManager.VOTE_FEE_KEY()],
+        [ether(0.2)],
+        {
+          from: feeManager
+        }
+      );
 
-      await assertRevert(proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1) }), 'Fee and msg.value not equal');
+      await assertRevert(
+        proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1) }),
+        'Fee and msg.value not equal'
+      );
       await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.2), gas: 1000000 });
       proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 2);
