@@ -20,6 +20,7 @@ contract PPGlobalRegistry is IPPGlobalRegistry, OwnableAndInitializable {
 
   bytes32 public constant PPGR_ACL = bytes32("ACL");
   bytes32 public constant PPGR_GALT_TOKEN = bytes32("galt_token");
+  bytes32 public constant PPGR_FEE_REGISTRY = bytes32("fee_registry");
   bytes32 public constant PPGR_LOCKER_REGISTRY = bytes32("locker_registry");
   bytes32 public constant PPGR_TOKEN_REGISTRY = bytes32("token_registry");
   bytes32 public constant PPGR_MARKET = bytes32("market");
@@ -50,6 +51,11 @@ contract PPGlobalRegistry is IPPGlobalRegistry, OwnableAndInitializable {
   function getGaltTokenAddress() external view returns (address) {
     require(contracts[PPGR_GALT_TOKEN] != ZERO_ADDRESS, "PPGR: GALT_TOKEN not set");
     return contracts[PPGR_GALT_TOKEN];
+  }
+
+  function getPPFeeRegistryAddress() external view returns (address) {
+    require(contracts[PPGR_FEE_REGISTRY] != ZERO_ADDRESS, "PPGR: FEE_REGISTRY not set");
+    return contracts[PPGR_FEE_REGISTRY];
   }
 
   function getPPTokenRegistryAddress() external view returns (address) {

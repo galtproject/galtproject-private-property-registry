@@ -12,6 +12,7 @@ const PPLockerRegistry = contract.fromArtifact('PPLockerRegistry');
 const PPLocker = contract.fromArtifact('PPLocker');
 // const LockerProposalManager = contract.fromArtifact('LockerProposalManager');
 const PPTokenRegistry = contract.fromArtifact('PPTokenRegistry');
+const EthFeeRegistry = contract.fromArtifact('EthFeeRegistry');
 const PPBridgedLockerFactory = contract.fromArtifact('PPBridgedLockerFactory');
 const PPACL = contract.fromArtifact('PPACL');
 const MockRA = contract.fromArtifact('MockRA');
@@ -42,7 +43,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPLockers', () => {
-  const [alice, bob, dan, lola, registryOwner, minter, lockerFeeManager] = accounts;
+  const [alice, bob, dan, lola, unauthorized, registryOwner, minter, feeManager, feeCollector] = accounts;
   const owner = defaultSender;
 
   const ethFee = ether(10);
@@ -59,10 +60,12 @@ describe('PPLockers', () => {
     this.acl = await PPACL.new();
     this.ppTokenRegistry = await PPTokenRegistry.new();
     this.ppLockerRegistry = await PPLockerRegistry.new();
+    this.ppFeeRegistry = await EthFeeRegistry.new();
 
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
     await this.ppLockerRegistry.initialize(this.ppgr.address);
+    await this.ppFeeRegistry.initialize(feeManager, feeCollector, [], []);
 
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
     this.ppTokenFactory = await PPTokenFactory.new(this.ppTokenControllerFactory.address, this.ppgr.address, 0, 0);
@@ -73,6 +76,7 @@ describe('PPLockers', () => {
     // PPGR setup
     await this.ppgr.setContract(await this.ppgr.PPGR_ACL(), this.acl.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_GALT_TOKEN(), this.galtToken.address);
+    await this.ppgr.setContract(await this.ppgr.PPGR_FEE_REGISTRY(), this.ppFeeRegistry.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_TOKEN_REGISTRY(), this.ppTokenRegistry.address);
     await this.ppgr.setContract(await this.ppgr.PPGR_LOCKER_REGISTRY(), this.ppLockerRegistry.address);
 
@@ -81,13 +85,15 @@ describe('PPLockers', () => {
     await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), this.ppLockerFactory.address, true);
 
     // Fees setup
-    await this.ppTokenFactory.setFeeManager(lockerFeeManager);
-    await this.ppTokenFactory.setEthFee(ethFee, { from: lockerFeeManager });
-    await this.ppTokenFactory.setGaltFee(galtFee, { from: lockerFeeManager });
+    await this.ppTokenFactory.setFeeManager(feeManager);
+    await this.ppTokenFactory.setFeeCollector(feeCollector);
+    await this.ppTokenFactory.setEthFee(ethFee, { from: feeManager });
+    await this.ppTokenFactory.setGaltFee(galtFee, { from: feeManager });
 
-    await this.ppLockerFactory.setFeeManager(lockerFeeManager);
-    await this.ppLockerFactory.setEthFee(ethFee, { from: lockerFeeManager });
-    await this.ppLockerFactory.setGaltFee(galtFee, { from: lockerFeeManager });
+    await this.ppLockerFactory.setFeeManager(feeManager);
+    await this.ppLockerFactory.setFeeCollector(feeCollector);
+    await this.ppLockerFactory.setEthFee(ethFee, { from: feeManager });
+    await this.ppLockerFactory.setGaltFee(galtFee, { from: feeManager });
   });
 
   it('should correctly build a locker with no fee', async function() {
@@ -117,7 +123,7 @@ describe('PPLockers', () => {
     );
 
     res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-    const lockerAddress = res.logs[0].args.locker;
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
@@ -214,7 +220,7 @@ describe('PPLockers', () => {
       [60 * 60 * 24 * 7],
       { from: alice, value: ether(10) }
     );
-    const lockerAddress = res.logs[0].args.locker;
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
@@ -353,7 +359,7 @@ describe('PPLockers', () => {
     );
 
     res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-    const lockerAddress = res.logs[0].args.locker;
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
     const locker = await PPLocker.at(lockerAddress);
 
     assert.equal(await this.ppLockerRegistry.isValid(lockerAddress), true);
@@ -442,7 +448,18 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._owners, [bob, lola, dan]);
     assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
 
-    await locker.transferShare(lola, { from: bob });
+    await this.ppFeeRegistry.setEthFeeKeysAndValues([await locker.TRANSFER_SHARE_FEE_KEY()], [ether(0.1)], {
+      from: feeManager
+    });
+
+    await assertRevert(locker.transferShare(lola, { from: bob }), 'Fee and msg.value not equal');
+    await locker.transferShare(lola, { from: bob, value: ether(0.1) });
+
+    const unauthorizedBalanceBefore = await web3.eth.getBalance(unauthorized);
+    await this.ppFeeRegistry.withdrawEth(unauthorized, { from: feeCollector });
+    assert.equal(await web3.eth.getBalance(this.ppFeeRegistry.address), '0');
+    const unauthorizedBalanceAfter = await web3.eth.getBalance(unauthorized);
+    assert.equal(new BN(unauthorizedBalanceAfter).sub(new BN(unauthorizedBalanceBefore)), ether(0.1));
 
     const blockNumberAfterSecondTransferShare = await web3.eth.getBlockNumber();
 
@@ -481,7 +498,7 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._owners, [lola, dan]);
     assert.sameMembers(lockerInfo._ownersReputation, [ether(50), ether(50)]);
 
-    await locker.transferShare(lola, { from: dan });
+    await locker.transferShare(lola, { from: dan, value: ether(0.1) });
 
     const blockNumberAfterThirdTransferShare = await web3.eth.getBlockNumber();
 
@@ -583,7 +600,7 @@ describe('PPLockers', () => {
       });
 
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-      lockerAddress = res.logs[0].args.locker;
+      lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       locker = await PPLocker.at(lockerAddress);
     });
 
@@ -762,7 +779,7 @@ describe('PPLockers', () => {
       await this.acl.setRole(bytes32('LOCKER_REGISTRAR'), ppBridgedLockerFactory.address, true);
 
       res = await ppBridgedLockerFactory.build({ from: alice, value: 1 });
-      const bridgedLockerAddress = res.logs[0].args.locker;
+      const bridgedLockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       const bridgedLocker = await PPLocker.at(bridgedLockerAddress);
 
       await token.approve(bridgedLocker.address, aliceTokenId, { from: alice });
@@ -770,6 +787,26 @@ describe('PPLockers', () => {
         bridgedLocker.deposit(token.address, aliceTokenId, [alice], ['1'], '1', { from: alice }),
         'Token type is invalid'
       );
+    });
+
+    it('preset fee should work', async function() {
+      await assertRevert(
+        this.ppFeeRegistry.setEthFeeKeysAndValues(
+          [utf8ToHex('PMANAGER_VOTE'), utf8ToHex('LOCKER_TRANSFER_SHARE')],
+          [ether(0.01), ether(0.02)],
+          { from: owner }
+        ),
+        'caller is not the feeManager'
+      );
+
+      await this.ppFeeRegistry.setEthFeeKeysAndValues(
+        [utf8ToHex('PMANAGER_VOTE'), utf8ToHex('LOCKER_TRANSFER_SHARE')],
+        [ether(0.01), ether(0.02)],
+        { from: feeManager }
+      );
+
+      assert.equal(await this.ppFeeRegistry.ethFeeByKey(utf8ToHex('PMANAGER_VOTE')), ether(0.01));
+      assert.equal(await this.ppFeeRegistry.ethFeeByKey(utf8ToHex('LOCKER_TRANSFER_SHARE')), ether(0.02));
     });
 
     it('proposal fee should work', async function() {
@@ -801,11 +838,9 @@ describe('PPLockers', () => {
       await this.ppLockerFactory.setFeeManager(owner, { from: owner });
 
       res = await this.ppLockerFactory.build({ from: alice, value: ether(10) });
-      lockerAddress = res.logs[0].args.locker;
+      lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
       locker = await PPLocker.at(lockerAddress);
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
-
-      await proposalManager.setEthFee(ether(0.1), { from: owner });
 
       // deposit token
       await token.approve(locker.address, aliceTokenId, { from: alice });
@@ -818,6 +853,10 @@ describe('PPLockers', () => {
       assert.equal(await locker.reputationOfAt(alice, blockBeforeWithdraw), ether(50));
       assert.equal(await locker.reputationOf(bob, blockBeforeWithdraw), ether(50));
 
+      await this.ppFeeRegistry.setEthFeeKeysAndValues([await proposalManager.VOTE_FEE_KEY()], [ether(0.1)], {
+        from: feeManager
+      });
+
       const proposalData = locker.contract.methods.withdraw(dan, dan).encodeABI();
       await assertRevert(
         proposalManager.propose(locker.address, '0', true, true, proposalData, '', { from: alice }),
@@ -828,12 +867,35 @@ describe('PPLockers', () => {
         value: ether(0.1)
       });
 
+      await assertRevert(
+        this.ppFeeRegistry.withdrawEth(unauthorized, { from: unauthorized }),
+        'caller is not the feeCollector'
+      );
+
+      const unauthorizedBalanceBefore = await web3.eth.getBalance(unauthorized);
+      await this.ppFeeRegistry.withdrawEth(unauthorized, { from: feeCollector });
+      assert.equal(await web3.eth.getBalance(this.ppFeeRegistry.address), '0');
+      const unauthorizedBalanceAfter = await web3.eth.getBalance(unauthorized);
+      assert.equal(new BN(unauthorizedBalanceAfter).sub(new BN(unauthorizedBalanceBefore)), ether(0.1));
+
       const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
       let proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 1);
 
-      await assertRevert(proposalManager.aye(proposalId, true, { from: bob }), 'Fee and msg.value not equal');
-      await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1), gas: 1000000 });
+      await this.ppFeeRegistry.setContractEthFeeKeysAndValues(
+        proposalManager.address,
+        [await proposalManager.VOTE_FEE_KEY()],
+        [ether(0.2)],
+        {
+          from: feeManager
+        }
+      );
+
+      await assertRevert(
+        proposalManager.aye(proposalId, true, { from: bob, value: ether(0.1) }),
+        'Fee and msg.value not equal'
+      );
+      await proposalManager.aye(proposalId, true, { from: bob, value: ether(0.2), gas: 1000000 });
       proposal = await proposalManager.proposals(proposalId);
       assert.equal(proposal.status, 2);
 

@@ -9,11 +9,11 @@
 
 pragma solidity ^0.5.13;
 
-import "@galtproject/core/contracts/reputation/AbstractProposalManager.sol";
 import "./abstract/interfaces/IAbstractLocker.sol";
+import "./abstract/PPAbstractProposalManager.sol";
 
 
-contract LockerProposalManager is AbstractProposalManager {
+contract LockerProposalManager is PPAbstractProposalManager {
 
   IAbstractLocker public locker;
 
@@ -23,7 +23,7 @@ contract LockerProposalManager is AbstractProposalManager {
 
   function initialize(
     IAbstractLocker _locker,
-    address _feeManager,
+    address _globalRegistry,
     bytes32[] memory _markerList,
     uint256[] memory _supportList,
     uint256[] memory _quorumList,
@@ -32,7 +32,7 @@ contract LockerProposalManager is AbstractProposalManager {
     public
   {
     locker = _locker;
-    initialize(_feeManager);
+    initialize(_globalRegistry);
 
     uint256 markersLen = _markerList.length;
     require(

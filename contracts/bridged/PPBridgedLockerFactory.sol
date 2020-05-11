@@ -84,7 +84,7 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
 
     proposalManager.initialize(
       IAbstractLocker(locker),
-      feeManager,
+      globalRegistry,
       markersList,
       _supportList,
       _quorumList,

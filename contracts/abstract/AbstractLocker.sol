@@ -18,9 +18,10 @@ import "./interfaces/IAbstractRA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/core/contracts/Checkpointable.sol";
+import "@galtproject/core/contracts/traits/ChargesEthFee.sol";
 
 
-contract AbstractLocker is IAbstractLocker, Checkpointable {
+contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   using ArraySet for ArraySet.AddressSet;
 
   uint256 public constant VERSION = 3;
@@ -34,6 +35,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   event TransferShare(address indexed oldOwner, address indexed newOwner);
 
   bytes32 public constant LOCKER_TYPE = bytes32("REPUTATION");
+  bytes32 public constant TRANSFER_SHARE_FEE_KEY = bytes32("LOCKER_TRANSFER_SHARE");
 
   IPPGlobalRegistry public globalRegistry;
 
@@ -202,6 +204,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   }
 
   function transferShare(address _newShareOwner) public payable onlyOwner {
+    _acceptPayment(TRANSFER_SHARE_FEE_KEY);
     require(tokenDeposited, "Token not deposited");
 
     uint256 traLen = traSet.size();
@@ -291,6 +294,10 @@ contract AbstractLocker is IAbstractLocker, Checkpointable {
   }
 
   // GETTERS
+
+  function feeRegistry() public returns(address) {
+    return globalRegistry.getPPFeeRegistryAddress();
+  }
 
   function getLockerInfo()
     public
