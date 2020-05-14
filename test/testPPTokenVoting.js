@@ -34,7 +34,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPTokenVoting', () => {
-  const [systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, dan] = accounts;
+  const [systemOwner, registryOwner, minter, geoDataManager, burner, alice, bob, dan, feeReceiver] = accounts;
   const unknown = defaultSender;
 
   const galtFee = ether(20);
@@ -55,7 +55,7 @@ describe('PPTokenVoting', () => {
     await this.ppgr.initialize();
     await this.ppTokenRegistry.initialize(this.ppgr.address);
     await this.ppLockerRegistry.initialize(this.ppgr.address);
-    await this.ppFeeRegistry.initialize(registryOwner, registryOwner, [], []);
+    await this.ppFeeRegistry.initialize(registryOwner, feeReceiver, [], []);
 
     this.ppTokenVotingFactory = await PPTokenVotingFactory.new();
     this.ppTokenControllerFactory = await PPTokenControllerFactory.new();
