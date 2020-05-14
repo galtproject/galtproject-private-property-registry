@@ -21,7 +21,7 @@ contract PPAbstractProposalManager is AbstractProposalManager {
     globalRegistry = IPPGlobalRegistry(_globalRegistry);
   }
 
-  function feeRegistry() public returns(address) {
+  function feeRegistry() public view returns(address) {
     return globalRegistry.getPPFeeRegistryAddress();
   }
 }

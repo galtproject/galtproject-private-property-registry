@@ -295,7 +295,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
 
   // GETTERS
 
-  function feeRegistry() public returns(address) {
+  function feeRegistry() public view returns(address) {
     return globalRegistry.getPPFeeRegistryAddress();
   }
 
