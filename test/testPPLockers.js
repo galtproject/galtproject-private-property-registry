@@ -43,7 +43,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPLockers', () => {
-  const [alice, bob, dan, lola, unauthorized, registryOwner, minter, feeManager, feeReceiver] = accounts;
+  const [alice, bob, dan, lola, registryOwner, minter, feeManager, feeReceiver] = accounts;
   const owner = defaultSender;
 
   const ethFee = ether(10);
