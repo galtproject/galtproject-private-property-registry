@@ -30,7 +30,7 @@
   },
   "repository": "https://github.com/galtproject/galtproject-private-property-registry",
   "scripts": {
-    "test": "mocha --exit --recursive test --timeout 10000",
+    "test": "mocha --exit --recursive test --timeout 30000",
     "compile": "truffle compile",
     "deploy": "truffle migrate --network local",
     "coverage": "SOLIDITY_COVERAGE=yes solidity-coverage",

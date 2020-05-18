@@ -15,6 +15,7 @@ import "./interfaces/IAbstractLocker.sol";
 import "./interfaces/IAbstractToken.sol";
 import "./interfaces/IAbstractRA.sol";
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@galtproject/libs/contracts/collections/ArraySet.sol";
 import "@galtproject/core/contracts/Checkpointable.sol";
@@ -23,6 +24,7 @@ import "@galtproject/core/contracts/traits/ChargesEthFee.sol";
 
 contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
   using ArraySet for ArraySet.AddressSet;
+  using SafeMath for uint256;
 
   uint256 public constant VERSION = 3;
 
@@ -280,12 +282,12 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
     uint256 calcReputation = 0;
     for (uint256 i = 0; i < len; i++) {
       require(_shares[i] > 0, "Share can not be 0");
-      uint256 ownerReputation = (_shares[i] * tokenArea) / _totalShares;
+      uint256 ownerReputation = _shares[i].mul(tokenArea).div(_totalShares);
       reputationByOwner[_owners[i]] = ownerReputation;
       shareByOwner[owners[i]] = _shares[i];
       _updateValueAtNow(_cachedBalances[_owners[i]], ownerReputation);
-      calcTotalShares += _shares[i];
-      calcReputation += ownerReputation;
+      calcTotalShares = calcTotalShares.add(_shares[i]);
+      calcReputation = calcReputation.add(ownerReputation);
     }
     totalReputation = calcReputation;
 
