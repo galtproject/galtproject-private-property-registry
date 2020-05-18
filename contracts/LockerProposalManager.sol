@@ -45,12 +45,12 @@ contract LockerProposalManager is PPAbstractProposalManager {
   }
 
   modifier onlyProposalConfigManager() {
-    require(msg.sender == address(locker), "Not the proposal manager");
+    require(msg.sender == address(this), "Not the proposal manager");
     _;
   }
 
   modifier onlyProposalDefaultConfigManager() {
-    require(msg.sender == address(locker), "Not the proposal manager");
+    require(msg.sender == address(this), "Not the proposal manager");
     _;
   }
 
@@ -73,7 +73,6 @@ contract LockerProposalManager is PPAbstractProposalManager {
     onlyLockerOwner
   {
     require(locker.tokenDeposited(), "Token not deposited");
-    require(_destination != address(locker.tokenContract()), "Destination can not be the tokenContract");
     _propose(_destination, _value, _castVote, _executesIfDecided, _data, _dataLink);
   }
 

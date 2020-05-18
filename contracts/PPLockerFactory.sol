@@ -52,7 +52,7 @@ contract PPLockerFactory is Ownable, ChargesFee {
   }
 
   function buildForOwner(
-    address _lockerOwner,
+    address _lockerDepositManager,
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
     uint256 _timeout,
@@ -73,7 +73,7 @@ contract PPLockerFactory is Ownable, ChargesFee {
       _timeout
     );
 
-    address locker = address(new PPLocker(globalRegistry, _lockerOwner, address(proposalManager)));
+    address locker = address(new PPLocker(globalRegistry, _lockerDepositManager, address(proposalManager)));
 
     uint256 lockerMethodsLen = _lockerMethodsList.length;
     bytes32[] memory markersList = new bytes32[](lockerMethodsLen);
