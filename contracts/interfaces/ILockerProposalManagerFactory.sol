@@ -15,7 +15,8 @@ interface ILockerProposalManagerFactory {
   function build(
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
-    uint256 _timeout
+    uint256 _timeout,
+    uint256 _committingTimeout
   )
   external
   payable

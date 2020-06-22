@@ -24,7 +24,8 @@ contract LockerProposalManagerFactory is Ownable {
   function build(
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
-    uint256 _timeout
+    uint256 _timeout,
+    uint256 _committingTimeout
   )
     external
     payable
@@ -33,7 +34,8 @@ contract LockerProposalManagerFactory is Ownable {
     LockerProposalManager proposalManager = new LockerProposalManager(
       _defaultSupport,
       _defaultMinAcceptQuorum,
-      _timeout
+      _timeout,
+      _committingTimeout
     );
 
     emit NewLockerProposalManager(address(proposalManager));

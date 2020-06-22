@@ -296,7 +296,9 @@ describe('PPTokenVoting', () => {
       const hackVoting = await HackVotingMock.new(token.address);
       const proposalData = hackVoting.contract.methods.voteByTokens([aliceTokenId], '0', true, true).encodeABI();
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
-      res = await proposalManager.propose(hackVoting.address, '0', true, true, proposalData, '', { from: alice });
+      res = await proposalManager.propose(hackVoting.address, '0', true, true, false, proposalData, '', {
+        from: alice
+      });
       const proposalId = _.find(res.logs, l => l.args.proposalId).args.proposalId;
       const proposal = await proposalManager.proposals(proposalId);
       await assert.equal(proposal.status, '2');
