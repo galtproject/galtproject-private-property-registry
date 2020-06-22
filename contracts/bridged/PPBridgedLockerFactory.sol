@@ -45,7 +45,9 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
       100 ether,
       100 ether,
       60 * 60 * 24 * 7,
+      0,
       bytes32List,
+      uint256List,
       uint256List,
       uint256List,
       uint256List
@@ -57,10 +59,12 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
     uint256 _defaultSupport,
     uint256 _defaultMinAcceptQuorum,
     uint256 _timeout,
+    uint256 _committingTimeout,
     bytes32[] memory _lockerMethodsList,
     uint256[] memory _supportList,
     uint256[] memory _quorumList,
-    uint256[] memory _timeoutList
+    uint256[] memory _timeoutList,
+    uint256[] memory _committingTimeoutList
   )
     public
     payable
@@ -71,7 +75,8 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
     ILockerProposalManager proposalManager = lockerProposalManagerFactory.build(
       _defaultSupport,
       _defaultMinAcceptQuorum,
-      _timeout
+      _timeout,
+      _committingTimeout
     );
 
     address locker = address(new PPBridgedLocker(globalRegistry, _lockerOwner, address(proposalManager)));
@@ -88,7 +93,8 @@ contract PPBridgedLockerFactory is Ownable, ChargesFee {
       markersList,
       _supportList,
       _quorumList,
-      _timeoutList
+      _timeoutList,
+      _committingTimeoutList
     );
 
     IPPLockerRegistry(IPPGlobalRegistry(globalRegistry).getPPLockerRegistryAddress()).addLocker(locker, bytes32("bridged"));

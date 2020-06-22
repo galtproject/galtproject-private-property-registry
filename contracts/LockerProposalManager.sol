@@ -17,8 +17,8 @@ contract LockerProposalManager is PPAbstractProposalManager {
 
   IAbstractLocker public locker;
 
-  constructor(uint256 _defaultSupport, uint256 _defaultMinAcceptQuorum, uint256 _defaultTimeout) public {
-    _setDefaultProposalConfig(_defaultSupport, _defaultMinAcceptQuorum, _defaultTimeout);
+  constructor(uint256 _defaultSupport, uint256 _defaultMinAcceptQuorum, uint256 _defaultTimeout, uint256 _defaultCommittingTimeout) public {
+    _setDefaultProposalConfig(_defaultSupport, _defaultMinAcceptQuorum, _defaultTimeout, _defaultCommittingTimeout);
   }
 
   function initialize(
@@ -27,7 +27,8 @@ contract LockerProposalManager is PPAbstractProposalManager {
     bytes32[] memory _markerList,
     uint256[] memory _supportList,
     uint256[] memory _quorumList,
-    uint256[] memory _timeoutList
+    uint256[] memory _timeoutList,
+    uint256[] memory _committingTimeoutList
   )
     public
   {
@@ -36,11 +37,14 @@ contract LockerProposalManager is PPAbstractProposalManager {
 
     uint256 markersLen = _markerList.length;
     require(
-      markersLen == _supportList.length && markersLen == _quorumList.length && markersLen == _timeoutList.length,
+      markersLen == _supportList.length &&
+      markersLen == _quorumList.length &&
+      markersLen == _timeoutList.length &&
+      markersLen == _committingTimeoutList.length,
       "Marker configs length does not equal"
     );
     for (uint256 i = 0; i < markersLen; i++) {
-      _setProposalConfig(_markerList[i], _supportList[i], _quorumList[i], _timeoutList[i]);
+      _setProposalConfig(_markerList[i], _supportList[i], _quorumList[i], _timeoutList[i], _committingTimeoutList[i]);
     }
   }
 
@@ -65,6 +69,7 @@ contract LockerProposalManager is PPAbstractProposalManager {
     uint256 _value,
     bool _castVote,
     bool _executesIfDecided,
+    bool _isCommitReveal,
     bytes calldata _data,
     string calldata _dataLink
   )
@@ -73,7 +78,7 @@ contract LockerProposalManager is PPAbstractProposalManager {
     onlyLockerOwner
   {
     require(locker.tokenDeposited(), "Token not deposited");
-    _propose(_destination, _value, _castVote, _executesIfDecided, _data, _dataLink);
+    _propose(_destination, _value, _castVote, _executesIfDecided, _isCommitReveal, _data, _dataLink);
   }
 
 

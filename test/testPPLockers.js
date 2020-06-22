@@ -214,10 +214,12 @@ describe('PPLockers', () => {
       ether(100),
       ether(100),
       60 * 60 * 24 * 7,
+      0,
       ['0x0e801ee1'],
       [ether(5)],
       [ether(5)],
       [60 * 60 * 24 * 7],
+      [0],
       { from: alice, value: ether(10) }
     );
     const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
@@ -859,13 +861,13 @@ describe('PPLockers', () => {
 
       const proposalData = locker.contract.methods.withdraw(dan, dan).encodeABI();
       await assertRevert(
-        proposalManager.propose(locker.address, '0', true, true, proposalData, '', { from: alice }),
+        proposalManager.propose(locker.address, '0', true, true, false, proposalData, '', { from: alice }),
         'Fee and msg.value not equal'
       );
 
       const unauthorizedBalanceBefore = await web3.eth.getBalance(feeReceiver);
 
-      res = await proposalManager.propose(locker.address, '0', true, true, proposalData, '', {
+      res = await proposalManager.propose(locker.address, '0', true, true, false, proposalData, '', {
         from: alice,
         value: ether(0.1)
       });

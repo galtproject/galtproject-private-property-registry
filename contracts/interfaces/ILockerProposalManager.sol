@@ -21,7 +21,8 @@ interface ILockerProposalManager {
     bytes32[] calldata _markerList,
     uint256[] calldata _supportList,
     uint256[] calldata _quorumList,
-    uint256[] calldata _timeoutList
+    uint256[] calldata _timeoutList,
+    uint256[] calldata _committingTimeoutList
   ) external;
 
   function setEthFee(bytes32 _key, uint256 _ethFee) external;
