@@ -186,6 +186,27 @@ contract PPTokenController is IPPTokenController, Ownable {
     emit Mint(_to, _tokenId);
   }
 
+  function mintAndSetInitialDetails(
+    address _to,
+    IAbstractToken.TokenType _tokenType,
+    IAbstractToken.AreaSource _areaSource,
+    uint256 _area,
+    bytes32 _ledgerIdentifier,
+    string calldata _humanAddress,
+    string calldata _dataLink,
+    bool _claimUniqueness
+  )
+    external
+    onlyMinter
+  {
+    uint256 _tokenId = IPPToken(address(tokenContract)).mint(_to);
+
+    _setInitialDetails(_tokenId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink, _claimUniqueness);
+
+
+    emit Mint(_to, _tokenId);
+  }
+
   // CONTOUR VERIFICATION INTERFACE
 
   function reportCVMisbehaviour(uint256 _tokenId) external onlyContourVerifier {
@@ -209,21 +230,7 @@ contract PPTokenController is IPPTokenController, Ownable {
     external
     onlyMinter
   {
-    // Will REVERT if there is no owner assigned to the token
-    tokenContract.ownerOf(_privatePropertyId);
-
-    IPPToken ippTokenContract = IPPToken(address(tokenContract));
-
-    uint256 setupStage = ippTokenContract.getSetupStage(_privatePropertyId);
-    require(setupStage == uint256(PropertyInitialSetupStage.PENDING), "Requires PENDING setup stage");
-
-    ippTokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
-
-    ippTokenContract.incrementSetupStage(_privatePropertyId);
-
-    _updateDetailsUpdatedAt(_privatePropertyId);
-
-    ippTokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, bytes32(uint256(_claimUniqueness ? 1 : 0)));
+    _setInitialDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink, _claimUniqueness);
   }
 
   function setInitialContour(
@@ -454,6 +461,35 @@ contract PPTokenController is IPPTokenController, Ownable {
     IPPToken(address(tokenContract)).setPropertyExtraData(_tokenId, CONTOUR_UPDATED_EXTRA_KEY, value);
 
     emit UpdateDetailsUpdatedAt(_tokenId, now);
+  }
+
+  function _setInitialDetails(
+    uint256 _privatePropertyId,
+    IAbstractToken.TokenType _tokenType,
+    IAbstractToken.AreaSource _areaSource,
+    uint256 _area,
+    bytes32 _ledgerIdentifier,
+    string memory _humanAddress,
+    string memory _dataLink,
+    bool _claimUniqueness
+  )
+    internal
+  {
+    // Will REVERT if there is no owner assigned to the token
+    tokenContract.ownerOf(_privatePropertyId);
+
+    IPPToken ippTokenContract = IPPToken(address(tokenContract));
+
+    uint256 setupStage = ippTokenContract.getSetupStage(_privatePropertyId);
+    require(setupStage == uint256(PropertyInitialSetupStage.PENDING), "Requires PENDING setup stage");
+
+    ippTokenContract.setDetails(_privatePropertyId, _tokenType, _areaSource, _area, _ledgerIdentifier, _humanAddress, _dataLink);
+
+    ippTokenContract.incrementSetupStage(_privatePropertyId);
+
+    _updateDetailsUpdatedAt(_privatePropertyId);
+
+    ippTokenContract.setPropertyExtraData(_privatePropertyId, CLAIM_UNIQUENESS_KEY, bytes32(uint256(_claimUniqueness ? 1 : 0)));
   }
 
   // GETTERS

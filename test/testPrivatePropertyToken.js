@@ -181,7 +181,7 @@ describe('PPToken and PPTokenController', () => {
 
       res = await controller.mint(alice, { from: minter });
       const aliceTokenId = res.logs[0].args.tokenId;
-      const createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+      let createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
 
       await assertRevert(
         controller.setInitialDetails(
@@ -272,6 +272,32 @@ describe('PPToken and PPTokenController', () => {
       assert.equal(await token.getHighestPoint(aliceTokenId), -42);
 
       assert.equal(await token.propertyCreatedAt(aliceTokenId), createdAt);
+
+      await assertRevert(
+        controller.mintAndSetInitialDetails(bob, 2, 1, 124, utf8ToHex('foo1'), 'bar1', 'buzz1', false, { from: bob }),
+        'Only minter allowed'
+      );
+
+      res = await controller.mintAndSetInitialDetails(bob, 2, 1, 124, utf8ToHex('foo1'), 'bar1', 'buzz1', false, {
+        from: minter
+      });
+      const bobTokenId = res.logs.filter(log => log.args.tokenId)[0].args.tokenId;
+
+      const details = await token.getDetails(bobTokenId);
+      assert.equal(details.tokenType, 2);
+      assert.equal(details.areaSource, 1);
+      assert.equal(details.area, 124);
+      assert.equal(hexToUtf8(details.ledgerIdentifier), 'foo1');
+      assert.equal(details.humanAddress, 'bar1');
+      assert.equal(details.dataLink, 'buzz1');
+
+      createdAt = (await web3.eth.getBlock(res.receipt.blockNumber)).timestamp;
+      await controller.setInitialContour(bobTokenId, contour, -43, { from: minter });
+
+      assert.sameMembers(await token.getContour(bobTokenId), contour);
+      assert.equal(await token.getHighestPoint(bobTokenId), -43);
+
+      assert.equal(await token.propertyCreatedAt(bobTokenId), createdAt);
     });
   });
 
