@@ -26,7 +26,7 @@
     "web3": "1.2.4"
   },
   "engines": {
-    "node": "^10.15.3"
+    "node": ">=10.15.3"
   },
   "repository": "https://github.com/galtproject/galtproject-private-property-registry",
   "scripts": {

@@ -32,7 +32,8 @@ const {
   changeOwnersLockerProposal,
   getLockerProposalVotingProgress,
   setDefaultProposalConfig,
-  setProposalConfig
+  setProposalConfig,
+  changeLockerProposalManagerProposal
 } = require('./proposalHelpers')(contract);
 
 PPToken.numberFormat = 'String';
@@ -45,7 +46,7 @@ const bytes32 = utf8ToHex;
 const ONE_HOUR = 60 * 60;
 
 describe('PPLockers', () => {
-  const [alice, bob, dan, lola, registryOwner, minter, feeManager, feeReceiver] = accounts;
+  const [alice, bob, dan, lola, registryOwner, minter, feeManager, feeReceiver, mockProposalManager] = accounts;
   const owner = defaultSender;
 
   const ethFee = ether(10);
@@ -479,6 +480,79 @@ describe('PPLockers', () => {
     await ayeLockerProposal(locker, changeOwnersProposalId, { from: lola });
 
     await validateProposalSuccess(locker, changeOwnersProposalId);
+  });
+
+  it('should correctly change locker proposal manager address', async function() {
+    const ether33 = new BN(ether(100)).div(new BN(3)).toString(10);
+
+    let res = await this.ppTokenFactory.build('Buildings', 'BDL', registryDataLink, ONE_HOUR, [], [], utf8ToHex(''), {
+      from: registryOwner,
+      value: ether(10)
+    });
+    const token = await PPToken.at(_.find(res.logs, l => l.args.token).args.token);
+    const controller = await PPTokenController.at(_.find(res.logs, l => l.args.controller).args.controller);
+
+    await controller.setMinter(minter, { from: registryOwner });
+
+    res = await controller.mint(alice, { from: minter });
+    const aliceTokenId = res.logs[0].args.tokenId;
+
+    await controller.setInitialDetails(
+      aliceTokenId,
+      // tokenType
+      2,
+      1,
+      ether(100),
+      utf8ToHex('foo'),
+      'bar',
+      'buzz',
+      false,
+      { from: minter }
+    );
+
+    res = await this.ppLockerFactory.buildForOwner(
+      alice,
+      ether(100),
+      ether(100),
+      60 * 60 * 24 * 7,
+      0,
+      ['0x0e801ee1'],
+      [ether(5)],
+      [ether(5)],
+      [60 * 60 * 24 * 7],
+      [0],
+      { from: alice, value: ether(10) }
+    );
+    const lockerAddress = _.find(res.logs, l => l.args.locker).args.locker;
+    const locker = await PPLocker.at(lockerAddress);
+    const initialProposalManager = await locker.proposalManager();
+
+    // deposit token
+    await token.approve(locker.address, aliceTokenId, { from: alice });
+    await locker.deposit(token.address, aliceTokenId, [alice, bob, dan], ['1', '1', '2'], '4', { from: alice });
+
+    const proposalId = await changeLockerProposalManagerProposal(locker, mockProposalManager, {
+      from: alice
+    });
+    assert.equal(await locker.proposalManager(), initialProposalManager);
+    await ayeLockerProposal(locker, proposalId, { from: bob });
+    await ayeLockerProposal(locker, proposalId, { from: dan });
+    assert.equal(await locker.proposalManager(), mockProposalManager);
+
+    let lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [alice, bob, dan]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
+
+    await locker.changeOwners([alice, bob, lola], ['1', '1', '1'], '3', { from: mockProposalManager });
+
+    lockerInfo = await locker.getLockerInfo();
+    assert.sameMembers(lockerInfo._owners, [alice, bob, lola]);
+    assert.sameMembers(lockerInfo._ownersReputation, [ether33, ether33, ether33]);
+
+    await assertRevert(locker.setProposalManager(alice, { from: alice }), 'Not the proposal manager');
+
+    await locker.setProposalManager(initialProposalManager, { from: mockProposalManager });
+    assert.equal(await locker.proposalManager(), initialProposalManager);
   });
 
   it('should correctly transfer share of owner', async function() {

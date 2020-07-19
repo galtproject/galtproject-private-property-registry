@@ -53,6 +53,12 @@ module.exports = contract => {
       const res = await proposalManager.propose(locker.address, '0', true, true, false, proposalData, '', options);
       return _.find(res.logs, l => l.args.proposalId).args.proposalId;
     },
+    async changeLockerProposalManagerProposal(locker, newProposalManager, options) {
+      const proposalData = locker.contract.methods.setProposalManager(newProposalManager).encodeABI();
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      const res = await proposalManager.propose(locker.address, '0', true, true, false, proposalData, '', options);
+      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
+    },
     async ayeLockerProposal(locker, proposalId, options) {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       return proposalManager.aye(proposalId, true, options);
