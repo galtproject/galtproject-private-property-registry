@@ -395,7 +395,9 @@ describe('PPLockers', () => {
     assert.sameMembers(lockerInfo._owners, [alice, bob, dan]);
     assert.sameMembers(lockerInfo._ownersReputation, [ether(25), ether(25), ether(50)]);
 
-    const proposalId = await setDefaultProposalConfig(locker, ether(10), ether(10), 60 * 60 * 24 * 5, 1, { from: alice });
+    const proposalId = await setDefaultProposalConfig(locker, ether(10), ether(10), 60 * 60 * 24 * 5, 1, {
+      from: alice
+    });
     await ayeLockerProposal(locker, proposalId, { from: bob });
     await ayeLockerProposal(locker, proposalId, { from: dan });
 
@@ -403,7 +405,10 @@ describe('PPLockers', () => {
     let proposalVoting = await proposalManager.getProposalVoting(proposalId);
     assert.equal(ether(100), proposalProgress.requiredSupport);
     assert.equal(ether(100), proposalProgress.minAcceptQuorum);
-    assert.equal(60 * 60 * 24 * 7, parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10)));
+    assert.equal(
+      60 * 60 * 24 * 7,
+      parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10))
+    );
 
     defaultProposalConfig = await proposalManager.defaultVotingConfig();
     assert.equal(ether(10), defaultProposalConfig.support);
@@ -419,7 +424,10 @@ describe('PPLockers', () => {
     proposalVoting = await proposalManager.getProposalVoting(changeOwnersProposalId);
     assert.equal(ether(10), proposalProgress.requiredSupport);
     assert.equal(ether(10), proposalProgress.minAcceptQuorum);
-    assert.equal(60 * 60 * 24 * 5, parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10)));
+    assert.equal(
+      60 * 60 * 24 * 5,
+      parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10))
+    );
 
     await validateProposalSuccess(locker, changeOwnersProposalId);
 
@@ -430,14 +438,25 @@ describe('PPLockers', () => {
     const proposalData = locker.contract.methods.changeOwners([], [], '0').encodeABI();
     const changeProposalOwnersMarker = await proposalManager.getThresholdMarker(locker.address, proposalData);
 
-    const changeOwnersMarkerProposalId = await setProposalConfig(locker, changeProposalOwnersMarker, ether(100), ether(100), 60 * 60 * 24 * 9, 0, { from: alice })
+    const changeOwnersMarkerProposalId = await setProposalConfig(
+      locker,
+      changeProposalOwnersMarker,
+      ether(100),
+      ether(100),
+      60 * 60 * 24 * 9,
+      0,
+      { from: alice }
+    );
     await validateProposalSuccess(locker, changeOwnersMarkerProposalId);
 
     proposalProgress = await proposalManager.getProposalVotingProgress(changeOwnersMarkerProposalId);
     proposalVoting = await proposalManager.getProposalVoting(changeOwnersMarkerProposalId);
     assert.equal(ether(10), proposalProgress.requiredSupport);
     assert.equal(ether(10), proposalProgress.minAcceptQuorum);
-    assert.equal(60 * 60 * 24 * 5, parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10)));
+    assert.equal(
+      60 * 60 * 24 * 5,
+      parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10))
+    );
 
     changeOwnersProposalId = await changeOwnersLockerProposal(locker, [alice, bob], ['1', '1'], '2', {
       from: alice
@@ -447,7 +466,10 @@ describe('PPLockers', () => {
     proposalVoting = await proposalManager.getProposalVoting(changeOwnersProposalId);
     assert.equal(ether(100), proposalProgress.requiredSupport);
     assert.equal(ether(100), proposalProgress.minAcceptQuorum);
-    assert.equal(60 * 60 * 24 * 9, parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10)));
+    assert.equal(
+      60 * 60 * 24 * 9,
+      parseInt(proposalProgress.timeoutAt.toString(10)) - parseInt(proposalVoting.createdAt.toString(10))
+    );
 
     await ayeLockerProposal(locker, changeOwnersProposalId, { from: bob });
     await assertRevert(
