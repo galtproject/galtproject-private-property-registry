@@ -88,6 +88,10 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
     proposalManager = _proposalManager;
   }
 
+  function setProposalManager(address _proposalManager) external onlyProposalManager {
+    proposalManager = _proposalManager;
+  }
+
   // DEPOSIT MANAGER INTERFACE
   function deposit(
     IAbstractToken _tokenContract,
