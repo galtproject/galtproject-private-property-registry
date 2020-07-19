@@ -28,6 +28,7 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
 
   uint256 public constant VERSION = 3;
 
+  event SetProposalManager(address proposalManager);
   event ReputationMint(address indexed sra);
   event ReputationBurn(address indexed sra);
   event Deposit(uint256 totalReputation);
@@ -90,6 +91,8 @@ contract AbstractLocker is IAbstractLocker, Checkpointable, ChargesEthFee {
 
   function setProposalManager(address _proposalManager) external onlyProposalManager {
     proposalManager = _proposalManager;
+
+    emit SetProposalManager(_proposalManager);
   }
 
   // DEPOSIT MANAGER INTERFACE
