@@ -69,6 +69,18 @@ module.exports = contract => {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       return proposalManager.proposals(proposalId);
     },
+    async setDefaultProposalConfig(locker, _support, _minAcceptQuorum, _timeout, _committingTimeout, options) {
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      const proposalData = proposalManager.contract.methods.setDefaultProposalConfig(_support, _minAcceptQuorum, _timeout, _committingTimeout).encodeABI();
+      const res = await proposalManager.propose(proposalManager.address, '0', true, true, false, proposalData, '', options);
+      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
+    },
+    async setProposalConfig(locker, _marker, _support, _minAcceptQuorum, _timeout, _committingTimeout, options) {
+      const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
+      const proposalData = proposalManager.contract.methods.setProposalConfig(_marker, _support, _minAcceptQuorum, _timeout, _committingTimeout).encodeABI();
+      const res = await proposalManager.propose(proposalManager.address, '0', true, true, false, proposalData, '', options);
+      return _.find(res.logs, l => l.args.proposalId).args.proposalId;
+    },
     async getLockerProposalVotingProgress(locker, proposalId) {
       const proposalManager = await LockerProposalManager.at(await locker.proposalManager());
       return proposalManager.getProposalVotingProgress(proposalId);
