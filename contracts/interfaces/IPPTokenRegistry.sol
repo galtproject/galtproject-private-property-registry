@@ -11,7 +11,7 @@ pragma solidity ^0.5.13;
 
 
 interface IPPTokenRegistry {
-  event AddToken(address indexed token, address indexed owener, address indexed factory);
+  event AddToken(address indexed token, address indexed owner, address indexed factory);
   event SetFactory(address factory);
   event SetLockerRegistry(address lockerRegistry);
 

@@ -152,9 +152,9 @@
     "@ethersproject/rlp" "^5.0.0"
     "@ethersproject/signing-key" "^5.0.0"
 
-"@galtproject/core@git+ssh://git@github.com/galtproject/galtproject-core.git#f07d731":
+"@galtproject/core@git+ssh://git@github.com/galtproject/galtproject-core.git#51395c0":
   version "0.12.0"
-  resolved "git+ssh://git@github.com/galtproject/galtproject-core.git#f07d731513838a6b90ee3e9f9c01afefc3b635bb"
+  resolved "git+ssh://git@github.com/galtproject/galtproject-core.git#51395c0569777ff9386c7ef7e3b6bcff56fc7180"
 
 "@galtproject/eslint-config-galt@^1.1.0":
   version "1.1.0"
