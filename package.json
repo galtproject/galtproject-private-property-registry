@@ -13,7 +13,7 @@
     "@galtproject/math": "git+ssh://git@github.com/galtproject/galtproject-math.git#e235c33",
     "@galtproject/solidity-test-chest": "https://github.com/galtproject/solidity-test-chest#605d332",
     "@galtproject/utils": "git+ssh://git@github.com/galtproject/galtproject-utils-js.git#be10174",
-    "@openzeppelin/contracts": "2.4.0",
+    "@openzeppelin/contracts": "4.7.2",
     "@openzeppelin/test-environment": "^0.1.2",
     "chai": "^4.2.0",
     "cli-table": "^0.3.1",
